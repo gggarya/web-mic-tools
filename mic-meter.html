@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mic Volume Scope</title>
+<style>
+  body {
+    background: #111;
+    color: #ccc;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  canvas {
+    background: #000;
+    border: 1px solid #444;
+  }
+</style>
+</head>
+<body>
+
+<h2>Microphone Volume Scope</h2>
+<button id="start">Start</button>
+<br><br>
+<canvas id="scope" width="800" height="200"></canvas>
+
+<script>
+const canvas = document.getElementById("scope");
+const ctx = canvas.getContext("2d");
+
+let audioCtx, analyser, dataArray;
+const bufferLength = 1024;
+
+async function startMic() {
+  audioCtx = new AudioContext();
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const source = audioCtx.createMediaStreamSource(stream);
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = bufferLength;
+
+  dataArray = new Uint8Array(analyser.fftSize);
+
+  source.connect(analyser);
+  draw();
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+
+  analyser.getByteTimeDomainData(dataArray);
+
+  // 横スクロール
+  const imageData = ctx.getImageData(1, 0, canvas.width - 1, canvas.height);
+  ctx.putImageData(imageData, 0, 0);
+
+  // 背景クリア（右端1px）
+  ctx.fillStyle = "#000";
+  ctx.fillRect(canvas.width - 1, 0, 1, canvas.height);
+
+  // 音量（RMS計算）
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    const
