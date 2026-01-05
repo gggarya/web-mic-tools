@@ -61,4 +61,23 @@ function draw() {
   // 音量（RMS計算）
   let sum = 0;
   for (let i = 0; i < dataArray.length; i++) {
-    const
+    const v = (dataArray[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / dataArray.length);
+
+  const height = rms * canvas.height;
+
+  // 描画
+  ctx.strokeStyle = "#0f0";
+  ctx.beginPath();
+  ctx.moveTo(canvas.width - 1, canvas.height);
+  ctx.lineTo(canvas.width - 1, canvas.height - height);
+  ctx.stroke();
+}
+
+document.getElementById("start").onclick = startMic;
+</script>
+
+</body>
+</html>
