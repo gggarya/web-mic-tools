@@ -1043,6 +1043,7 @@ async function start() {
       lines.push(`${d.label}`);
     });
     document.getElementById("info_devices").textContent = lines.join("\n");
+    console.log(device);
 
     running = true;
     toggleBtn.textContent = "Stop";
@@ -1656,4 +1657,5 @@ function draw(now) {
 </script>
 
 </body>
+
 </html>
