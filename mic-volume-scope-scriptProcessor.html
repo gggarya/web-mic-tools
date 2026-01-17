@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mic Volume Scope</title>
+<!--//■スタイル-->
+<style>
+  body {
+    background: #111;
+    color: #eee;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  .header {
+    font-size: 24px;
+    display: inline;
+    margin: 0px 10px;
+  }
+  .canvas-wrapper {
+    text-align: center;   /* 中央配置 */
+    margin: 5px 0px;
+  }
+  .canvas-container {
+    display: flex;
+    align-items: center;   /* ← 縦方向中央揃え */
+    justify-content: center;
+    gap: 0px;/*    ← これが td を1個挟むのと同じ役割 */
+    margin: 0px 0px;
+  }
+  canvas.gridLabel {
+    background: #111;
+    border: 0px solid #000;
+    display: block; /*※ これがないと margin の指定が効きにくい*/
+  }
+  canvas {
+    background: #000;
+    border: 1px solid #444;
+    display: block; /*※ これがないと margin の指定が効きにくい*/
+  }
+  .text-container {
+    display: inline-flex;
+    align-items: stretch;   /* ← 縦方向*/
+    justify-content: center;/*中央寄せ*/
+    gap: 0px;/*    ← これが td を1個挟むのと同じ役割 */
+  }
+  .txtInfo {
+    display: inline-block;
+    max-width: 200px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid #444;
+    color: #eee;
+    text-align: left;
+    line-height: 1.3;
+    padding: 8px 12px;
+    margin: 5px auto;
+    }
+  .txtInfoNoBorder {
+    display: inline-block;
+    max-width: 80%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 0px;
+    color: #eee;
+    text-align: left;
+    line-height: 1.3;
+    padding: 8px 12px;
+    margin: 5px auto;
+  }
+  .canvasMix {
+    align-items: start;   /* ← 縦方向中央揃え */
+    background: #000;
+    border: 0px solid #444;
+    height: 220px;
+  }
+  .VerticalNoBorder {
+    display: block;
+    margin: 0px 0px;
+  }
+  button {
+    font-size: 16px;
+    padding: 5px 10px;
+  }
+  .numText {
+    font-family: monospace;;
+    font-size: 14px;
+    margin: 5px 5px;
+    display: block;
+    width: 16ch;
+    text-align: center;
+    white-space: pre; 
+  }
+  .numTextNoMargin {
+    font-family: monospace;;
+    font-size: 14px;
+    margin: 0px 0px;
+    display: block;
+    text-align: center;
+    white-space: pre; 
+  }
+  #sampleRate_audioContext {
+    display: inline-block;
+    color: #ccc;
+    margin: 0px auto;
+    width: fit-content;
+  }
+  #info_devices {
+    max-width: 800px;
+  }
+  #drawInfo {
+    background: #000;
+  }
+  #micSelect {
+    display: block;
+    margin: 10px auto;        /* 水平方向中央 */
+    font-size: 18px;       /* 文字サイズ */
+  }
+
+  hr {
+    border: none;
+    border-top: 0.5px solid #666;
+    margin: 3px 0;
+  }
+</style>
+</head>
+<body>
+
+<!--■□■□■□■□■□■ここが画面に配置するところ■□■□■□■□■□■-->
+<div class="header">Mic Volume Scope</div>
+<button id="toggle">Start</button>
+<select id="micSelect">
+  <option value="">（デバイス一覧未取得）</option>
+</select>
+<div class="canvas-wrapper">
+  <div class="canvas-container">
+    <canvas class="gridLabel" id="scopeLabelR" width="22" height="220"></canvas>
+    <canvas id="scope" width="480" height="200"></canvas>
+    <canvas class="gridLabel" id="scopeLabelL" width="22" height="220"></canvas>
+    <canvas id="peakHistogram" width="80" height="200"></canvas>
+  </div>
+  <div class="canvas-container">
+    <canvas class="gridLabel" id="MixLabel" width="65" height="220"></canvas>
+    <canvas id="peakView" width="130" height="200"></canvas>
+    <canvas class="gridLabel" id="LiniearLabel" width="22" height="220"></canvas>
+    <canvas id="MeterLiniear" width="30" height="200"></canvas>
+    <canvas class="gridLabel" id="Liniear-dBLabel" width="90" height="200"></canvas>
+    <canvas id="MeterDecibel" width="30" height="200"></canvas>
+    <canvas class="gridLabel" id="decibelLabelL" width="22" height="220"></canvas>
+      <div class="canvasMix">
+        <div class="canvas-container">
+          <canvas class="gridLabel" id="drawInfo" width="55" height="55"></canvas>
+          <div class="VerticalNoBorder">
+            <div class="numTextNoMargin" id="peakHoldLabel" style="font-weight: bold; width: 7ch; color: #fa2">###.##</div>
+            <hr style="margin: 3px 0px;">
+            <div class="numTextNoMargin" id="loudnessLabel" style="font-weight: bold; width: 7ch; color: #f8e;">###.##</div>
+          </div>
+        </div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="RMSMostLabel" style="color: #ccc;">頻出   ##.## dB</div>
+        <div class="numText" id="RMSAWMostLabel" style="color: #f77;">頻出   ##.## dB</div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="peakLabel" style="color: #0f0">PEAK  ###.## dB</div>
+        <div class="numText" id="RMSLabel" style="color: #ccc">RMS Z ###.## dB</div>
+        <div class="numText" id="RMSKWLabel" style="color: #aaf;">RMS K ###.## dB</div>
+        <div class="numText" id="RMSAWLabel" style="color: #f77;">RMS A ###.## dB</div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="KZLabel" style="color: #aaf;">K - Z  ##.## dB</div>
+        <div class="numText" id="AZLabel" style="color: #f77;">A - Z  ##.## dB</div>
+      </div>
+    <canvas id="KBlocks" width="75" height="200"></canvas>
+    <canvas class="gridLabel" id="decibelLabelL2" width="22" height="220"></canvas>
+  </div>
+</div>
+<div class="numText" id="sampleRate_audioContext">sampleRate : ***** (device) , ***** (Context)</div>
+<hr>
+<pre class="txtInfoNoBorder"  style="color: #f77;">
+createScriptProcessorを用いたバージョン。
+createScriptProcessorは既に使うの非推奨らしい。
+でも環境を構築せずに、オフラインでただhtmlファイルを開くだけで音量確認を出来るのはこっち。
+（オフラインでただhtmlファイルを開くだけだと、デバイスの選択も出来ないですが）
+また、audioWorklet版とは-70dB付近から下の微小音量の扱いが違うようです。
+</pre>
+<hr>
+<pre class="txtInfoNoBorder">
+★概要
+・マイクの音量を目で確認するためのスクリプトです。
+・出力側を確認したい時はループバック（ステレオミキサー、再生リダイレクト）を使用してください。
+
+★画面説明
+●入力デバイス：表示対象のデバイス
+●上段
+　・大きい窓：デシベル変化を確認する窓です。
+　　・緑：ピーク
+　　・白（太）：ＲＭＳの０．４秒(くらい)平均
+　　・青（太）：Ｋ特性ぽいＲＭＳの０．４秒(くらい)平均
+　　・赤（太）：Ａ特性ぽいＲＭＳの０．４秒(くらい)平均
+　　・青（細）：青（太）と　白（太）の差を－４０の線を０として描画
+　　・赤（細）：赤（太）と　白（太）の差を－４０の線を０として描画
+　　・太さの変わる線：－６０を０、－４０～－８０を＋１～－１のリニアとする波形
+　・右の窓：左の窓のプロット数をｙ座標ごとに(なんとなく)８０個集計したヒストグラム
+●下段
+　・左下：サンプリングデータの最大値を、前後３点とともに切り出し、曲線でつないだもの
+　・左のレベルメーター：リニアスケールのピークメーター。切れ目はＲＭＳ
+　・右のレベルメーター：対数ケールのピークメーター。切れ目はＲＭＳ
+　・ＰＥＡＫ：ピーク値が－６ｄＢを超えた時に点灯
+　・ＳＩＧ：ピーク値が－２０ｄＢを超えた時に点灯
+　・数値群：上の大きい窓の内容を数字で表示
+　・頻出は描画ヒストグラムのピークとなるｙ位置のｄＢ。座標単位なので粗い。
+　・右下はＫ特性フィルタをかけて0.4秒ごとに平均して－０．６９１ｄＢし、
+　　－７０ｄＢ以上のブロックのみを３０秒間で平均した仮基準をー１０ｄＢしたのを基準として
+　　ふるいにかけて、残ったブロックを３０秒間平均したのが紫の線。
+
+★用途
+　・ＯＳの表示じゃ音量が分からないよって時に使う。
+　・ＯＳの表示じゃ音量が小さいだけなのか、繋がっていないのか分からない時に使う。
+　・ＯＳやアプリの謎メーターが、リニアか対数か判断する比較対象として。
+　・世間一般のコンテンツって、どれくらいの音量で作られているのかを見る。
+　・多人数時の音量調整の目安として。
+　・社内ＰＡの学習用など。アプリインストールできない環境などに。
+
+★仕様に関する事
+・画面更新の時間間隔ごとに、下記を集計して表示している。
+（上側ピーク、下側ピーク、二乗和、ＫとＡの重みづけ後の二乗和、データ数、最大振幅と前後3つ(計7点)の振幅）
+・ブラウザの画面更新で1px進む。横軸の長さは環境依存。
+・二乗平均の平均期間は0.4秒を狙っているが、こちらも環境の更新頻度ごとなので誤差あり。
+・補間表示は７点での三次スプライン。こちらは描画データでなく三次式としてのピーク。
+・ヒストグラムは、描画した点の集計。音声データの集計ではない。
+・ヒストグラム対象は描画データ80個。時間は環境依存。80個はなんとなく。
+・落とす時はこのhtmlファイル単体でよいが、https://かlocalhost環境でないと動かないらしい。
+・個人的にＡの変化、Ｚとの乖離は気にしているので、計算リソース食うの承知で盛り込んだ。
+・スタート後に↓に取得した情報を表示
+</pre>
+<hr>
+<div>
+  <pre class="txtInfo" id="info_devices"></pre>
+</div>
+<div class="text-container">
+  <pre class="txtInfo" id="info_capabilities"></pre>
+  <pre class="txtInfo" id="info_constraints"></pre>
+  <pre class="txtInfo" id="info_settings"></pre>
+</div>
+
+<!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
+<script>
+//オブジェクトやら
+const canvas = document.getElementById("scope");//オシロっぽいキャンバス
+const ctxSc = canvas.getContext("2d");
+const peakViewCanvas = document.getElementById("peakView");//トゥルーピーク確認用キャンバス
+const ctxPV = peakViewCanvas.getContext("2d");
+const scopeLabelRCanvas = document.getElementById("scopeLabelR");//scopeの右ラベル
+const ctxSR = scopeLabelRCanvas.getContext("2d");
+const scopeLabelLCanvas = document.getElementById("scopeLabelL");//scopeの左ラベル
+const ctxSL = scopeLabelLCanvas.getContext("2d");
+const peakHistogramCanvas = document.getElementById("peakHistogram");//ヒストグラム
+const ctxPH = peakHistogramCanvas.getContext("2d");
+const meterLinearCanvas = document.getElementById("MeterLiniear");//リニアメーター
+const ctxML = meterLinearCanvas.getContext("2d");
+const LinearLabelCanvas = document.getElementById("LiniearLabel");//リニアメーターのラベル
+const ctxLL = LinearLabelCanvas.getContext("2d");
+const LineardBLabelCanvas = document.getElementById("Liniear-dBLabel");//リニアとdBを繋ぐラベル
+const ctxLdL = LineardBLabelCanvas.getContext("2d");
+const meterDecibelCanvas = document.getElementById("MeterDecibel");//デシベルメーター
+const ctxMD = meterDecibelCanvas.getContext("2d");
+const decibelLabelLCanvas = document.getElementById("decibelLabelL");//デシベルメーターの左ラベル
+const ctxDL = decibelLabelLCanvas.getContext("2d");
+const mixLabelCanvas = document.getElementById("MixLabel");//ニリアとデシベルのミックスラベル
+const ctxMx = mixLabelCanvas.getContext("2d");
+const drawInfoCanvas = document.getElementById("drawInfo");//絵的な情報表示
+const ctxDI = drawInfoCanvas.getContext("2d");
+const toggleBtn = document.getElementById("toggle");
+const KBlodksCanvas = document.getElementById("KBlocks");//400mごとに計算したKフィルタ後のRMS表示用
+const ctxKB = KBlodksCanvas.getContext("2d");
+const decibelLabelLCanvas2 = document.getElementById("decibelLabelL2");//デシベルメーターの左ラベル
+const ctxDL2 = decibelLabelLCanvas2.getContext("2d");
+
+//音声処理系の変数
+let audioCtx = null; // = new AudioContext();
+let peakNode = null; // = new AudioWorkletNode(audioCtx, "peak-meter");
+let processorNode = null;
+let stream = null; // = await navigator.mediaDevices.getUserMedia({ audio: true });
+let rafId = null; // = requestAnimationFrame(draw);
+let devices = null;
+let device = undefined;
+let micNum = 0;//マイクの本数
+let sampleRateDevice = 0;
+
+let running = false;
+let peakMeterPostIs = false;//ピークメータのプロセッサからのデータあり
+let peakMax4Display = -2; // UI側で描画用に最大値を保持
+let peakMin4Display = 2; // UI側で描画用に最小を保持
+let squareSum4Display = 0; // UI側で描画用に二乗和を保持
+let squareSumAW4Display = 0; // UI側で描画用に二乗和を保持
+let squareSumKW4Display = 0; // UI側で描画用に二乗和を保持
+let dataNum4Display = 0; // UI側で描画用にデータ数を保持
+const truePeakSamples = [0, 0, 0, 0, 0, 0, 0];//トゥルーピークっぽいところの周囲のデータ
+let truePeakHoldWatch = 0;//トゥルーピークをリセットするための計測用
+const truePeakHoldtime = 5000;//トゥルーピークをリセットする時間
+let dataNumAveRMS = 0;//RMS平均用のデータカウント
+let dataNumAveRMSnow = 0;//RMS平均用のデータカウント
+const squareSum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const squareSumAW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const squareSumKW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const dataNum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+let aveNum = 2496;//=(audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
+let array50mSecIndex = 0;
+let blockCounter = 0;//0.4秒ごとのブロックを作るためのカウンタ。dataNum50mSec.length個進んだら0.4秒とみなす。
+let startWatch = 0;//スタートにて開始する時計
+let count400mSecWatch = 0;//400m秒計測用の時計
+let squareSumKW400mLufs = 0;
+let dataNum400mLufs = 0;
+const loudnessOffset = -0.691;//ラウドネス計算の補正値[dB]]
+const loudnessOffsetInSquare = Math.pow(10, loudnessOffset / 10);//ラウドネス計算の補正値。二乗平均にかける用
+const loudness70dBInSquare = Math.pow(10, -70 / 10);//70dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
+const loudness10dBInSquare = Math.pow(10, -10 / 10);//-10dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
+let loudnessSum4Gate = 0;//ゲートの判定基準に使う有効ブロックの合計値。
+let loudnessNum4Gate = 0;//ゲートの判定基準に使う有効データ数。
+const loudness400mSec = new Float32Array(75).fill(0);//400mごとに保存していく
+let loudness400mIndex = 0;
+const loudnessY = new Int32Array(75).fill(250);//y座標
+let loudness10dBGateY = 0;//-10dBの閾値のライン
+
+//画面用の変数
+let squareSum400m = 0;
+let squareSumAW400m = 0;
+let squareSumKW400m = 0;
+let dataNum400m = 0;
+let x = 0;
+let yPreviousPeak = Number(canvas.height);//前回描画y位置
+let yPreviousPeakMax = Number(canvas.height);//前回描画y位置
+let yPreviousPeakMin = Number(canvas.height);//前回描画y位置
+let PreviousPeak = 0;//前回描画の値
+let PreviousRMS = 0;//前回描画の値
+let yPreviousRMS = Number(canvas.height);//前回描画y位置
+let PreviousRMSAW = 0;//前回描画の値
+let yPreviousRMSAW = Number(canvas.height);//前回描画y位置
+let PreviousRMSKW = 0;//前回描画の値
+let yPreviousRMSKW = Number(canvas.height);//前回描画y位置
+let timeDivX = 0;//縦線用の時間計測用
+let peakHold = 0;//ピークホールド用
+const peakHoldDownSpeed = Math.pow(0.1, 20 / 20);//1000m秒での加工スピード
+let peakHoldWatch = 0;//ピークホールドを下げる時間計測用
+let xDivYet = true;//縦線を書いたかのフラグ
+let peakViewIsDirty = true;//ピーク表示したかのフラグ
+const peakViewThreshold = Math.pow(10, -25 / 20);//ピークビューワに表示する閾値
+const dBred = 6;//赤dB
+const dByellow = 20;//黄dB
+const dBgreen = 40;//緑dB
+const dBmin = 80;//下端dB
+const inv_dBmin = 1 / dBmin;
+const yDiv = canvas.height * 10 * inv_dBmin;//10dBの画面幅
+const ydBred = canvas.height * dBred * inv_dBmin | 0;//赤のy
+const ydByellow = canvas.height * dByellow * inv_dBmin | 0;//黄のy
+const ydBgreen = canvas.height * dBgreen * inv_dBmin | 0;//黄のy
+const liniear_dBmin = Math.pow(0.1, dBmin / 20);//下端dBってリニアだといくつ？
+const yLoudness70dB = 70 * KBlodksCanvas.height * inv_dBmin | 0;//70dB位置
+const yPeakBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+const yRMSBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+const yRMSAWBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+const yRMSKWBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+const yWave1Buffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+const yWave2Buffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
+let posPeakBuffer = 0;//上記のインデックス
+const histPeakBuffer = new Int32Array(canvas.height | 0);//ヒストグラム用のカウンタ
+const histRMSBuffer = new Int32Array(canvas.height | 0);//ヒストグラム用のカウンタ
+const histRMSAWBuffer = new Int32Array(canvas.height | 0);//ヒストグラム用のカウンタ
+const histRMSKWBuffer = new Int32Array(canvas.height | 0);//ヒストグラム用のカウンタ
+const histWaveBuffer = new Int32Array(canvas.height | 0);//ヒストグラム用のカウンタ
+
+//色
+const bgColorRed = "#600";//赤部分の背景色
+const bgColorYellow = "#440";//黄色部分の背景色
+const bgColorGreen = "#040";//緑部分の背景色
+const bgColorBlue = "#033";//青緑部分の背景色
+const bgColorDiv = "#888";//グリッド線の色
+const Color4Wave = "#bcf";//波形の線の色
+const Color4Peak = "#0c0";//ピークの線の色
+const Color4RMS = "#fff";//RMSの線の色
+const Color4RMSAW = "#f77";//AWRMSの線の色
+const Color4RMSKW = "#99f";//KWRMSの線の色
+const ColorLedRedOff =  "rgba(120, 40, 40, 1.0)";//消えてるLED
+const ColorLedRedOn1 =  "rgba(255, 60, 60, 1.0)";//点灯LED
+const ColorLedRedOn0 =  "rgba(255, 160, 160, 0.9)";//ハイライト
+const ColorLedRedOn2 =  "rgba(255, 60, 60, 0.45)";//周辺光１
+const ColorLedRedOn3 =  "rgba(200, 40, 40, 0.15)";//周辺光２
+const ColorLedGreenOff =  "rgba(20, 90, 20, 1.0)";//消えてるLED
+const ColorLedGreenOn1 =  "rgba(40, 255, 40, 1.0)";//点灯LED
+const ColorLedGreenOn0 =  "rgba(180, 255, 180, 0.9)";//ハイライト
+const ColorLedGreenOn2 =  "rgba(60, 255, 60, 0.45)";//周辺光１
+const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
+
+//フィルタ係数
+let spAWa6 = 0;
+let spAWa5 = 0;
+let spAWa4 = 0;
+let spAWa3 = 0;
+let spAWa2 = 0;
+let spAWa1 = 0;
+let spAWb0 = 1;//調整項と正規化もプラス
+let spAWb1 = 0;
+let spAWb2 = 0;
+let spAWb3 = 0;
+let spAWb4 = 0;
+let spAWb5 = 0;
+let spAWb6 = 0;
+let sphsa1 = 0;//ハイシェルフの係数
+let sphsa2 = 0;
+let sphsb0 = 1;
+let sphsb1 = 0;
+let sphsb2 = 0;
+let sphpa1 = 0;//ハイパスの係数
+let sphpa2 = 0;
+let sphpb0 = 1;
+let sphpb1 = 0;
+let sphpb2 = 0;
+    //前回値保存の箱
+let spinZ1 = 0;//入力データの保存
+let spinZ2 = 0;
+let spinZ3 = 0;
+let spinZ4 = 0;
+let spinZ5 = 0;
+let spinZ6 = 0;
+let spoutAZ1 = 0;//A特性の出力保存
+let spoutAZ2 = 0;
+let spoutAZ3 = 0;
+let spoutAZ4 = 0;
+let spoutAZ5 = 0;
+let spoutAZ6 = 0;
+let spoutHsZ1 = 0;//K特性Hsの出力保存
+let spoutHsZ2 = 0;
+let spoutHpZ1 = 0;//K特性Hpの出力保存
+let spoutHpZ2 = 0;
+
+function calcFilter (sampleRate) {
+  //A特性の係数(wikiの式を双1次変換)
+  const fr = 1000;
+  const fL = Math.pow(10, 1.5);
+  const fH = Math.pow(10, 3.9);
+  const fA = Math.pow(10, 2.45);
+  const D = Math.sqrt(0.5);
+  const b = (fr * fr + fL * fL * fH * fH / (fr * fr) - D * (fL * fL + fH * fH)) / (1. - D);
+  const c = fL * fL * fH * fH;
+  const f1 = Math.sqrt((-b - Math.sqrt(b * b - 4. * c)) * 0.5);
+  const f2 = ((3. - Math.sqrt(5)) * 0.5) * fA;
+  const f3 = ((3. + Math.sqrt(5)) * 0.5) * fA;
+  const f4 = Math.sqrt((-b + Math.sqrt(b * b - 4. * c)) * 0.5);
+  let w1 = Math.PI * 2 * f1 / sampleRate; w1 = 2. * Math.tan(w1 * 0.5);//プリワーピングもしておく
+  let w2 = Math.PI * 2 * f2 / sampleRate; w2 = 2. * Math.tan(w2 * 0.5);
+  let w3 = Math.PI * 2 * f3 / sampleRate; w3 = 2. * Math.tan(w3 * 0.5);
+  let w4 = Math.PI * 2 * f4 / sampleRate; w4 = 2. * Math.tan(w4 * 0.5);
+  const w1p4 = w1 + w4;
+  const w1w4 = w1 * w4;
+  const w2p3 = w2 + w3;
+  const w2w3 = w2 * w3;
+  const c3 = 2. * w1p4;
+  const c2 = w1p4 * w1p4 + 2. * w1w4;
+  const c1 = 2. * w1w4 * w1p4;
+  const c0 = w1w4 * w1w4;
+  const k6 = Math.pow(2., 6.);
+  const k5 = (w2p3 + c3) * Math.pow(2., 5.);
+  const k4 = (w2p3 + w2w3 + c2) * Math.pow(2., 4.);
+  const k3 = (c1 + w2p3 * c2 + w2w3 * c3) * Math.pow(2., 3.);
+  const k2 = (c0 + w2p3 * c1 + w2w3 * c2) * Math.pow(2., 2.);
+  const k1 = (w2p3 * c0 + w2w3 * c1) * 2.;
+  const k0 = (w2w3 * c0);
+  const GA = Math.pow(10., 2. / 20.);//1kで0dBになるようにする調整項
+  const AWa0 = 1 / (k6 + k5 + k4 + k3 + k2 + k1 + k0);//逆数
+  spAWa6 = (k6 - k5 + k4 - k3 + k2 - k1 + k0) * AWa0;
+  spAWa5 = (-6. * k6 + 4. * k5 - 2. * k4 + 2. * k2 - 4. * k1 + 6. * k0) * AWa0;
+  spAWa4 = (15. * k6 - 5. * k5 - k4 + 3. * k3 - k2 - 5. * k1 + 15. * k0) * AWa0;
+  spAWa3 = (-20. * k6 + 4. * k4 - 4. * k2 + 20. * k0) * AWa0;
+  spAWa2 = (15. * k6 + 5. * k5 - k4 - 3. * k3 - k2 + 5. * k1 + 15. * k0) * AWa0;
+  spAWa1 = (-6. * k6 - 4. * k5 - 2. * k4 + 2. * k2 + 4. * k1 + 6. * k0) * AWa0;
+  spAWb0 = Math.pow(2., 4.) * w4 * w4 * GA * AWa0;//調整項と正規化もプラス
+  spAWb1 = -2. * spAWb0;
+  spAWb2 = -spAWb0;
+  spAWb3 = 4. * spAWb0;
+  spAWb4 = spAWb2;
+  spAWb5 = spAWb1;
+  spAWb6 = spAWb0;
+
+  //K特性の係数、ハイシェルフとハイパスの二段構え。式はAudio EQ Cookbook
+  const fcHs = 1500;//カットオフ周波数
+	const gain_db = 4;
+	let w = 2 * Math.PI * fcHs / sampleRate;
+  let cosw = Math.cos(w);
+  let sinw = Math.sin(w);
+	const A = Math.pow(10.0, gain_db / 40);
+  const S = 1;
+  const alpha2sqrtA = sinw * Math.sqrt((A * A + 1) * (1 / S - 1) + 2 * A);
+	let a0 = (A + 1) - (A - 1) * cosw + alpha2sqrtA;
+	let a1 = 2 * ((A - 1) - (A + 1) * cosw);
+	let a2 = (A + 1) - (A - 1) * cosw - alpha2sqrtA;
+	let b0 = A * ((A + 1) + (A - 1) * cosw + alpha2sqrtA);
+	let b1 = -2 * A * ((A - 1) + (A + 1) * cosw);
+	let b2 = A * ((A + 1) + (A - 1) * cosw - alpha2sqrtA);
+  let inv_a0 = 1 / a0;
+	sphsa1 = a1 * inv_a0;//ハイシェルフの係数
+  sphsa2 = a2 * inv_a0;
+  sphsb0 = b0 * inv_a0;
+  sphsb1 = b1 * inv_a0;
+  sphsb2 = b2 * inv_a0;
+  //ハイパス
+	const fcHp = 37.5;
+	const qHp = 0.5;
+	w = 2 * Math.PI * fcHp / sampleRate;
+  cosw = Math.cos(w);
+  sinw = Math.sin(w);
+	const alpha = Math.sin(w) / qHp * 0.5;
+	a0 = 1 + alpha;
+	a1 = -2 * cosw;
+	a2 = 1 - alpha;
+	b0 = (1 + cosw) * 0.5;
+	b1 = (1 + cosw) * (-1);
+	b2 = (1 + cosw) * 0.5;
+  inv_a0 = 1 / a0;
+  sphpa1 = a1 * inv_a0;//ハイパスの係数
+  sphpa2 = a2 * inv_a0;
+  sphpb0 = b0 * inv_a0;
+  sphpb1 = b1 * inv_a0;
+  sphpb2 = b2 * inv_a0;
+}
+
+function calcPeak(samples) {
+    if (samples.length === 0) return true;
+    let peakMax = -1;//上側
+    let peakMin = 1;//下側
+    let z0 = 0;
+    let z1 = 0;
+    let z2 = 0;
+    let z3 = 0;//中央
+    let z4 = 0;
+    let z5 = 0;
+    let z6 = 0;
+    let squareSum = 0;
+    let squareSumAW = 0;
+    let squareSumKW = 0;
+    const dataNum = samples.length;
+    for (let i = 0; i < dataNum; i++) {
+      //最大値とRMS計算
+      const sample_i = samples[i];
+      if (sample_i > peakMax) peakMax = sample_i;//上側最大値
+      if (sample_i < peakMin) peakMin = sample_i;//下側最大値
+      if (Math.abs(spinZ3) > z3) {//絶対値で一番大きいところの周りを保存
+        const s = Math.sign(spinZ3);
+        z0 = sample_i * s;
+        z1 = spinZ1 * s;
+        z2 = spinZ2 * s;
+        z3 = spinZ3 * s;//中央
+        z4 = spinZ4 * s;
+        z5 = spinZ5 * s;
+        z6 = spinZ6 * s;
+      }
+      squareSum += sample_i * sample_i;//単純な二乗和
+      //Aフィルタ後を計算
+      const outAZ0 = spAWb0 * sample_i
+       + spAWb1 * spinZ1
+       + spAWb2 * spinZ2
+       + spAWb3 * spinZ3
+       + spAWb4 * spinZ4
+       + spAWb5 * spinZ5
+       + spAWb6 * spinZ6
+       - spAWa1 * spoutAZ1
+       - spAWa2 * spoutAZ2
+       - spAWa3 * spoutAZ3
+       - spAWa4 * spoutAZ4
+       - spAWa5 * spoutAZ5
+       - spAWa6 * spoutAZ6;
+       squareSumAW += outAZ0 * outAZ0;//A特性の二乗和
+
+      //Kフィルタ後を計算
+      const outHsZ0 = sphsb0 * sample_i
+       + sphsb1 * spinZ1
+       + sphsb2 * spinZ2
+       - sphsa1 * spoutHsZ1
+       - sphsa2 * spoutHsZ2;
+      const outHpZ0 = sphpb0 * outHsZ0
+       + sphpb1 * spoutHsZ1
+       + sphpb2 * spoutHsZ2
+       - sphpa1 * spoutHpZ1
+       - sphpa2 * spoutHpZ2;
+      squareSumKW += outHpZ0 * outHpZ0;//K特性の二乗和
+
+      //Zを保存
+      spinZ6 = spinZ5;
+      spinZ5 = spinZ4;
+      spinZ4 = spinZ3;
+      spinZ3 = spinZ2;
+      spinZ2 = spinZ1;
+      spinZ1 = sample_i;
+      spoutAZ6 = spoutAZ5;
+      spoutAZ5 = spoutAZ4;
+      spoutAZ4 = spoutAZ3;
+      spoutAZ3 = spoutAZ2;
+      spoutAZ2 = spoutAZ1;
+      spoutAZ1 = outAZ0;
+      spoutHsZ2 = spoutHsZ1;
+      spoutHsZ1 = outHsZ0;
+      spoutHpZ2 = spoutHpZ1;
+      spoutHpZ1 = outHpZ0;
+    }
+    //値を戻す
+
+    return { peakMax, peakMin, squareSum, squareSumAW, squareSumKW, dataNum, z0, z1, z2, z3, z4, z5, z6 };
+}
+
+
+
+
+
+
+
+{//ラベル描画
+  //対数メーター
+  let topMargin = (scopeLabelRCanvas.height - canvas.height) * 0.5 | 0;
+  ctxSR.fillStyle = "#aaa";
+  ctxSR.font = "12px JetBrains Mono, Fira Code, monospace";
+  ctxSR.textBaseline = "middle";
+  ctxSR.textAlign = "center";
+  for (let i = 0; i <= dBmin; i += 10) {
+    const y = topMargin + canvas.height * i * inv_dBmin | 0;
+    ctxSR.fillText(-i, scopeLabelRCanvas.width * 0.5 | 0, y);
+  }
+  ctxSR.fillStyle = "#ff0";
+  ctxSR.fillText(-20, scopeLabelRCanvas.width * 0.5 | 0, topMargin + canvas.height * 20 * inv_dBmin | 0);
+  ctxSR.fillStyle = "#f88";
+  ctxSR.fillText(-6, scopeLabelRCanvas.width * 0.5 | 0, topMargin + canvas.height * 5.5 * inv_dBmin | 0);
+  ctxSL.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
+  ctxDL.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
+  ctxDL2.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
+  //リニアメーター
+  topMargin = (LinearLabelCanvas.height - meterLinearCanvas.height) * 0.5 | 0;
+  ctxLL.fillStyle = "#aaa";
+  ctxLL.font = "12px JetBrains Mono, Fira Code";
+  ctxLL.textBaseline = "middle";
+  ctxLL.textAlign = "center";
+  for (let i = 1; i >= 0; i -= 0.1) {
+    const y = topMargin + meterLinearCanvas.height * (1 - i) | 0;
+    ctxLL.fillText(i.toFixed(1), LinearLabelCanvas.width * 0.5 | 0, y);
+  }
+  ctxLL.fillStyle = "#ff0";
+  ctxLL.fillText("0.1", LinearLabelCanvas.width * 0.5 | 0, topMargin + meterLinearCanvas.height * 0.9 | 0);
+  ctxLL.fillStyle = "#faa";
+  ctxLL.fillText("0.5", LinearLabelCanvas.width * 0.5 | 0, topMargin + meterLinearCanvas.height * 0.5 | 0);
+  //リニアとデシベルのミックスのラベル
+  ctxMx.drawImage(LinearLabelCanvas, mixLabelCanvas.width - LinearLabelCanvas.width, 0);//右のラベルを左にコピー
+  ctxMx.font = "12px JetBrains Mono, Fira Code, monospace";
+  ctxMx.textBaseline = "middle";
+  ctxMx.textAlign = "left";
+  for (let i = 0; i <= 30; i += 10) {
+    if (i === 20) {
+      ctxMx.strokeStyle = "#ff0";
+      ctxMx.fillStyle = "#ff0";
+    } else {
+      ctxMx.strokeStyle = bgColorDiv;//通常の色指定
+      ctxMx.fillStyle = "#aaa";
+    }
+    const y = topMargin + meterLinearCanvas.height * (1 - Math.pow(0.1, i * 0.05)) | 0;
+    const labelText = `${(-i).toFixed(0)}`;
+    ctxMx.fillText(`${labelText.padStart(3, " ")}dB`, 0, y);
+    ctxMx.fillRect(33, y, 10, 1);
+  }
+  ctxMx.fillRect(33, topMargin + meterLinearCanvas.height, 10, 1);
+  ctxMx.fillText("-∞", 12, topMargin + meterLinearCanvas.height + 3);
+  ctxMx.fillRect(26, topMargin + 125, 1, -115);
+  ctxMx.lineWidth = 2;
+  ctxMx.beginPath();
+  ctxMx.moveTo(26 - 5, topMargin + 10 + 8);
+  ctxMx.lineTo(26.5, topMargin + 10);
+  ctxMx.lineTo(26 + 6, topMargin + 10 + 8);
+  ctxMx.stroke();
+  ctxMx.beginPath();
+  ctxMx.moveTo(26 - 5, topMargin + 125 - 8);
+  ctxMx.lineTo(26.5, topMargin + 125);
+  ctxMx.lineTo(26 + 6, topMargin + 125 - 8);
+  ctxMx.stroke();
+  ctxMx.fillRect(26, topMargin + 170, 1, -23);
+  ctxMx.beginPath();
+  ctxMx.moveTo(26 - 4, topMargin + 147 + 6);
+  ctxMx.lineTo(26.5, topMargin + 147);
+  ctxMx.lineTo(26 + 5, topMargin + 147 + 6);
+  ctxMx.stroke();
+  ctxMx.beginPath();
+  ctxMx.moveTo(26 - 4, topMargin + 170 - 6);
+  ctxMx.lineTo(26.5, topMargin + 170);
+  ctxMx.lineTo(26 + 5, topMargin + 170 - 6);
+  ctxMx.stroke();
+
+  ctxMx.save();
+  ctxMx.translate(0, 0);// 回転の基準点を決める
+  ctxMx.rotate(3 * Math.PI / 2);// 90°回転（反時計回り）
+  ctxMx.fillStyle = "#eee";
+  ctxMx.textAlign = "center";
+  ctxMx.fillText("10dB ＝ 約３倍", -78, 17);
+  ctxMx.font = "8px JetBrains Mono, Fira Code, monospace";
+  ctxMx.fillText("約３倍", -168, 17);
+  ctxMx.restore();
+
+  //リニアとデシベルメーターを繋ぐラベル
+  const flatWidth = 8;
+  for (let i = 0.9; i > 0.05; i -= 0.1) {
+    const yLiniear = 1 + LineardBLabelCanvas.height * (1 - i) | 0;
+    const yDecibel = LineardBLabelCanvas.height * Math.log10(i) * -20 * inv_dBmin | 0;
+    if (i - 0.1 < 0.01) {
+        ctxLdL.fillStyle = "#ff0";
+        ctxLdL.strokeStyle = "#ff0";
+    } else if (Math.abs(i - 0.5) < 0.01) {
+        ctxLdL.fillStyle = "#faa";
+        ctxLdL.strokeStyle = "#faa";
+    } else {
+      ctxLdL.fillStyle = bgColorDiv;
+      ctxLdL.strokeStyle = bgColorDiv;//通常の色指定
+    }
+    ctxLdL.fillRect(0, yLiniear, flatWidth, 1);
+    ctxLdL.fillRect(LineardBLabelCanvas.width, yDecibel, -flatWidth, 1);
+    ctxLdL.lineWidth = 1;
+    ctxLdL.beginPath();
+    ctxLdL.moveTo(flatWidth, yLiniear);
+    ctxLdL.lineTo(LineardBLabelCanvas.width - flatWidth, yDecibel);
+    ctxLdL.stroke();
+  }
+  for (let i = 30; i <= dBmin; i += 10) {
+    const yLiniear = 1 + LineardBLabelCanvas.height * (1 - Math.pow(0.1, i / 20)) | 0;
+    const yDecibel = LineardBLabelCanvas.height * i * inv_dBmin | 0;
+    ctxLdL.fillStyle = bgColorDiv;
+    ctxLdL.strokeStyle = bgColorDiv;//通常の色指定
+    ctxLdL.fillRect(0, yLiniear, flatWidth, 1);
+    ctxLdL.fillRect(LineardBLabelCanvas.width, yDecibel, -flatWidth, 1);
+    ctxLdL.lineWidth = 1;
+    ctxLdL.beginPath();
+    ctxLdL.moveTo(flatWidth, yLiniear);
+    ctxLdL.lineTo(LineardBLabelCanvas.width - flatWidth, yDecibel);
+    ctxLdL.stroke();
+  }
+  ctxLdL.fillStyle = bgColorDiv;
+  ctxLdL.fillRect(0, 0, LineardBLabelCanvas.width, 1);
+}
+
+//メーターを塗ってしまう
+const meterMargin = meterLinearCanvas.width * 0.2 | 0;
+const meterWidth = (meterLinearCanvas.width - meterMargin - meterMargin - 1) | 0;
+//リニアメーター
+ctxML.fillStyle = bgColorGreen;
+ctxML.fillRect(0, meterLinearCanvas.height, meterLinearCanvas.width, -meterLinearCanvas.height * 0.1 | 0);
+ctxML.fillStyle = bgColorYellow;
+ctxML.fillRect(0, meterLinearCanvas.height * 0.5 | 0, meterLinearCanvas.width, meterLinearCanvas.height * 0.4 | 0);
+ctxML.fillStyle = bgColorRed;
+ctxML.fillRect(0, 0, meterLinearCanvas.width, meterLinearCanvas.height * 0.5 | 0);
+for (let i = 0.1; i < 0.85; i += 0.1) {
+  ctxML.fillStyle = bgColorDiv;
+  ctxML.fillRect(0, meterLinearCanvas.height * i | 0, meterLinearCanvas.width, 1);
+}
+ctxML.fillStyle = "#ff0";
+ctxML.fillRect(0, meterLinearCanvas.height * 0.9 | 0, meterLinearCanvas.width, 1);
+ctxML.fillStyle = "#f88";
+ctxML.fillRect(0, meterLinearCanvas.height * 0.5 | 0, meterLinearCanvas.width, 1);
+//デシベルメーター
+ctxMD.fillStyle = bgColorGreen;
+ctxMD.fillRect(0, meterLinearCanvas.height, meterLinearCanvas.width
+, -meterLinearCanvas.height * (dBmin - dBred) * inv_dBmin | 0);
+ctxMD.fillStyle = bgColorYellow;
+ctxMD.fillRect(0, meterLinearCanvas.height * dBred * inv_dBmin | 0, meterLinearCanvas.width
+, meterLinearCanvas.height * (dByellow - dBred) * inv_dBmin | 0);
+ctxMD.fillStyle = bgColorRed;
+ctxMD.fillRect(0, 0, meterLinearCanvas.width, meterLinearCanvas.height * dBred * inv_dBmin | 0);
+for (let i = 10; i < dBmin; i += 10) {
+  if (i === dByellow) ctxMD.fillStyle = "#ff0";
+  else ctxMD.fillStyle = bgColorDiv;
+  ctxMD.fillRect(0, meterLinearCanvas.height * i * inv_dBmin | 0, meterLinearCanvas.width, 1);
+}
+ctxMD.fillStyle = "#f88";
+ctxMD.fillRect(0, meterLinearCanvas.height * dBred * inv_dBmin | 0, meterLinearCanvas.width, 1);
+
+//消灯LEDを書く
+const peakLedX = 10;
+const peakLedY = 17;//SIG
+const sigLedY = peakLedY + 25;//SIG
+const LedR1 = 5;
+const LedR0 = LedR1 * 0.5;
+const LedR2 = LedR1 * 1.1;
+const LedR3 = LedR1 * 1.5;
+let peakLedIs = false;
+let sigLedIs = false;
+ctxDI.fillStyle = ColorLedRedOff;
+ctxDI.beginPath();
+ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+ctxDI.fill();
+ctxDI.fillStyle = "#f99";
+ctxDI.font = "11px JetBrains Mono, Fira Code";
+ctxDI.textBaseline = "middle";
+ctxDI.textAlign = "left";
+ctxDI.fillText("PEAK", peakLedX + 9, peakLedY);
+ctxDI.fillStyle = ColorLedGreenOff;
+ctxDI.beginPath();
+ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+ctxDI.fill();
+ctxDI.fillStyle = "#8f8";
+ctxDI.fillText("SIG", peakLedX + 9, sigLedY);
+
+//トゥルーピーク計算用のスプライン
+/**
+ * 7点（x=0..6 固定）の Natural Cubic Spline
+ * @param {number[]} y - 長さ7の配列
+ * @returns {function(number): number} 補間関数 f(t)
+ */
+ function cubicSpline7(y) {
+  const n = 7;
+  const m = new Array(n).fill(0); // 2階微分
+
+  // --- 連立一次方程式を解く（Thomas algorithm）
+  const a = new Array(n).fill(0);
+  const b = new Array(n).fill(0);
+  const c = new Array(n).fill(0);
+  const d = new Array(n).fill(0);
+
+  for (let i = 1; i < n - 1; i++) {
+    a[i] = 1;
+    b[i] = 4;
+    c[i] = 1;
+    d[i] = 6 * (y[i + 1] - 2 * y[i] + y[i - 1]);
+  }
+
+  // 前進消去
+  for (let i = 2; i < n - 1; i++) {
+    const w = a[i] / b[i - 1];
+    b[i] -= w * c[i - 1];
+    d[i] -= w * d[i - 1];
+  }
+
+  // 後退代入
+  for (let i = n - 2; i >= 1; i--) {
+    m[i] = (d[i] - c[i] * m[i + 1]) / b[i];
+  }
+
+  //最大値走査
+  const inv6 = 1 / 6;
+  let yMax = -Infinity;
+  let maxT = -1;
+  let m1 = m[0];
+  let y1 = y[0];
+  for (let i = 1; i < n; i++) {
+    const y0 = y1;
+    const m0 = m1;
+    y1 = y[i];
+    m1 = m[i];
+    if (y0 > yMax) {
+      yMax = y0;
+      maxT = i - 1;
+    }
+    const duA = (m1 - m0) * 0.5;
+    if (Math.abs(duA) > 1e-12) {//頂点が区間にあるかの境界条件その１
+      const duB = m0 * 0.5;
+      const duC = (y1 - y0) - (2 * m0 + m1) * inv6;
+      const sqrt_BB_AC = Math.sqrt(duB * duB - duA * duC);
+      let u = (-duB - sqrt_BB_AC) / duA;//一つ目の解
+      if (u > 0 && u < 1) {//頂点が区間にあるかの境界条件その２
+        const uu = 1 - u;
+        const v =
+          uu * y0 + u * y1 +
+          (uu * uu * uu - uu) * m0 * inv6 +
+          (u * u * u - u) * m1 * inv6;
+        if (v > yMax) {
+          yMax = v;
+          maxT = i - 1 + u;
+        }
+      }
+      u = (-duB + sqrt_BB_AC) / duA;//二つ目の解
+      if (u > 0 && u < 1) {//頂点が区間にあるかの境界条件その２
+        const uu = 1 - u;
+        const v =
+          uu * y0 + u * y1 +
+          (uu * uu * uu - uu) * m0 * inv6 +
+          (u * u * u - u) * m1 * inv6;
+        if (v > yMax) {
+          yMax = v;
+          maxT = i - 1 + u;
+        }
+      }
+    }
+  }
+  if (y[n - 1] > yMax) {
+    yMax = y[n - 1];
+    maxT = n - 1;
+  }
+
+  // --- 補間関数を返す
+  return function (t) {
+    // 範囲制限
+    if (t < 0) return maxT;
+    if (t > n - 1) return yMax;
+
+    const i = Math.floor(t);
+    const u = t - i;
+    const uu = 1 - u;
+
+    const y0 = y[i];
+    const y1 = y[i + 1];
+    const m0 = m[i];
+    const m1 = m[i + 1];
+
+    return (
+      uu * y0 + u * y1 +
+      (uu * uu * uu - uu) * m0 * inv6 +
+      (u * u * u - u) * m1 * inv6
+    );
+  };
+}
+
+toggleBtn.onclick = async () => {
+  if (!running) {
+//    x = 0;
+    await start();
+  } else {
+    stop();
+  }
+};
+
+function peakLed(isOn) {//赤LED処理
+  if (isOn && !peakLedIs) {//OFFからON
+    ctxDI.fillStyle = ColorLedRedOn3;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn2;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR2, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn1;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn0;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX , peakLedY - .5, LedR0, 0, Math.PI*2);
+    ctxDI.fill();
+    peakLedIs = true;
+  } else if (!isOn && peakLedIs) {
+    ctxDI.fillStyle = "#000";
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOff;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    peakLedIs = false;
+  }
+}
+
+function sigLed(isOn) {//緑LED処理
+  if (isOn && !sigLedIs) {//OFFからON
+    ctxDI.fillStyle = ColorLedGreenOn3;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn2;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR2, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn1;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn0;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR0, 0, Math.PI*2);
+    ctxDI.fill();
+    sigLedIs = true;
+  } else if (!isOn && sigLedIs) {
+    ctxDI.fillStyle = "#000";
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOff;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    sigLedIs = false;
+  }
+}
+
+//ヒストグラムの最大のindexを探す用
+function argMax(arr) {
+  let max = -Infinity;
+  let index = -1;
+
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] > max) {
+      max = arr[i];
+      index = i;
+    }
+  }
+  return max > 0 ? index : -1;
+}
+
+function drawLoudnessBox() {//ラウドネス表示
+  const loudnessGateBase = loudnessNum4Gate > 0 ? loudnessSum4Gate / loudnessNum4Gate: loudness70dBInSquare;//まだ二乗平均
+  const loudnessGate = loudnessGateBase * loudness10dBInSquare;//10dB下
+  let loudnessSquareValidBlockSum = 0;
+  let loudnessSquareValidBlockNum = 0;
+  for (let i = 0; i < loudness400mSec.length; i++) {//ゲート以上のものをカウント
+    if (loudness400mSec[i] > loudnessGateBase && loudness400mSec[i] > loudness70dBInSquare) {
+      loudnessSquareValidBlockSum += loudness400mSec[i];
+      loudnessSquareValidBlockNum++;
+    }
+  }
+  const loudnessFinal_dB = loudnessSquareValidBlockNum > 0 ? -10 * Math.log10(loudnessSquareValidBlockSum / loudnessSquareValidBlockNum) : dBmin;
+  const loudnessFinalY = KBlodksCanvas.height * loudnessFinal_dB * inv_dBmin | 0;//今回のY座標
+  const loudnessGateBaseY = -10 * Math.log10(loudnessGateBase) * KBlodksCanvas.height * inv_dBmin | 0;//ゲートのベース
+  const loudnessGateY = loudnessGateBaseY + (yDiv | 0);//ゲートのベース
+  const loudnessShort_dB = -10 * Math.log10(loudness400mSec[loudness400mIndex]);//今回値を保存
+  const loudnessShortY = loudnessShort_dB * KBlodksCanvas.height * inv_dBmin | 0;//今回値を保存
+
+  ctxKB.fillStyle = "#000";
+  ctxKB.fillRect(0, 0, KBlodksCanvas.width, KBlodksCanvas.height);//塗りつぶし
+  ctxKB.fillStyle = "#666";
+  for (let i = yDiv; i < KBlodksCanvas.height; i += yDiv)
+    ctxKB.fillRect(0, i | 0, KBlodksCanvas.width, 1);//グリッド
+  ctxKB.fillStyle = "#a55";
+  ctxKB.fillRect(0, loudnessGateBaseY, KBlodksCanvas.width, 1);//仮の基準値
+  ctxKB.fillStyle = "#f55";
+  ctxKB.fillRect(0, loudnessGateY, KBlodksCanvas.width, 1);//-10dBの閾値
+  ctxKB.fillStyle = "#f8d";
+  ctxKB.fillRect(0, loudnessFinalY, KBlodksCanvas.width, 2);//最終的なラウドネス
+
+  for(let i = 0; i < loudnessY.length - 1; i++) {
+    const y = loudnessY[i + 1];
+    loudnessY[i] = y;
+    if (y <= loudnessGateY && y <= yLoudness70dB) ctxKB.fillStyle = Color4RMSKW;//Color4RMSKW
+    else ctxKB.fillStyle = "#f88";//基準以下
+    ctxKB.fillRect(i, y, 2, 2);
+  }
+  loudnessY[loudnessY.length - 1] = loudnessShortY;
+  ctxKB.fillRect(loudnessY.length - 1, loudnessShortY, 1, 1);
+  const dBtext = `${(-loudnessFinal_dB).toFixed(2)}`;
+  document.getElementById("loudnessLabel").textContent = `${dBtext.padStart(7, " ")}`;
+}
+
+micSelect.addEventListener("change", async (e) => {//マイク選択を変更した
+  selectedMicDeviceId = e.target.value;
+  device = selectedMicDeviceId;
+  if (running) {
+    stop();
+    await start();
+  }
+});
+
+async function start() {
+  try {
+    //情報窓をクリアしておく
+    document.getElementById("info_settings").textContent = "";
+    document.getElementById("info_constraints").textContent = "";
+    document.getElementById("info_capabilities").textContent = "";
+    document.getElementById("info_devices").textContent = "";
+    document.getElementById("sampleRate_audioContext").textContent = "sampleRate : ***** (device) , ***** (Context)";
+    // 1. 事前チェック
+    const tmpDevices = await navigator.mediaDevices.enumerateDevices();
+    const tmpAudioInputs = tmpDevices.filter(d => d.kind === "audioinput");    
+    if (tmpAudioInputs.length === 0) {
+      throw new Error("NO_MIC");//マイクが無かったらエラーを出して抜ける
+    }
+
+    if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
+    else audioCtx = new AudioContext();//指定なし
+
+    calcFilter (audioCtx.sampleRate);//フィルタ係数を計算
+    processorNode = audioCtx.createScriptProcessor(256, 1, 1);//bufferSize, inputChannels, outputChannels
+    processorNode.onaudioprocess = (e) => {//######################################戻り値の処理の関数
+      const samples = e.inputBuffer.getChannelData(0);
+//      const output = e.outputBuffer.getChannelData(0);
+      const now = performance.now();
+      const { peakMax, peakMin, squareSum, squareSumAW, squareSumKW, dataNum, z0, z1, z2, z3, z4, z5, z6 } = calcPeak(samples);
+
+      peakMax4Display = Math.max(peakMax4Display, peakMax); // UI側で保持
+      peakMin4Display = Math.min(peakMin4Display, peakMin); // UI側で保持
+      if (z3 > truePeakSamples[3]) {//トゥルーピークっぽい周囲保存
+        truePeakSamples[0] = z0;
+        truePeakSamples[1] = z1;
+        truePeakSamples[2] = z2;
+        truePeakSamples[3] = z3;
+        truePeakSamples[4] = z4;
+        truePeakSamples[5] = z5;
+        truePeakSamples[6] = z6;
+        truePeakHoldWatch = now;
+        peakViewIsDirty = true;
+      }
+      squareSum4Display += squareSum; // UI側で描画用に二乗和を保持
+      squareSumAW4Display += squareSumAW; // UI側で描画用に二乗和を保持
+      squareSumKW4Display += squareSumKW; // UI側で描画用に二乗和を保持
+      dataNum4Display += dataNum; // UI側で描画用にデータ数を保持
+      peakMeterPostIs = true;//データきたよーフラグを立てる
+
+      //lufsっぽいの用
+      squareSumKW400mLufs += squareSumKW;//400m分集計の加算
+      dataNum400mLufs += dataNum;
+      if (count400mSecWatch < now) {//0.4秒ごとに更新
+        loudness400mIndex = (loudness400mIndex + 1) % loudness400mSec.length;//インデックスをずらす
+        if (loudness400mSec[loudness400mIndex] > loudness70dBInSquare) {//最終値が70dBを超えていたら平均用の数値を更新
+          loudnessSum4Gate -= loudness400mSec[loudness400mIndex];
+          loudnessNum4Gate--;
+        }
+        const tmpLoudnessSquare400m = (dataNum400mLufs > 0 && squareSumKW400mLufs > 0) ?
+          squareSumKW400mLufs / dataNum400mLufs * loudnessOffsetInSquare : 1e-12;//今回値
+        loudness400mSec[loudness400mIndex] = tmpLoudnessSquare400m;//今回値を保存
+        if (tmpLoudnessSquare400m > loudness70dBInSquare) {//70dBを超えていたら平均用の数値を更新
+          loudnessSum4Gate += tmpLoudnessSquare400m;
+          loudnessNum4Gate++;
+        }
+        squareSumKW400mLufs = 0;//リセット
+        dataNum400mLufs = 0;
+        count400mSecWatch = now + 400;//カウンタを進める
+        drawLoudnessBox();
+      }
+    };//戻り値処理の関数の終わり
+
+    // 2. constraints 構築
+    const audioConstraints = {
+      autoGainControl: { ideal: false },
+      noiseSuppression: { ideal: false },
+      echoCancellation: { ideal: false },
+      voiceIsolation: { ideal: false },
+      latency: { ideal: 0 }
+    };
+
+    if (device && tmpAudioInputs.some(d => d.deviceId === device)) {//デバイスが指定されていれば
+      audioConstraints.deviceId = { exact: device };//設定にデバイスを追加する
+    }    
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints
+      });
+    } catch (e) {
+      throw new Error("GET_USER_MEDIA_FAILED");//指定マイクが無いなどで失敗。（exactなので）
+    }
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    source.connect(processorNode).connect(audioCtx.destination);//計測ノードのみ使用、destinationはないとその前も呼ばれない
+
+    //トラック情報の表示
+    const track = stream.getAudioTracks()[0];
+    const settings = track.getSettings();
+    const lines = [];
+    lines.push("■getSettings(結果)");
+    for (const [key, value] of Object.entries(settings)) {
+      lines.push(`${key}: ${value}`);
+    }
+    document.getElementById("info_settings").textContent = lines.join("\n");
+
+    //指定した内容の表示
+    const constraints = track.getConstraints();
+    lines.length = 0;
+    lines.push("■getConstraints(要求)");
+    for (const [key, value] of Object.entries(constraints)) {
+      lines.push(`${key}: ${value}`);
+    }
+    document.getElementById("info_constraints").textContent = lines.join("\n");
+    //選択肢
+    const capabilities = track.getCapabilities();
+    lines.length = 0;
+    lines.push("■getCapabilities(選択肢)");
+    for (const [key, value] of Object.entries(capabilities)) {
+      lines.push(`${key}: ${value}`);
+    }
+    lines.push("（※console.logに出力）");
+    document.getElementById("info_capabilities").textContent = lines.join("\n");
+    console.log(capabilities);
+
+    //デバイス情報
+    devices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputs = devices.filter(d => d.kind === "audioinput");
+    //プルダウンに選択肢を追加
+    micSelect.options.length = 0;//一旦全消し
+    audioInputs.forEach(mic => { 
+    const opt = document.createElement("option");
+      opt.value = mic.deviceId;
+      opt.textContent = mic.label;
+      micSelect.appendChild(opt);
+    });
+
+    const activeDeviceId = settings.deviceId;//選択結果のデバイスＩＤ
+    sampleRateDevice = settings.sampleRate;//デバイスのサンプルレートを保存
+    if (sampleRateDevice === audioCtx.sampleRate) 
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device & Context)`;
+    else
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device) , ${audioCtx.sampleRate} (Context)`;
+
+    const deviceObj = audioInputs.find(d => d.deviceId === activeDeviceId);//選択中のデバイス
+    device = deviceObj?.deviceId;
+    if (device !== undefined) {
+      micSelect.value = device;//プルダウンを選択
+      const opt = micSelect.querySelector('option[value=""]');//初めにあったオブジェクト
+      if (opt !== null) opt.remove();//を除去
+    }
+    lines.length = 0;
+    lines.push("■入力デバイス(選択外も含む)");
+    audioInputs.forEach(d => {
+      lines.push(`${d.label}`);
+    });
+    document.getElementById("info_devices").textContent = lines.join("\n");
+
+    running = true;
+    toggleBtn.textContent = "Stop";
+
+    if (rafId) {//アニメーション動いてたらいったん止める
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    startWatch = performance.now();//時計リセット
+    count400mSecWatch = startWatch + 400;
+    timeDivX = startWatch - 1000;//始まったらすぐ縦線
+
+    aveNum = (audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
+    while (dataNumAveRMSnow > dataNumAveRMS) dataNumAveRMS += aveNum;//次回の切替えタイミングをずらす
+
+    requestAnimationFrame(draw);
+  } catch (e) {
+    if (e.message === "NO_MIC") {
+      alert("マイクが接続されていません");
+    } else {
+      alert("マイクを使用できません");
+    }
+  }
+}
+
+function stop() {
+  running = false;
+  toggleBtn.textContent = "Start";
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  if (peakNode) {
+    peakNode.port.onmessage = null; // クロージャ切断
+    peakNode.disconnect();          // AudioGraph から切断
+    peakNode = null;                // GC 対象に  
+    }
+  if (processorNode) {
+    processorNode.disconnect();          // AudioGraph から切断
+    processorNode.onaudioprocess = null;// 2. コールバック解除（念のため）
+    processorNode = null;                // GC 対象に  
+    }
+  if (audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+  }
+}
+
+function draw(now) {
+  rafId = requestAnimationFrame(draw);
+
+  //事前計算
+  dataNumAveRMSnow += dataNum4Display;//次回から今回までのあいだのデータ数を加算
+  if (dataNumAveRMSnow > dataNumAveRMS) {//平均する数を超えていてもリセットして送る
+    while (dataNumAveRMSnow > dataNumAveRMS) dataNumAveRMS += aveNum;//次回の切替えタイミングをずらす
+    array50mSecIndex = (array50mSecIndex + 1) % dataNum50mSec.length;//インデックスを進める
+    squareSum400m -= squareSum50mSec[array50mSecIndex];//最終値分を消す
+    squareSumAW400m -= squareSumAW50mSec[array50mSecIndex];
+    squareSumKW400m -= squareSumKW50mSec[array50mSecIndex];
+    dataNum400m -= dataNum50mSec[array50mSecIndex];
+    squareSum50mSec[array50mSecIndex] = 0;//新しい箱をリセット
+    squareSumAW50mSec[array50mSecIndex] = 0;
+    squareSumKW50mSec[array50mSecIndex] = 0;
+    dataNum50mSec[array50mSecIndex] = 0;
+  }
+  squareSum50mSec[array50mSecIndex] += squareSum4Display;//今回の値を加算
+  squareSumAW50mSec[array50mSecIndex] += squareSumAW4Display;
+  squareSumKW50mSec[array50mSecIndex] += squareSumKW4Display;
+  dataNum50mSec[array50mSecIndex] += dataNum4Display;
+  squareSum400m += squareSum4Display;//今回の値を加算
+  squareSumAW400m += squareSumAW4Display;
+  squareSumKW400m += squareSumKW4Display;
+  dataNum400m += dataNum4Display;
+
+  //背景描画
+  if (!x)  timeDivX = now;//x=0なら時間をクリア
+  if (now - timeDivX < 1000) {
+    ctxSc.strokeStyle = bgColorRed;//赤部分の背景色
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, 0);
+    ctxSc.lineTo(x, ydBred);
+    ctxSc.stroke();
+    ctxSc.strokeStyle = bgColorYellow;//黄部分の背景色
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, ydBred);
+    ctxSc.lineTo(x, ydByellow);
+    ctxSc.stroke();
+    ctxSc.strokeStyle = bgColorGreen;//黄部分の背景色
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, ydByellow);
+    ctxSc.lineTo(x, ydBgreen);
+    ctxSc.stroke();
+    ctxSc.strokeStyle = bgColorBlue;//緑部分の背景色
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, ydBgreen);
+    ctxSc.lineTo(x, canvas.height);
+    ctxSc.stroke();
+    //デシベルの線
+    let y = yDiv;
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x, y | 0, 1, 1); y += yDiv;//-10dB
+    ctxSc.fillStyle = "#ff0";
+    ctxSc.fillRect(x, y, 1, 1.5); y += yDiv;//-20dBの黄色
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x, y, 1, 1.5); y += yDiv;//-30dB
+    ctxSc.fillStyle = Color4Wave;
+    ctxSc.fillRect(x, y, 1, 1.5); y += yDiv;//-40dB、波形表示の端なので色を変える
+    ctxSc.fillStyle = bgColorDiv;
+    for ( ; y < canvas.height; y += yDiv) {
+      ctxSc.fillRect(x, y | 0, 1, 1);
+    }
+    ctxSc.fillStyle = "#f00";
+    ctxSc.fillRect(x, ydBred | 0, 1, 1);//-6dB
+
+  } else {
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x, 0, 1, canvas.height);
+    while (now - timeDivX >= 1000) timeDivX += 1000;//画面が背面に言っていると、すげー時間たってる
+  }
+
+  //平均する時間の確認用
+//  if (peakMeterPostIs) {//新しいデータあり
+//    const yDataNum400m = canvas.height - 100 * inv_dBmin * canvas.height * dataNum400m / audioCtx.sampleRate;
+//    ctxSc.fillStyle = "#fff";
+//    ctxSc.fillRect(x, yDataNum400m, 2, 2);
+//  }
+
+  // 波形の振幅を描画
+  const yZero = yDiv * 2;
+  let yPeakMax = canvas.height - yZero - yZero * peakMax4Display;//上側のy位置
+  let yPeakMin = canvas.height - yZero - yZero * peakMin4Display;//下側のy位置
+  if (peakMeterPostIs) {//新しいデータあり
+    yPreviousPeakMax = yPeakMax;//今回の描画yを記録
+    yPreviousPeakMin = yPeakMin;//今回の描画yを記録
+  } else {//新しいデータなし→前回値を使う
+    yPeakMax = yPreviousPeakMax;
+    yPeakMin = yPreviousPeakMin;
+  }
+  if (yPeakMax > yPeakMin) {//ないと思うけど逆転しちゃってたらゼロにする
+    yPeakMax = canvas.height - yZero;
+    yPeakMin = canvas.height - yZero;
+  }
+  if (Math.abs(yPeakMin - yPeakMax) < 1.5) {//近いなら点を打つ
+    ctxSc.fillStyle = Color4Wave;
+    ctxSc.fillRect(x, (yPeakMax + yPeakMin) * 0.5, 1, 1);
+  } else {//上と下の値が違ったら線を引く
+    ctxSc.strokeStyle = Color4Wave;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, yPeakMax);
+    ctxSc.lineTo(x, yPeakMin);
+    ctxSc.stroke();
+  }
+
+  //ピーク描画
+  let peakAbs = Math.max(Math.abs(peakMax4Display), Math.abs(peakMin4Display));//絶対値で大きい方
+  if (peakMeterPostIs) {//新しいデータあり→次回用に値を更新
+    PreviousPeak = peakAbs;
+  } else {//新しいデータなし→前回値を使う
+    peakAbs = PreviousPeak;
+  }
+  const peakAbs_dB = 20 * Math.log10(Math.max(peakAbs, 1e-12));
+  let yPeak = canvas.height;//初期値は下端
+  let peakNowColor = Color4Peak;//実際に描画する色。振り切れてたら変える。
+  if (peakAbs >= 1.0) {//クリッピングしていたら色を変える
+    yPeak = 0;//描画位置は上端
+    peakNowColor = "#f00";//実際に描画する色。振り切れてたら変える。
+  } else if (peakAbs < liniear_dBmin) {//下限以下なら色を変える
+    peakNowColor = "#f00";//実際に描画する色。振り切れてたら変える。
+  } else {
+    yPeak = Math.abs(peakAbs_dB * canvas.height * inv_dBmin);//マイナスで出てくるのでabs
+  }
+  if (x) {//xがゼロじゃないなら線で描画
+    if (yPeak === yPreviousPeak && (yPeak <= 0 || yPeak >= canvas.height)) {//範囲外に出て２回目
+      ctxSc.strokeStyle = peakNowColor;//範囲外の時の色指定
+    } else {
+      ctxSc.strokeStyle = Color4Peak;//通常の色指定
+    }
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousPeak);
+    ctxSc.lineTo(x, yPeak);
+    ctxSc.stroke();
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = peakNowColor;
+    ctxSc.fillRect(x, yPeak, 1, 1);
+  }
+  if (PreviousPeak >= 1) {//前回値がクリッピング位置だったら目立たせる
+    ctxSc.fillStyle = "#f00";
+    ctxSc.fillRect(x - 2 , 0, 2, 3);
+  }
+  yPreviousPeak = yPeak;//次回の線の開始位置用に値を保存
+
+  //RMS描画
+  let RMS = PreviousRMS;//とりあえず前回値
+  let RMSAW = PreviousRMSAW;//とりあえず前回値
+  let RMSKW = PreviousRMSKW;//とりあえず前回値
+  if (dataNum400m) {
+    RMS = Math.sqrt(squareSum400m / dataNum400m);//データあるなら計算
+    RMSAW = Math.sqrt(squareSumAW400m / dataNum400m);//データあるなら計算
+    RMSKW = Math.sqrt(squareSumKW400m / dataNum400m);//データあるなら計算
+  }
+  const RMS_dB = 20 * Math.log10(Math.max(RMS, 1e-12));
+  const RMSAW_dB = 20 * Math.log10(Math.max(RMSAW, 1e-12));
+  const RMSKW_dB = 20 * Math.log10(Math.max(RMSKW, 1e-12));
+  let yRMS = canvas.height;//とりあえず下端
+  let yRMSAW = canvas.height;//とりあえず下端
+  let yRMSKW = canvas.height;//とりあえず下端
+  if (RMS > 1e-12) yRMS = Math.abs(RMS_dB * canvas.height * inv_dBmin);//ゼロじゃないならdB化
+  if (RMSAW > 1e-12) yRMSAW = Math.abs(RMSAW_dB * canvas.height * inv_dBmin);//ゼロじゃないならdB化
+  if (RMSKW > 1e-12) yRMSKW = Math.abs(RMSKW_dB * canvas.height * inv_dBmin);//ゼロじゃないならdB化
+  ctxSc.fillStyle = Color4RMSAW;
+  ctxSc.fillRect(x, (yRMSAW - yRMS + canvas.height * 40 * inv_dBmin) | 0, 1, 1);
+  ctxSc.fillStyle = Color4RMSKW;
+  ctxSc.fillRect(x, (yRMSKW - yRMS + canvas.height * 40 * inv_dBmin) | 0, 1, 1);
+
+  if (x) {//xがゼロじゃないなら線で描画
+    ctxSc.strokeStyle = Color4RMSAW;//通常の色指定
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousRMSAW);
+    ctxSc.lineTo(x, yRMSAW);
+    ctxSc.stroke();
+    ctxSc.lineWidth = 1;
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = Color4RMSAW;
+    ctxSc.fillRect(x, yRMSAW-1, 1, 3);
+  }
+  if (x) {//xがゼロじゃないなら線で描画
+    ctxSc.strokeStyle = Color4RMSKW;//通常の色指定
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousRMSKW);
+    ctxSc.lineTo(x, yRMSKW);
+    ctxSc.stroke();
+    ctxSc.lineWidth = 1;
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = Color4RMSKW;
+    ctxSc.fillRect(x, yRMSKW-1, 1, 3);
+  }
+  if (x) {//xがゼロじゃないなら線で描画
+    ctxSc.strokeStyle = Color4RMS;//通常の色指定
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousRMS);
+    ctxSc.lineTo(x, yRMS);
+    ctxSc.stroke();
+    ctxSc.lineWidth = 1;
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = Color4RMS;
+    ctxSc.fillRect(x, yRMS-1, 1, 3);
+  }
+
+  //ピークホールド処理
+  if (peakAbs > peakHold) {
+    peakHold = peakAbs;
+    peakHoldWatch = now + 1000;
+  } else {
+    const downTime = now - peakHoldWatch;
+    if (downTime > 0) {
+      peakHold *= Math.pow(peakHoldDownSpeed, downTime * 0.001);
+      peakHoldWatch = now;
+    }
+  }
+
+  //リニアメーター
+  if (peakMeterPostIs) {
+    const liniearPeakAbs = meterLinearCanvas.height * (1 - peakAbs) | 0;//メーターの上端のｙ
+    const liniearYdBred = meterLinearCanvas.height * 0.5 | 0;
+    const liniearYdByellow = meterLinearCanvas.height * 0.9 | 0;
+    if (liniearPeakAbs > 0) {
+      if (liniearPeakAbs > liniearYdByellow) {//黄色より下
+        ctxML.fillStyle = bgColorGreen;
+        ctxML.fillRect(meterMargin + 1, liniearYdByellow, meterWidth, liniearPeakAbs - liniearYdByellow);
+        ctxML.fillStyle = bgColorYellow;
+        ctxML.fillRect(meterMargin + 1, liniearYdBred, meterWidth, liniearYdByellow - liniearYdBred);
+        ctxML.fillStyle = bgColorRed;
+        ctxML.fillRect(meterMargin + 1, 0, meterWidth, liniearYdBred);
+      } else if (liniearPeakAbs > liniearYdBred) {//黄色より上、赤より下
+        ctxML.fillStyle = bgColorYellow;
+        ctxML.fillRect(meterMargin + 1, liniearYdBred, meterWidth, liniearPeakAbs - liniearYdBred);
+        ctxML.fillStyle = bgColorRed;
+        ctxML.fillRect(meterMargin + 1, 0, meterWidth, liniearYdBred);
+      } else {//赤以上
+        ctxML.fillStyle = bgColorRed;
+        ctxML.fillRect(meterMargin + 1, 0, meterWidth, liniearPeakAbs - 1);
+      }
+      const shortRMS = Math.sqrt(squareSum4Display / dataNum4Display);
+      const liniearShortRMS = (meterLinearCanvas.height * (1 - shortRMS) - 1) | 0;
+      ctxML.fillStyle = "#0d0";//メータ本体
+      ctxML.fillRect(meterMargin + 1, liniearPeakAbs
+        , meterWidth, (meterLinearCanvas.height - liniearPeakAbs) | 0);
+      ctxML.fillStyle = "#000";//RMS
+      ctxML.fillRect(meterMargin + 1, liniearShortRMS - 1, meterWidth, 4);
+    }
+    for (let i = 0.1; i < 0.9; i += 0.1) {//グリッド線
+      ctxML.fillStyle = bgColorDiv;
+      ctxML.fillRect(meterMargin + 1, meterLinearCanvas.height * i | 0, meterWidth, 1);
+    }
+    ctxML.fillStyle = "#ff0";
+    ctxML.fillRect(meterMargin + 1, meterLinearCanvas.height * 0.9 | 0, meterWidth, 1);
+    ctxML.fillStyle = "#f88";
+    ctxML.fillRect(meterMargin + 1, meterLinearCanvas.height * 0.5 | 0, meterWidth, 1);
+    ctxML.fillStyle = "#f80";//ピークホールド
+    ctxML.fillRect(meterMargin + 1, meterLinearCanvas.height * (1 - peakHold) | 0, meterWidth, 2);
+
+  }
+
+  //デシベルメーター
+  const peakHold_dB = -20 * Math.log10(peakHold);
+  if (peakMeterPostIs) {
+    if (yPeak > 0) {
+      if (yPeak > ydByellow) {//黄色より下
+        ctxMD.fillStyle = bgColorGreen;
+        ctxMD.fillRect(meterMargin + 1, ydByellow, meterWidth, yPeak - ydByellow);
+        ctxMD.fillStyle = bgColorYellow;
+        ctxMD.fillRect(meterMargin + 1, ydBred, meterWidth, ydByellow - ydBred);
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(meterMargin + 1, 0, meterWidth, ydBred);
+        sigLed(false);
+        peakLed(false);
+      } else if (yPeak > ydBred) {//黄色より上、赤より下
+        ctxMD.fillStyle = bgColorYellow;
+        ctxMD.fillRect(meterMargin + 1, ydBred, meterWidth, yPeak - ydBred);
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(meterMargin + 1, 0, meterWidth, ydBred);
+        peakLed(false);
+        sigLed(true);
+      } else {//赤以上
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(meterMargin + 1, 0, meterWidth, yPeak - 1);
+        sigLed(true);
+        peakLed(true);
+      }
+        ctxMD.fillStyle = "#0d0";//メータ本体
+        ctxMD.fillRect(meterMargin + 1, yPeak, meterWidth, meterDecibelCanvas.height - yPeak);
+    }
+    for (let i = 10; i < dBmin; i += 10) {//グリッド線
+      ctxMD.fillStyle = bgColorDiv;
+      ctxMD.fillRect(meterMargin + 1, meterDecibelCanvas.height * i * inv_dBmin | 0, meterWidth, 1);
+    }
+    ctxMD.fillStyle = "#ff0";
+    ctxMD.fillRect(meterMargin + 1, meterDecibelCanvas.height * dByellow * inv_dBmin | 0, meterWidth, 1);
+    ctxMD.fillStyle = "#f88";
+    ctxMD.fillRect(meterMargin + 1, meterDecibelCanvas.height * dBred * inv_dBmin | 0, meterWidth, 1);
+    ctxMD.fillStyle = "#f80";//ピークホールド
+    ctxMD.fillRect(meterMargin + 1, meterDecibelCanvas.height * peakHold_dB * inv_dBmin | 0, meterWidth, 2);
+    ctxMD.fillStyle = "#000";//RMS
+    const shortRMSdB = -10 * Math.log10(squareSum4Display / dataNum4Display);//二乗のままなので*-10
+    ctxMD.fillRect(meterMargin + 1
+    , (meterDecibelCanvas.height * shortRMSdB * inv_dBmin - 1) | 0, meterWidth, 4);
+  }
+
+  //トゥルーピーク確認窓
+  if (truePeakSamples[3] > peakViewThreshold) {//中央値は閾値より上なら描画
+    if (peakViewIsDirty) {
+      ctxPV.fillStyle = bgColorRed;
+      ctxPV.fillRect(0, 0, peakViewCanvas.width, peakViewCanvas.height * .5);//領域クリア
+      ctxPV.fillStyle = bgColorYellow;
+      ctxPV.fillRect(0, peakViewCanvas.height * .5 | 0, peakViewCanvas.width, peakViewCanvas.height * .4);//領域クリア
+      ctxPV.fillStyle = bgColorGreen;
+      ctxPV.fillRect(0, peakViewCanvas.height * .9 | 0, peakViewCanvas.width, peakViewCanvas.height * .1);//領域クリア
+      ctxPV.fillStyle = "#fff";
+      ctxPV.fillRect(0 , peakViewCanvas.height * .1 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .2 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .3 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .4 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .6 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .7 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillRect(0 , peakViewCanvas.height * .8 | 0, peakViewCanvas.width, 0.5);
+      ctxPV.fillStyle = "#f44";
+      ctxPV.fillRect(0 , peakViewCanvas.height * .5 | 0, peakViewCanvas.width, 1);
+      ctxPV.fillStyle = "#ff0";
+      ctxPV.fillRect(0 , peakViewCanvas.height * .9 | 0, peakViewCanvas.width, 0.7);
+      //スプライン
+      const spline7 = cubicSpline7(truePeakSamples);
+      const splineMax = spline7(truePeakSamples.length);
+      for (let i = 1; i < peakViewCanvas.width; i++) {
+        const t = (truePeakSamples.length - 1) * i / peakViewCanvas.width;
+        const v = Math.abs(spline7(t));
+        const tpy = peakViewCanvas.height - v * peakViewCanvas.height;
+        ctxPV.fillStyle = "#0f0";//緑
+        if (v >= 0.1) ctxPV.fillStyle = "#ff0";//黄色
+        if (v >= 0.5) ctxPV.fillStyle = "#f44";//赤
+        ctxPV.fillRect(i, tpy - 1, 1, 3);
+      }
+      //サンプル点
+      ctxPV.fillStyle = "#fff";
+      for (let i = 0; i < truePeakSamples.length; i++) {
+        const xt =  i * peakViewCanvas.width / (truePeakSamples.length - 1);
+        const tpy = peakViewCanvas.height - Math.abs(truePeakSamples[i]) * peakViewCanvas.height;
+        ctxPV.fillRect(xt - 2, tpy - 2, 5, 5);
+      }
+      //縦線
+      const x = spline7(-1) * peakViewCanvas.width / (truePeakSamples.length - 1) | 0;
+      ctxPV.fillStyle = "#fff";
+      ctxPV.fillRect(x , 0, .5, peakViewCanvas.height);
+      //文字 11px JetBrains Mono, Fira Code, monospace  12px sans-serif"
+      ctxPV.font = "12px sans-serif";
+      ctxPV.textBaseline = "alphabetic";
+      ctxPV.textAlign = "right";
+      ctxPV.fillText("Spline", x - 10, peakViewCanvas.height * .7 - 3);
+      ctxPV.fillText(`${splineMax.toFixed(3)} =`, x - 5, peakViewCanvas.height * .8 - 7);
+      ctxPV.fillText("Sample", x - 5, peakViewCanvas.height * .9 - 3);
+      ctxPV.fillText(`${truePeakSamples[3].toFixed(3)} =`, x - 5, peakViewCanvas.height - 7);
+      ctxPV.textAlign = "left";
+      ctxPV.fillText(`${(20 * Math.log10(splineMax)).toFixed(2)} dB`, x + 5, peakViewCanvas.height * .8 - 7);
+      ctxPV.textAlign = "left";
+      ctxPV.fillText(`${(20 * Math.log10(truePeakSamples[3])).toFixed(2)} dB`, x + 5, peakViewCanvas.height - 7);
+      //残り時間バー
+      ctxPV.fillStyle = "#0f0";
+      ctxPV.fillRect(0 , peakViewCanvas.height - 2, peakViewCanvas.width, 2);
+      
+      peakViewIsDirty = false;//再描画のフラグをリセット
+    }
+    //残り時間を表すバー
+    const xTime = peakViewCanvas.width - peakViewCanvas.width * (now - truePeakHoldWatch) / truePeakHoldtime;
+    ctxPV.fillStyle = "#000";
+    ctxPV.fillRect(xTime , peakViewCanvas.height - 2, peakViewCanvas.width - xTime, 2);
+  }
+
+  //ヒストグラムのキャンバス
+  const phCanvasX0 = peakHistogramCanvas.width * 0.5 | 0;//中心線
+  ctxPH.fillStyle = "#444";
+  for (let i = yDiv; i < peakHistogramCanvas.height; i += yDiv) {
+    ctxPH.fillRect(0, i | 0, peakHistogramCanvas.width, 1);
+  }
+  ctxPH.fillStyle = "#880";
+  ctxPH.fillRect(0, ydByellow, peakHistogramCanvas.width, 1);//黄色線
+  ctxPH.fillStyle = "#a22";
+  ctxPH.fillRect(0, ydBred, peakHistogramCanvas.width, 1);//黄色線
+  
+  //ピークヒストグラム
+  let endRangeIndex = yPeakBuffer[posPeakBuffer];//ピーク最終値
+  if (endRangeIndex < canvas.height) {
+    const histDecCount = histPeakBuffer[endRangeIndex] - 1;
+    if (histDecCount >= 0) {
+      histPeakBuffer[endRangeIndex] = histDecCount;
+      ctxPH.fillStyle = "#000";
+      ctxPH.fillRect(histDecCount * 1.5, endRangeIndex, 3, 1);
+    }
+  } 
+  let nowRangeIndex = Math.round(yPeak >= 0 ? yPeak : 0);//ピーク今回値。マイナス座標は0にふくめる
+  if (nowRangeIndex < canvas.height) {
+    const histIncCount = histPeakBuffer[nowRangeIndex] + 1;
+    if (histIncCount >= 0) {
+      histPeakBuffer[nowRangeIndex] = histIncCount;
+      if (nowRangeIndex > ydByellow) ctxPH.fillStyle = "#0f0";
+      else if (nowRangeIndex > ydBred) ctxPH.fillStyle = "#ff0"
+      else if (nowRangeIndex === 0) ctxPH.fillStyle = "#f00"
+      else ctxPH.fillStyle = "#f88";
+      ctxPH.fillRect(0 , nowRangeIndex, histIncCount * 1.5, 1);
+    }
+  }
+  yPeakBuffer[posPeakBuffer] = nowRangeIndex;//現在値をバッファに保存
+  //waveヒストグラム
+  endRangeIndex = yWave1Buffer[posPeakBuffer];//wave最終値上
+  const endRangeIndex2 = yWave2Buffer[posPeakBuffer];//wave最終値下
+  if (endRangeIndex < canvas.height) {//上限が範囲内の時のみ
+    const indexMax = Math.min(endRangeIndex2, canvas.height - 1);//下が見切れている場合も考慮する
+    ctxPH.fillStyle = "#000";
+    for (let i = endRangeIndex; i <= indexMax; i++) {
+      const histDecCount = histWaveBuffer[i] - 1;
+      if (histDecCount >= 0) {
+        histWaveBuffer[i] = histDecCount;
+        ctxPH.fillRect(peakHistogramCanvas.width - histDecCount * 0.4, i, -2, 1);
+      }
+    }
+  }
+  nowRangeIndex = Math.round(yPeakMax >= 0 ? yPeakMax : 0);//waveMax今回値。マイナス座標は0にふくめる
+  const nowRangeIndex2 = Math.round(yPeakMin >= 0 ? yPeakMin : 0);//waveMax今回値。マイナス座標は0にふくめる
+  if (nowRangeIndex < canvas.height) {//上側が範囲内の時のみ。必ずそうだと思うけど
+    ctxPH.fillStyle = Color4Wave;
+    const indexMax = Math.min(nowRangeIndex2, canvas.height - 1);//下が見切れている場合も考慮する
+    for(let i = nowRangeIndex; i <= indexMax; i++) {
+      const histIncCount = histWaveBuffer[i] + 1;
+      if (histIncCount >= 0) {
+        histWaveBuffer[i] = histIncCount;
+        ctxPH.fillRect(peakHistogramCanvas.width, i, histIncCount * -0.4, 1);
+      }
+    }
+  }
+  yWave1Buffer[posPeakBuffer] = nowRangeIndex;//現在値をバッファに保存
+  yWave2Buffer[posPeakBuffer] = nowRangeIndex2;//現在値をバッファに保存
+  //RMSヒストグラム
+  endRangeIndex = yRMSBuffer[posPeakBuffer];//ピーク最終値
+  if (endRangeIndex < canvas.height) {
+    const histDecCount = histRMSBuffer[endRangeIndex] - 1;
+    if (histDecCount >= 0) {
+      histRMSBuffer[endRangeIndex] = histDecCount;
+      ctxPH.fillStyle = "#000";
+      ctxPH.fillRect(phCanvasX0 - 2 - histDecCount * 1.5, endRangeIndex, -3, 1);
+    }
+  } 
+  nowRangeIndex = Math.round(yRMS >= 0 ? yRMS : 0);//RMS今回値。マイナス座標は0にふくめる
+  if (nowRangeIndex < canvas.height) {
+    const histIncCount = histRMSBuffer[nowRangeIndex] + 1;
+    if (histIncCount >= 0) {
+      histRMSBuffer[nowRangeIndex] = histIncCount;
+      ctxPH.fillStyle = "#dde"
+      ctxPH.fillRect(phCanvasX0 - 2, nowRangeIndex, histIncCount * -1.5, 1);
+    }
+  }
+  yRMSBuffer[posPeakBuffer] = nowRangeIndex;//現在値をバッファに保存
+  //RMS_KWeightヒストグラム
+  endRangeIndex = yRMSKWBuffer[posPeakBuffer];//ピーク最終値
+  if (endRangeIndex < canvas.height) {
+    const histDecCount = histRMSKWBuffer[endRangeIndex] - 1;
+    if (histDecCount >= 0) {
+      histRMSKWBuffer[endRangeIndex] = histDecCount;
+      ctxPH.fillStyle = "#000";
+      ctxPH.fillRect(phCanvasX0 + 2 + histDecCount * 1.5, endRangeIndex, 3, 1);
+    }
+  } 
+  nowRangeIndex = Math.round(yRMSKW >= 0 ? yRMSKW : 0);//RMS今回値。マイナス座標は0にふくめる
+  if (nowRangeIndex < canvas.height) {
+    const histIncCount = histRMSKWBuffer[nowRangeIndex] + 1;
+    if (histIncCount >= 0) {
+      histRMSKWBuffer[nowRangeIndex] = histIncCount;
+      ctxPH.fillStyle = Color4RMSKW
+      ctxPH.fillRect(phCanvasX0 + 2, nowRangeIndex, histIncCount * 1.5, 1);
+    }
+  }
+  yRMSKWBuffer[posPeakBuffer] = nowRangeIndex;//現在値をバッファに保存
+  //RMS_AWeightヒストグラム
+  endRangeIndex = yRMSAWBuffer[posPeakBuffer];//ピーク最終値
+  if (endRangeIndex < canvas.height) {
+    const histDecCount = histRMSAWBuffer[endRangeIndex] - 1;
+    if (histDecCount >= 0) {
+      histRMSAWBuffer[endRangeIndex] = histDecCount;
+      ctxPH.fillStyle = "#000";
+      ctxPH.fillRect(peakHistogramCanvas.width - histDecCount * 1.5, endRangeIndex, -3, 1);
+    }
+  } 
+  nowRangeIndex = Math.round(yRMSAW >= 0 ? yRMSAW : 0);//RMS今回値。マイナス座標は0にふくめる
+  if (nowRangeIndex < canvas.height) {
+    const histIncCount = histRMSAWBuffer[nowRangeIndex] + 1;
+    if (histIncCount >= 0) {
+      histRMSAWBuffer[nowRangeIndex] = histIncCount;
+      ctxPH.fillStyle = Color4RMSAW
+      ctxPH.fillRect(peakHistogramCanvas.width, nowRangeIndex, histIncCount * -1.5, 1);
+    }
+  }
+  yRMSAWBuffer[posPeakBuffer] = nowRangeIndex;//現在値をバッファに保存
+  //バッファを進める
+  posPeakBuffer++;
+  posPeakBuffer %= yPeakBuffer.length;
+
+  //テキスト出力
+  let dBtext = `${(peakAbs_dB).toFixed(2)} dB`;
+  document.getElementById("peakLabel").textContent = `PEAK ${dBtext.padStart(10, " ")}`;
+  dBtext = `${(RMS_dB).toFixed(2)} dB`;
+  document.getElementById("RMSLabel").textContent = `RMS_Z${dBtext.padStart(10, " ")}`;
+  dBtext = `${(RMSKW_dB).toFixed(2)} dB`;
+  document.getElementById("RMSKWLabel").textContent = `RMS_K${dBtext.padStart(10, " ")}`;
+  dBtext = `${(RMSAW_dB).toFixed(2)} dB`;
+  document.getElementById("RMSAWLabel").textContent = `RMS_A${dBtext.padStart(10, " ")}`;
+  dBtext = `${(RMSKW_dB - RMS_dB).toFixed(2)} dB`;
+  if (RMSKW_dB > RMS_dB) dBtext = "+" + dBtext;
+  document.getElementById("KZLabel").textContent = `K - Z${dBtext.padStart(10, " ")}`;
+  dBtext = `${(RMSAW_dB - RMS_dB).toFixed(2)} dB`;
+  if (RMSAW_dB > RMS_dB) dBtext = "+" + dBtext;
+  document.getElementById("AZLabel").textContent = `A - Z${dBtext.padStart(10, " ")}`;
+  dBtext = `${(-peakHold_dB).toFixed(2)}`;
+  document.getElementById("peakHoldLabel").textContent = `${dBtext.padStart(7, " ")}`;
+
+  const mostPopularRMS_i = argMax(histRMSBuffer);
+  const mostPopularRMS = (mostPopularRMS_i >= 0 ? mostPopularRMS_i : histRMSBuffer.length) * dBmin / (histRMSBuffer.length - 1);
+  if (mostPopularRMS > dBmin)
+    dBtext = `< 80 dB`;
+  else
+    dBtext = `${(-mostPopularRMS).toFixed(2)} dB`;
+  document.getElementById("RMSMostLabel").textContent = `頻出 ${dBtext.padStart(10, " ")}`;
+  const mostPopularRMSAW_i = argMax(histRMSAWBuffer);
+  const mostPopularRMSAW = (mostPopularRMSAW_i >= 0 ? mostPopularRMSAW_i : histRMSAWBuffer.length) * dBmin / (histRMSAWBuffer.length - 1);
+  if (mostPopularRMSAW > dBmin)
+    dBtext = `< 80 dB`;
+  else
+    dBtext = `${(-mostPopularRMSAW).toFixed(2)} dB`;
+  document.getElementById("RMSAWMostLabel").textContent = `頻出 ${dBtext.padStart(10, " ")}`;
+
+  //以下、次に向けての更新処理
+  if (peakMeterPostIs) {//新しいデータあり→次回用に値を更新
+    yPreviousRMS = yRMS;//前回描画y位置
+    yPreviousRMSAW = yRMSAW;//前回描画y位置
+    yPreviousRMSKW = yRMSKW;//前回描画y位置
+    PreviousRMS = RMS;//とりあえず前回値
+    PreviousRMSAW = RMSAW;//とりあえず前回値
+    PreviousRMSKW = RMSKW;//とりあえず前回値
+
+    peakMax4Display = -2; // ピーク値をリセット
+    peakMin4Display = 2; // ピーク値をリセット
+    squareSum4Display = 0; // UI側で描画用に二乗和を保持
+    squareSumAW4Display = 0; // UI側で描画用に二乗和を保持
+    squareSumKW4Display = 0; // UI側で描画用に二乗和を保持
+    dataNum4Display = 0; // UI側で描画用にデータ数を保持
+    if (now - truePeakHoldWatch > truePeakHoldtime) truePeakSamples[3] = -2;//トゥルーピークリセット
+    peakMeterPostIs = false;//データありのフラグリセット
+  }
+
+  x++;
+  if (x >= canvas.width) {//右端にいってたら左に戻す
+    x = 0;
+  } else {
+    ctxSc.fillStyle = "#000";
+    ctxSc.fillRect(x + 1, 0, 1, canvas.height);
+  }
+}
+</script>
+
+</body>
+</html>
