@@ -70,7 +70,7 @@
   .canvasMix {
     align-items: start;   /* ← 縦方向中央揃え */
     background: #000;
-    border: 1px solid #444;
+    border: 0px solid #444;
     height: 220px;
   }
   .VerticalNoBorder {
@@ -98,39 +98,11 @@
     text-align: center;
     white-space: pre; 
   }
-  #peakHoldLabel {
-    color: #fa2;
-    width: 7ch;
-  }
-  #peakLabel {
-    color: #0f0;
-  }
-  #RMSLabel {
+  #sampleRate_audioContext {
+    display: inline-block;
     color: #ccc;
-  }
-  #RMSKWLabel {
-    color: #aaf;
-  }
-  #RMSAWLabel {
-    color: #f77;
-  }
-  #KZLabel {
-    color: #aaf;
-  }
-  #AZLabel {
-    color: #f77;
-  }
-  #RMSMostLabel {
-    color: #ccc;
-  }
-  #RMSAWMostLabel {
-    color: #f77;
-  }
-  #deviceLabel {
-    color: #0f0;
-    font-family: monospace;
-    font-size: 14px;
-    margin: 5px 0px;
+    margin: 0px auto;
+    width: fit-content;
   }
   #info_devices {
     max-width: 800px;
@@ -138,6 +110,12 @@
   #drawInfo {
     background: #000;
   }
+  #micSelect {
+    display: block;
+    margin: 10px auto;        /* 水平方向中央 */
+    font-size: 18px;       /* 文字サイズ */
+  }
+
   hr {
     border: none;
     border-top: 0.5px solid #666;
@@ -150,45 +128,52 @@
 <!--■□■□■□■□■□■ここが画面に配置するところ■□■□■□■□■□■-->
 <div class="header">Mic Volume Scope</div>
 <button id="toggle">Start</button>
-<div id="deviceLabel">*** ***</div>
+<select id="micSelect">
+  <option value="">（デバイス一覧未取得）</option>
+</select>
 <div class="canvas-wrapper">
   <div class="canvas-container">
     <canvas class="gridLabel" id="scopeLabelR" width="22" height="220"></canvas>
-    <canvas id="scope" width="416" height="200"></canvas>
+    <canvas id="scope" width="480" height="200"></canvas>
     <canvas class="gridLabel" id="scopeLabelL" width="22" height="220"></canvas>
     <canvas id="peakHistogram" width="80" height="200"></canvas>
   </div>
   <div class="canvas-container">
-    <canvas class="gridLabel" id="MixLabel" width="80" height="220"></canvas>
+    <canvas class="gridLabel" id="MixLabel" width="65" height="220"></canvas>
     <canvas id="peakView" width="130" height="200"></canvas>
     <canvas class="gridLabel" id="LiniearLabel" width="22" height="220"></canvas>
     <canvas id="MeterLiniear" width="30" height="200"></canvas>
-    <canvas class="gridLabel" id="Liniear-dBLabel" width="100" height="200"></canvas>
+    <canvas class="gridLabel" id="Liniear-dBLabel" width="90" height="200"></canvas>
     <canvas id="MeterDecibel" width="30" height="200"></canvas>
     <canvas class="gridLabel" id="decibelLabelL" width="22" height="220"></canvas>
       <div class="canvasMix">
         <div class="canvas-container">
           <canvas class="gridLabel" id="drawInfo" width="55" height="55"></canvas>
           <div class="VerticalNoBorder">
-            <div class="numTextNoMargin" style="color: #fa2;">Peak </div>
-            <div class="numTextNoMargin" style="color: #fa2;"> hold</div>
-            <div class="numTextNoMargin" id="peakHoldLabel">___.__</div>
+            <div class="numTextNoMargin" id="peakHoldLabel" style="font-weight: bold; width: 7ch; color: #fa2">###.##</div>
+            <hr style="margin: 3px 0px;">
+            <div class="numTextNoMargin" id="loudnessLabel" style="font-weight: bold; width: 7ch; color: #f8e;">###.##</div>
           </div>
         </div>
-        <div class="numText" id="RMSMostLabel">頻出   __.__ dB</div>
-        <div class="numText" id="RMSAWMostLabel">頻出   __.__ dB</div>
-        <hr>
-        <div class="numText" id="peakLabel">PEAK  ___.__ dB</div>
-        <div class="numText" id="RMSLabel">RMS Z ___.__ dB</div>
-        <div class="numText" id="RMSKWLabel">RMS K ___.__ dB</div>
-        <div class="numText" id="RMSAWLabel">RMS A ___.__ dB</div>
-        <hr>
-        <div class="numText" id="KZLabel">K - Z  __.__ dB</div>
-        <div class="numText" id="AZLabel">A - Z  __.__ dB</div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="RMSMostLabel" style="color: #ccc;">頻出   ##.## dB</div>
+        <div class="numText" id="RMSAWMostLabel" style="color: #f77;">頻出   ##.## dB</div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="peakLabel" style="color: #0f0">PEAK  ###.## dB</div>
+        <div class="numText" id="RMSLabel" style="color: #ccc">RMS Z ###.## dB</div>
+        <div class="numText" id="RMSKWLabel" style="color: #aaf;">RMS K ###.## dB</div>
+        <div class="numText" id="RMSAWLabel" style="color: #f77;">RMS A ###.## dB</div>
+        <hr style="margin: 0px 6px;">
+        <div class="numText" id="KZLabel" style="color: #aaf;">K - Z  ##.## dB</div>
+        <div class="numText" id="AZLabel" style="color: #f77;">A - Z  ##.## dB</div>
       </div>
+    <canvas id="KBlocks" width="75" height="200"></canvas>
+    <canvas class="gridLabel" id="decibelLabelL2" width="22" height="220"></canvas>
   </div>
-  <hr>
-    <pre class="txtInfoNoBorder">
+</div>
+<div class="numText" id="sampleRate_audioContext">sampleRate : ***** (device) , ***** (Context)</div>
+<hr>
+<pre class="txtInfoNoBorder">
 ★概要
 ・マイクの音量を目で確認するためのスクリプトです。
 ・出力側を確認したい時はループバック（ステレオミキサー、再生リダイレクト）を使用してください。
@@ -204,7 +189,7 @@
 　　・青（細）：青（太）と　白（太）の差を－４０の線を０として描画
 　　・赤（細）：赤（太）と　白（太）の差を－４０の線を０として描画
 　　・太さの変わる線：－６０を０、－４０～－８０を＋１～－１のリニアとする波形
-　・右の窓：左の窓のプロット数をｙ座標ごとに集計したヒストグラム
+　・右の窓：左の窓のプロット数をｙ座標ごとに(なんとなく)８０個集計したヒストグラム
 ●下段
 　・左下：サンプリングデータの最大値を、前後３点とともに切り出し、曲線でつないだもの
 　・左のレベルメーター：リニアスケールのピークメーター。切れ目はＲＭＳ
@@ -213,13 +198,17 @@
 　・ＳＩＧ：ピーク値が－２０ｄＢを超えた時に点灯
 　・数値群：上の大きい窓の内容を数字で表示
 　・頻出は描画ヒストグラムのピークとなるｙ位置のｄＢ。座標単位なので粗い。
+　・右下はＫ特性フィルタをかけて0.4秒ごとに平均して－０．６９１ｄＢし、
+　　－７０ｄＢ以上のブロックのみを３０秒間で平均した仮基準をー１０ｄＢしたのを基準として
+　　ふるいにかけて、残ったブロックを３０秒間平均したのが紫の線。
 
 ★用途
 　・ＯＳの表示じゃ音量が分からないよって時に使う。
+　・ＯＳの表示じゃ音量が小さいだけなのか、繋がっていないのか分からない時に使う。
 　・ＯＳやアプリの謎メーターが、リニアか対数か判断する比較対象として。
-　・世間一般のコンテンツって、どれくらいの音量で作られているのか認識。
+　・世間一般のコンテンツって、どれくらいの音量で作られているのかを見る。
 　・多人数時の音量調整の目安として。
-　・社内ＰＡの学習用など。
+　・社内ＰＡの学習用など。アプリインストールできない環境などに。
 
 ★仕様に関する事
 ・画面更新の時間間隔ごとに、下記を集計して表示している。
@@ -230,19 +219,17 @@
 ・ヒストグラムは、描画した点の集計。音声データの集計ではない。
 ・ヒストグラム対象は描画データ80個。時間は環境依存。80個はなんとなく。
 ・落とす時はこのhtmlファイル単体でよいが、https://かlocalhost環境でないと動かないらしい。
-・ＫとＡのフィルタはちゃんとしたライブラリを使っている訳ではないので、だいたいと思ってください。
 ・個人的にＡの変化、Ｚとの乖離は気にしているので、計算リソース食うの承知で盛り込んだ。
 ・スタート後に↓に取得した情報を表示
 </pre>
-  <hr>
-  <div>
-    <pre class="txtInfo" id="info_devices"></pre>
-  </div>
-  <div class="text-container">
-    <pre class="txtInfo" id="info_capabilities"></pre>
-    <pre class="txtInfo" id="info_constraints"></pre>
-    <pre class="txtInfo" id="info_settings"></pre>
-  </div>
+<hr>
+<div>
+  <pre class="txtInfo" id="info_devices"></pre>
+</div>
+<div class="text-container">
+  <pre class="txtInfo" id="info_capabilities"></pre>
+  <pre class="txtInfo" id="info_constraints"></pre>
+  <pre class="txtInfo" id="info_settings"></pre>
 </div>
 
 <!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
@@ -273,15 +260,22 @@ const ctxMx = mixLabelCanvas.getContext("2d");
 const drawInfoCanvas = document.getElementById("drawInfo");//絵的な情報表示
 const ctxDI = drawInfoCanvas.getContext("2d");
 const toggleBtn = document.getElementById("toggle");
+const KBlodksCanvas = document.getElementById("KBlocks");//400mごとに計算したKフィルタ後のRMS表示用
+const ctxKB = KBlodksCanvas.getContext("2d");
+const decibelLabelLCanvas2 = document.getElementById("decibelLabelL2");//デシベルメーターの左ラベル
+const ctxDL2 = decibelLabelLCanvas2.getContext("2d");
+
+
 
 //音声処理系の変数
 let audioCtx = null; // = new AudioContext();
-let analyser = null; // = audioCtx.createAnalyser();
 let peakNode = null; // = new AudioWorkletNode(audioCtx, "peak-meter");
 let stream = null; // = await navigator.mediaDevices.getUserMedia({ audio: true });
-let dataArray = null; // = new Uint8Array(analyser.fftSize);
 let rafId = null; // = requestAnimationFrame(draw);
 let devices = null;
+let device = undefined;
+let micNum = 0;//マイクの本数
+let sampleRateDevice = 0;
 
 let running = false;
 let peakMeterPostIs = false;//ピークメータのプロセッサからのデータあり
@@ -294,11 +288,35 @@ let dataNum4Display = 0; // UI側で描画用にデータ数を保持
 const truePeakSamples = [0, 0, 0, 0, 0, 0, 0];//トゥルーピークっぽいところの周囲のデータ
 let truePeakHoldWatch = 0;//トゥルーピークをリセットするための計測用
 const truePeakHoldtime = 5000;//トゥルーピークをリセットする時間
-let peakHold = 0;//ピークホールド用
-const peakHoldDownSpeed = Math.pow(0.1, 20 / 20);//1000m秒での加工スピード
-let peakHoldWatch = 0;//ピークホールドを下げる時間計測用
+let dataNumAveRMS = 0;//RMS平均用のデータカウント
+let dataNumAveRMSnow = 0;//RMS平均用のデータカウント
+const squareSum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const squareSumAW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const squareSumKW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+const dataNum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+let aveNum = 2496;//=(audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
+let array50mSecIndex = 0;
+let blockCounter = 0;//0.4秒ごとのブロックを作るためのカウンタ。dataNum50mSec.length個進んだら0.4秒とみなす。
+let startWatch = 0;//スタートにて開始する時計
+let count400mSecWatch = 0;//400m秒計測用の時計
+let squareSumKW400mLufs = 0;
+let dataNum400mLufs = 0;
+const loudnessOffset = -0.691;//ラウドネス計算の補正値[dB]]
+const loudnessOffsetInSquare = Math.pow(10, loudnessOffset / 10);//ラウドネス計算の補正値。二乗平均にかける用
+const loudness70dBInSquare = Math.pow(10, -70 / 10);//70dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
+const loudness10dBInSquare = Math.pow(10, -10 / 10);//-10dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
+let loudnessSum4Gate = 0;//ゲートの判定基準に使う有効ブロックの合計値。
+let loudnessNum4Gate = 0;//ゲートの判定基準に使う有効データ数。
+const loudness400mSec = new Float32Array(75).fill(0);//400mごとに保存していく
+let loudness400mIndex = 0;
+const loudnessY = new Int32Array(75).fill(250);//y座標
+let loudness10dBGateY = 0;//-10dBの閾値のライン
 
 //画面用の変数
+let squareSum400m = 0;
+let squareSumAW400m = 0;
+let squareSumKW400m = 0;
+let dataNum400m = 0;
 let x = 0;
 let yPreviousPeak = Number(canvas.height);//前回描画y位置
 let yPreviousPeakMax = Number(canvas.height);//前回描画y位置
@@ -311,12 +329,9 @@ let yPreviousRMSAW = Number(canvas.height);//前回描画y位置
 let PreviousRMSKW = 0;//前回描画の値
 let yPreviousRMSKW = Number(canvas.height);//前回描画y位置
 let timeDivX = 0;//縦線用の時間計測用
-let dataNumAveRMS = 0;//RMS平均用のデータカウント
-let dataNumAveRMSnow = 0;//RMS平均用のデータカウント
-const squareSum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
-const squareSumAW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
-const squareSumKW50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
-const dataNum50mSec = [0, 0, 0, 0, 0, 0, 0, 0];//0.05秒ごとぐらい(誤差あり)ずつ保存する。
+let peakHold = 0;//ピークホールド用
+const peakHoldDownSpeed = Math.pow(0.1, 20 / 20);//1000m秒での加工スピード
+let peakHoldWatch = 0;//ピークホールドを下げる時間計測用
 let xDivYet = true;//縦線を書いたかのフラグ
 let peakViewIsDirty = true;//ピーク表示したかのフラグ
 const peakViewThreshold = Math.pow(10, -25 / 20);//ピークビューワに表示する閾値
@@ -330,6 +345,7 @@ const ydBred = canvas.height * dBred * inv_dBmin | 0;//赤のy
 const ydByellow = canvas.height * dByellow * inv_dBmin | 0;//黄のy
 const ydBgreen = canvas.height * dBgreen * inv_dBmin | 0;//黄のy
 const liniear_dBmin = Math.pow(0.1, dBmin / 20);//下端dBってリニアだといくつ？
+const yLoudness70dB = 70 * KBlodksCanvas.height * inv_dBmin | 0;//70dB位置
 const yPeakBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
 const yRMSBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
 const yRMSAWBuffer = new Int32Array(80).fill(canvas.height | 0);//ヒストグラムを書くために描画位置を保存する
@@ -352,8 +368,8 @@ const bgColorDiv = "#888";//グリッド線の色
 const Color4Wave = "#bcf";//波形の線の色
 const Color4Peak = "#0c0";//ピークの線の色
 const Color4RMS = "#fff";//RMSの線の色
-const Color4RMSAW = "#f77";//RMSの線の色
-const Color4RMSKW = "#77f";//RMSの線の色
+const Color4RMSAW = "#f77";//AWRMSの線の色
+const Color4RMSKW = "#99f";//KWRMSの線の色
 const ColorLedRedOff =  "rgba(120, 40, 40, 1.0)";//消えてるLED
 const ColorLedRedOn1 =  "rgba(255, 60, 60, 1.0)";//点灯LED
 const ColorLedRedOn0 =  "rgba(255, 160, 160, 0.9)";//ハイライト
@@ -382,6 +398,7 @@ const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
   ctxSR.fillText(-6, scopeLabelRCanvas.width * 0.5 | 0, topMargin + canvas.height * 5.5 * inv_dBmin | 0);
   ctxSL.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
   ctxDL.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
+  ctxDL2.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
   //リニアメーター
   topMargin = (LinearLabelCanvas.height - meterLinearCanvas.height) * 0.5 | 0;
   ctxLL.fillStyle = "#aaa";
@@ -412,9 +429,9 @@ const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
     const y = topMargin + meterLinearCanvas.height * (1 - Math.pow(0.1, i * 0.05)) | 0;
     const labelText = `${(-i).toFixed(0)}`;
     ctxMx.fillText(`${labelText.padStart(3, " ")}dB`, 0, y);
-    ctxMx.fillRect(33, y, 24, 1);
+    ctxMx.fillRect(33, y, 10, 1);
   }
-  ctxMx.fillRect(33, topMargin + meterLinearCanvas.height, 24, 1);
+  ctxMx.fillRect(33, topMargin + meterLinearCanvas.height, 10, 1);
   ctxMx.fillText("-∞", 12, topMargin + meterLinearCanvas.height + 3);
   ctxMx.fillRect(26, topMargin + 125, 1, -115);
   ctxMx.lineWidth = 2;
@@ -449,8 +466,6 @@ const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
   ctxMx.font = "8px JetBrains Mono, Fira Code, monospace";
   ctxMx.fillText("約３倍", -168, 17);
   ctxMx.restore();
-
-
 
   //リニアとデシベルメーターを繋ぐラベル
   const flatWidth = 8;
@@ -490,7 +505,6 @@ const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
   }
   ctxLdL.fillStyle = bgColorDiv;
   ctxLdL.fillRect(0, 0, LineardBLabelCanvas.width, 1);
-
 }
 
 //メーターを塗ってしまう
@@ -554,17 +568,13 @@ ctxDI.fill();
 ctxDI.fillStyle = "#8f8";
 ctxDI.fillText("SIG", peakLedX + 9, sigLedY);
 
-
-
-
-
 //▼AudioWorklet用のコード開始
 const processorCode = `
 class PeakMeterProcessor extends AudioWorkletProcessor {
   constructor() {
     super();//継承元のコンストラクタ
 
-    //A特性の係数
+    //A特性の係数(wikiの式を双1次変換)
     const fr = 1000;
   	const fL = Math.pow(10, 1.5);
 	  const fH = Math.pow(10, 3.9);
@@ -611,50 +621,46 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
 	  this.AWb5 = this.AWb1;
   	this.AWb6 = this.AWb0;
 
-    //K特性の係数、ハイシェルフとハイパスの二段構え
-		const fcHs = 1500.0;//カットオフ周波数
-		const qHs = 0.707;
-		const gain_db = 4.0;
-		let w = 2.0 * Math.PI * fcHs / sampleRate;
-		const amp = Math.pow(10.0, gain_db / 40);
-		let alpha = Math.sin(w) / qHs * 0.5;
-		let a0 = (amp + 1.0) - (amp - 1.0) * Math.cos(w) + 2.0 * Math.sqrt(amp) * alpha;
-		let a1 = 2.0 * ((amp - 1.0) - (amp + 1.0) * Math.cos(w));
-		let a2 = (amp + 1.0) - (amp - 1.0) * Math.cos(w) - 2.0 * Math.sqrt(amp) * alpha;
-		let b0 = amp * ((amp + 1.0) + (amp - 1.0) * Math.cos(w) + 2.0 * Math.sqrt(amp) * alpha);
-		let b1 = -2.0 * amp * ((amp - 1.0) + (amp + 1.0) * Math.cos(w));
-		let b2 = amp * ((amp + 1.0) + (amp - 1.0) * Math.cos(w) - 2.0 * Math.sqrt(amp) * alpha);
-		a1 /= a0;//正規化 
-		a2 /= a0; 
-		b0 /= a0; 
-		b1 /= a0; 
-		b2 /= a0; 
-		this.hsa1 = a1;//ハイシェルフの係数
-    this.hsa2 = a2;
-    this.hsb0 = b0;
-    this.hsb1 = b1;
-    this.hsb2 = b2;    
+    //K特性の係数、ハイシェルフとハイパスの二段構え。式はAudio EQ Cookbook
+		const fcHs = 1500;//カットオフ周波数
+		const gain_db = 4;
+		let w = 2 * Math.PI * fcHs / sampleRate;
+    let cosw = Math.cos(w);
+    let sinw = Math.sin(w);
+		const A = Math.pow(10.0, gain_db / 40);
+    const S = 1;
+    const alpha2sqrtA = sinw * Math.sqrt((A * A + 1) * (1 / S - 1) + 2 * A);
+		let a0 = (A + 1) - (A - 1) * cosw + alpha2sqrtA;
+		let a1 = 2 * ((A - 1) - (A + 1) * cosw);
+		let a2 = (A + 1) - (A - 1) * cosw - alpha2sqrtA;
+		let b0 = A * ((A + 1) + (A - 1) * cosw + alpha2sqrtA);
+		let b1 = -2 * A * ((A - 1) + (A + 1) * cosw);
+		let b2 = A * ((A + 1) + (A - 1) * cosw - alpha2sqrtA);
+    let inv_a0 = 1 / a0;
+		this.hsa1 = a1 * inv_a0;//ハイシェルフの係数
+    this.hsa2 = a2 * inv_a0;
+    this.hsb0 = b0 * inv_a0;
+    this.hsb1 = b1 * inv_a0;
+    this.hsb2 = b2 * inv_a0;
     //ハイパス
 		const fcHp = 37.5;
 		const qHp = 0.5;
-		w = 2.0 * Math.PI * fcHp / sampleRate;
-		alpha = Math.sin(w) / qHp * 0.5;
-		a0 = 1.0 + alpha;
-		a1 = -2.0 * Math.cos(w);
-		a2 = 1.0 - alpha;
-		b0 = (1.0 + Math.cos(w)) * 0.5;
-		b1 = (1.0 + Math.cos(w)) * (-1.0);
-		b2 = (1.0 + Math.cos(w)) * 0.5;
-		a1 /= a0; //正規化
-		a2 /= a0; 
-		b0 /= a0; 
-		b1 /= a0; 
-		b2 /= a0; 
-    this.hpa1 = a1;//ハイパスの係数
-    this.hpa2 = a2;
-    this.hpb0 = b0;
-    this.hpb1 = b1;
-    this.hpb2 = b2;
+		w = 2 * Math.PI * fcHp / sampleRate;
+    cosw = Math.cos(w);
+    sinw = Math.sin(w);
+		const alpha = Math.sin(w) / qHp * 0.5;
+		a0 = 1 + alpha;
+		a1 = -2 * cosw;
+		a2 = 1 - alpha;
+		b0 = (1 + cosw) * 0.5;
+		b1 = (1 + cosw) * (-1);
+		b2 = (1 + cosw) * 0.5;
+    inv_a0 = 1 / a0;
+    this.hpa1 = a1 * inv_a0;//ハイパスの係数
+    this.hpa2 = a2 * inv_a0;
+    this.hpb0 = b0 * inv_a0;
+    this.hpb1 = b1 * inv_a0;
+    this.hpb2 = b2 * inv_a0;
 
     //前回値保存の箱
     this.inZ1 = 0;//入力データの保存
@@ -876,6 +882,7 @@ const url = URL.createObjectURL(blob);
 
 toggleBtn.onclick = async () => {
   if (!running) {
+//    x = 0;
     await start();
   } else {
     stop();
@@ -960,14 +967,113 @@ function argMax(arr) {
   return max > 0 ? index : -1;
 }
 
+function drawLoudnessBox() {//ラウドネス表示
+  const loudnessGateBase = loudnessNum4Gate > 0 ? loudnessSum4Gate / loudnessNum4Gate: loudness70dBInSquare;//まだ二乗平均
+  const loudnessGate = loudnessGateBase * loudness10dBInSquare;//10dB下
+  let loudnessSquareValidBlockSum = 0;
+  let loudnessSquareValidBlockNum = 0;
+  for (let i = 0; i < loudness400mSec.length; i++) {//ゲート以上のものをカウント
+    if (loudness400mSec[i] > loudnessGateBase && loudness400mSec[i] > loudness70dBInSquare) {
+      loudnessSquareValidBlockSum += loudness400mSec[i];
+      loudnessSquareValidBlockNum++;
+    }
+  }
+  const loudnessFinal_dB = loudnessSquareValidBlockNum > 0 ? -10 * Math.log10(loudnessSquareValidBlockSum / loudnessSquareValidBlockNum) : dBmin;
+  const loudnessFinalY = KBlodksCanvas.height * loudnessFinal_dB * inv_dBmin | 0;//今回のY座標
+  const loudnessGateBaseY = -10 * Math.log10(loudnessGateBase) * KBlodksCanvas.height * inv_dBmin | 0;//ゲートのベース
+  const loudnessGateY = loudnessGateBaseY + (yDiv | 0);//ゲートのベース
+  const loudnessShort_dB = -10 * Math.log10(loudness400mSec[loudness400mIndex]);//今回値を保存
+  const loudnessShortY = loudnessShort_dB * KBlodksCanvas.height * inv_dBmin | 0;//今回値を保存
+
+  ctxKB.fillStyle = "#000";
+  ctxKB.fillRect(0, 0, KBlodksCanvas.width, KBlodksCanvas.height);//塗りつぶし
+  ctxKB.fillStyle = "#666";
+  for (let i = yDiv; i < KBlodksCanvas.height; i += yDiv)
+    ctxKB.fillRect(0, i | 0, KBlodksCanvas.width, 1);//グリッド
+  ctxKB.fillStyle = "#a55";
+  ctxKB.fillRect(0, loudnessGateBaseY, KBlodksCanvas.width, 1);//仮の基準値
+  ctxKB.fillStyle = "#f55";
+  ctxKB.fillRect(0, loudnessGateY, KBlodksCanvas.width, 1);//-10dBの閾値
+  ctxKB.fillStyle = "#f8d";
+  ctxKB.fillRect(0, loudnessFinalY, KBlodksCanvas.width, 2);//最終的なラウドネス
+
+  for(let i = 0; i < loudnessY.length - 1; i++) {
+    const y = loudnessY[i + 1];
+    loudnessY[i] = y;
+    if (y <= loudnessGateY && y <= yLoudness70dB) ctxKB.fillStyle = Color4RMSKW;//Color4RMSKW
+    else ctxKB.fillStyle = "#f88";//基準以下
+    ctxKB.fillRect(i, y, 2, 2);
+  }
+  loudnessY[loudnessY.length - 1] = loudnessShortY;
+  ctxKB.fillRect(loudnessY.length - 1, loudnessShortY, 1, 1);
+
+  const dBtext = `${(-loudnessFinal_dB).toFixed(2)}`;
+  document.getElementById("loudnessLabel").textContent = `${dBtext.padStart(7, " ")}`;
+
+
+
+//  console.log(loudnessShort_dB);
+
+
+
+//const loudnessY = new Int32Array(75).fill(0);//y座標
+//let loudness10dBGateY = 0;//-10dBの閾値のライン
+//const loudness400mSec = new Float32Array(75).fill(0);//400mごとに保存していく
+
+//    <canvas id="KBlocks" width="75" height="200"></canvas>
+
+//const KBlodksCanvas = document.getElementById("KBlocks");//400mごとに計算したKフィルタ後のRMS表示用
+//const ctxKB = drawInfoCanvas.getContext("2d");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+micSelect.addEventListener("change", async (e) => {//マイク選択を変更した
+  selectedMicDeviceId = e.target.value;
+  device = selectedMicDeviceId;
+  if (running) {
+    stop();
+    await start();
+  }
+});
+
 async function start() {
   try {
-    audioCtx = new AudioContext();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
+    //情報窓をクリアしておく
+    document.getElementById("info_settings").textContent = "";
+    document.getElementById("info_constraints").textContent = "";
+    document.getElementById("info_capabilities").textContent = "";
+    document.getElementById("info_devices").textContent = "";
+    document.getElementById("sampleRate_audioContext").textContent = "sampleRate : ***** (device) , ***** (Context)";
+    // 1. 事前チェック
+    const tmpDevices = await navigator.mediaDevices.enumerateDevices();
+    const tmpAudioInputs = tmpDevices.filter(d => d.kind === "audioinput");    
+    if (tmpAudioInputs.length === 0) {
+      throw new Error("NO_MIC");//マイクが無かったらエラーを出して抜ける
+    }
+
+    if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
+    else audioCtx = new AudioContext();//指定なし
+
     await audioCtx.audioWorklet.addModule(url);//AudioWorklet用のコードを実装
-    const peakNode = new AudioWorkletNode(audioCtx, "peak-meter");
-    peakNode.port.onmessage = (e) => {//######################################戻り値の処理
+    peakNode = new AudioWorkletNode(audioCtx, "peak-meter");
+    peakNode.port.onmessage = (e) => {//######################################戻り値の処理の関数
+      const now = performance.now();
       const { peakMax, peakMin, squareSum, squareSumAW, squareSumKW, dataNum, z0, z1, z2, z3, z4, z5, z6 } = e.data;
       peakMax4Display = Math.max(peakMax4Display, peakMax); // UI側で保持
       peakMin4Display = Math.min(peakMin4Display, peakMin); // UI側で保持
@@ -979,28 +1085,61 @@ async function start() {
         truePeakSamples[4] = z4;
         truePeakSamples[5] = z5;
         truePeakSamples[6] = z6;
-        truePeakHoldWatch = performance.now();
+        truePeakHoldWatch = now;
         peakViewIsDirty = true;
-//console.log(Math.log10(Math.sqrt(squareSum / dataNum)) * 20); // ##########コンソール出力
       }
       squareSum4Display += squareSum; // UI側で描画用に二乗和を保持
       squareSumAW4Display += squareSumAW; // UI側で描画用に二乗和を保持
       squareSumKW4Display += squareSumKW; // UI側で描画用に二乗和を保持
       dataNum4Display += dataNum; // UI側で描画用にデータ数を保持
       peakMeterPostIs = true;//データきたよーフラグを立てる
+
+      //lufsっぽいの用
+      squareSumKW400mLufs += squareSumKW;//400m分集計の加算
+      dataNum400mLufs += dataNum;
+      if (count400mSecWatch < now) {//0.4秒ごとに更新
+        loudness400mIndex = (loudness400mIndex + 1) % loudness400mSec.length;//インデックスをずらす
+        if (loudness400mSec[loudness400mIndex] > loudness70dBInSquare) {//最終値が70dBを超えていたら平均用の数値を更新
+          loudnessSum4Gate -= loudness400mSec[loudness400mIndex];
+          loudnessNum4Gate--;
+        }
+        const tmpLoudnessSquare400m = (dataNum400mLufs > 0 && squareSumKW400mLufs > 0) ?
+          squareSumKW400mLufs / dataNum400mLufs * loudnessOffsetInSquare : 1e-12;//今回値
+        loudness400mSec[loudness400mIndex] = tmpLoudnessSquare400m;//今回値を保存
+        if (tmpLoudnessSquare400m > loudness70dBInSquare) {//70dBを超えていたら平均用の数値を更新
+          loudnessSum4Gate += tmpLoudnessSquare400m;
+          loudnessNum4Gate++;
+        }
+        squareSumKW400mLufs = 0;//リセット
+        dataNum400mLufs = 0;
+        count400mSecWatch = now + 400;//カウンタを進める
+        drawLoudnessBox();
+      }
+    };//戻り値処理の関数の終わり
+
+    // 2. constraints 構築
+    const audioConstraints = {
+      autoGainControl: { ideal: false },
+      noiseSuppression: { ideal: false },
+      echoCancellation: { ideal: false },
+      voiceIsolation: { ideal: false },
+      latency: { ideal: 0 }
     };
 
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        autoGainControl: { ideal: false },
-        noiseSuppression: { ideal: false },
-        echoCancellation: { ideal: false },
-        voiceIsolation: { ideal: false },
-        latency: { ideal: 0 }
-      }
-    });
+    if (device && tmpAudioInputs.some(d => d.deviceId === device)) {//デバイスが指定されていれば
+      audioConstraints.deviceId = { exact: device };//設定にデバイスを追加する
+    }    
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints
+      });
+    } catch (e) {
+      throw new Error("GET_USER_MEDIA_FAILED");//指定マイクが無いなどで失敗。（exactなので）
+    }
+
     const source = audioCtx.createMediaStreamSource(stream);
-    source.connect(peakNode);
+    source.connect(peakNode);//ピークノードのみ使用
 
     //トラック情報の表示
     const track = stream.getAudioTracks()[0];
@@ -1032,26 +1171,60 @@ async function start() {
     console.log(capabilities);
 
     //デバイス情報
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    devices = await navigator.mediaDevices.enumerateDevices();
     const audioInputs = devices.filter(d => d.kind === "audioinput");
-    const activeDeviceId = settings.deviceId;
-    const device = audioInputs.find(d => d.deviceId === activeDeviceId);
-    document.getElementById("deviceLabel").textContent = "入力デバイス → " + device?.label;
+    //プルダウンに選択肢を追加
+    micSelect.options.length = 0;//一旦全消し
+    audioInputs.forEach(mic => { 
+    const opt = document.createElement("option");
+      opt.value = mic.deviceId;
+      opt.textContent = mic.label;
+      micSelect.appendChild(opt);
+    });
+
+    const activeDeviceId = settings.deviceId;//選択結果のデバイスＩＤ
+    sampleRateDevice = settings.sampleRate;//デバイスのサンプルレートを保存
+    if (sampleRateDevice === audioCtx.sampleRate) 
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device & Context)`;
+    else
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device) , ${audioCtx.sampleRate} (Context)`;
+
+    const deviceObj = audioInputs.find(d => d.deviceId === activeDeviceId);//選択中のデバイス
+    device = deviceObj?.deviceId;
+    if (device !== undefined) {
+      micSelect.value = device;//プルダウンを選択
+      const opt = micSelect.querySelector('option[value=""]');//初めにあったオブジェクト
+      if (opt !== null) opt.remove();//を除去
+    }
     lines.length = 0;
     lines.push("■入力デバイス(選択外も含む)");
     audioInputs.forEach(d => {
       lines.push(`${d.label}`);
     });
     document.getElementById("info_devices").textContent = lines.join("\n");
-    console.log(device);
 
     running = true;
     toggleBtn.textContent = "Stop";
-    x = 0;
+
+    if (rafId) {//アニメーション動いてたらいったん止める
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    startWatch = performance.now();//時計リセット
+    count400mSecWatch = startWatch + 400;
+    timeDivX = startWatch - 1000;//始まったらすぐ縦線
+
+    aveNum = (audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
+    while (dataNumAveRMSnow > dataNumAveRMS) dataNumAveRMS += aveNum;//次回の切替えタイミングをずらす
 
     requestAnimationFrame(draw);
   } catch (e) {
-    alert("マイクを取得できません");
+    if (e.message === "NO_MIC") {
+      alert("マイクが接続されていません");
+    } else {
+      alert("マイクを使用できません");
+    }
   }
 }
 
@@ -1066,6 +1239,11 @@ function stop() {
     stream.getTracks().forEach(t => t.stop());
     stream = null;
   }
+  if (peakNode) {
+    peakNode.port.onmessage = null; // クロージャ切断
+    peakNode.disconnect();          // AudioGraph から切断
+    peakNode = null;                // GC 対象に  
+    }
   if (audioCtx) {
     audioCtx.close();
     audioCtx = null;
@@ -1074,56 +1252,32 @@ function stop() {
 
 function draw(now) {
   rafId = requestAnimationFrame(draw);
-  const aveNum = (audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
 
   //事前計算
-  if (!x) {//x=0なら時間をクリア
-    timeDivX = now;
-    dataNumAveRMS = 0;//RMS平均用の時間もここでクリアしてしまう
-    dataNumAveRMSnow = 0;//RMS平均用の時間もここでクリアしてしまう
-    for (let i = squareSum50mSec.length - 1; i > 0; i--) {//一個ずらす
-      squareSum50mSec[i] = squareSum50mSec[i - 1];
-      squareSumAW50mSec[i] = squareSumAW50mSec[i - 1];
-      squareSumKW50mSec[i] = squareSumKW50mSec[i - 1];
-      dataNum50mSec[i] = dataNum50mSec[i - 1];
-    }
-    squareSum50mSec[0] = 0;
-    squareSumAW50mSec[0] = 0;
-    squareSumKW50mSec[0] = 0;
-    dataNum50mSec[0] = 0;
-  } else {
-    dataNumAveRMSnow += dataNum4Display;
-    if (dataNumAveRMSnow - dataNumAveRMS > aveNum) {//平均する数を超えていてもリセットして送る
-      while (dataNumAveRMSnow - dataNumAveRMS > aveNum) dataNumAveRMS += aveNum;
-      for (let i = squareSum50mSec.length - 1; i > 0; i--) {//一個ずらす
-        squareSum50mSec[i] = squareSum50mSec[i - 1];
-        squareSumAW50mSec[i] = squareSumAW50mSec[i - 1];
-        squareSumKW50mSec[i] = squareSumKW50mSec[i - 1];
-        dataNum50mSec[i] = dataNum50mSec[i - 1];
-      }
-      squareSum50mSec[0] = 0;
-      squareSumAW50mSec[0] = 0;
-      squareSumKW50mSec[0] = 0;
-      dataNum50mSec[0] = 0;
-    }
+  dataNumAveRMSnow += dataNum4Display;//次回から今回までのあいだのデータ数を加算
+  if (dataNumAveRMSnow > dataNumAveRMS) {//平均する数を超えていてもリセットして送る
+    while (dataNumAveRMSnow > dataNumAveRMS) dataNumAveRMS += aveNum;//次回の切替えタイミングをずらす
+    array50mSecIndex = (array50mSecIndex + 1) % dataNum50mSec.length;//インデックスを進める
+    squareSum400m -= squareSum50mSec[array50mSecIndex];//最終値分を消す
+    squareSumAW400m -= squareSumAW50mSec[array50mSecIndex];
+    squareSumKW400m -= squareSumKW50mSec[array50mSecIndex];
+    dataNum400m -= dataNum50mSec[array50mSecIndex];
+    squareSum50mSec[array50mSecIndex] = 0;//新しい箱をリセット
+    squareSumAW50mSec[array50mSecIndex] = 0;
+    squareSumKW50mSec[array50mSecIndex] = 0;
+    dataNum50mSec[array50mSecIndex] = 0;
   }
-  squareSum50mSec[0] += squareSum4Display;
-  squareSumAW50mSec[0] += squareSumAW4Display;
-  squareSumKW50mSec[0] += squareSumKW4Display;
-  dataNum50mSec[0] += dataNum4Display;
-  //RMSの配列の積み上げ
-  let squareSum400m = 0;
-  let squareSumAW400m = 0;
-  let squareSumKW400m = 0;
-  let dataNum400m = 0;
-  for (let i = 0; i < squareSum50mSec.length; i++) {
-    squareSum400m += squareSum50mSec[i];
-    squareSumAW400m += squareSumAW50mSec[i];
-    squareSumKW400m += squareSumKW50mSec[i];
-    dataNum400m += dataNum50mSec[i];
-  }
+  squareSum50mSec[array50mSecIndex] += squareSum4Display;//今回の値を加算
+  squareSumAW50mSec[array50mSecIndex] += squareSumAW4Display;
+  squareSumKW50mSec[array50mSecIndex] += squareSumKW4Display;
+  dataNum50mSec[array50mSecIndex] += dataNum4Display;
+  squareSum400m += squareSum4Display;//今回の値を加算
+  squareSumAW400m += squareSumAW4Display;
+  squareSumKW400m += squareSumKW4Display;
+  dataNum400m += dataNum4Display;
 
   //背景描画
+  if (!x)  timeDivX = now;//x=0なら時間をクリア
   if (now - timeDivX < 1000) {
     ctxSc.strokeStyle = bgColorRed;//赤部分の背景色
     ctxSc.beginPath();
@@ -1165,14 +1319,14 @@ function draw(now) {
   } else {
     ctxSc.fillStyle = bgColorDiv;
     ctxSc.fillRect(x, 0, 1, canvas.height);
-    timeDivX += 1000;
+    while (now - timeDivX >= 1000) timeDivX += 1000;//画面が背面に言っていると、すげー時間たってる
   }
 
   //平均する時間の確認用
 //  if (peakMeterPostIs) {//新しいデータあり
 //    const yDataNum400m = canvas.height - 100 * inv_dBmin * canvas.height * dataNum400m / audioCtx.sampleRate;
-//    ctxSc.fillStyle = "#ff0";
-//    ctxSc.fillRect(x, yDataNum400m, 1, 1);
+//    ctxSc.fillStyle = "#fff";
+//    ctxSc.fillRect(x, yDataNum400m, 2, 2);
 //  }
 
   // 波形の振幅を描画
@@ -1394,7 +1548,7 @@ function draw(now) {
     ctxMD.fillStyle = "#f80";//ピークホールド
     ctxMD.fillRect(meterMargin + 1, meterDecibelCanvas.height * peakHold_dB * inv_dBmin | 0, meterWidth, 2);
     ctxMD.fillStyle = "#000";//RMS
-    const shortRMSdB = -10 * Math.log10(squareSum4Display / dataNum4Display);
+    const shortRMSdB = -10 * Math.log10(squareSum4Display / dataNum4Display);//二乗のままなので*-10
     ctxMD.fillRect(meterMargin + 1
     , (meterDecibelCanvas.height * shortRMSdB * inv_dBmin - 1) | 0, meterWidth, 4);
   }
@@ -1657,5 +1811,4 @@ function draw(now) {
 </script>
 
 </body>
-
 </html>
