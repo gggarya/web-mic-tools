@@ -298,18 +298,19 @@ let aveNum = 2496;//=(audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の�
 let array50mSecIndex = 0;
 let blockCounter = 0;//0.4秒ごとのブロックを作るためのカウンタ。dataNum50mSec.length個進んだら0.4秒とみなす。
 let startWatch = 0;//スタートにて開始する時計
-let count400mSecWatch = 0;//400m秒計測用の時計
-let squareSumKW400mLufs = 0;
-let dataNum400mLufs = 0;
+let count100mSecWatch = 0;//100m秒計測用の時計
+const squareSumKW100mLufs = [0, 0, 0, 0];
+const dataNum100mLufs = [0, 0, 0, 0];
+let squareSum100mIndex = 0;
 const loudnessOffset = -0.691;//ラウドネス計算の補正値[dB]]
 const loudnessOffsetInSquare = Math.pow(10, loudnessOffset / 10);//ラウドネス計算の補正値。二乗平均にかける用
 const loudness70dBInSquare = Math.pow(10, -70 / 10);//70dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
 const loudness10dBInSquare = Math.pow(10, -10 / 10);//-10dBゲートの二乗平均での基準。二乗平均なので/10。補正後に判定すること
 let loudnessSum4Gate = 0;//ゲートの判定基準に使う有効ブロックの合計値。
 let loudnessNum4Gate = 0;//ゲートの判定基準に使う有効データ数。
-const loudness400mSec = new Float32Array(75).fill(0);//400mごとに保存していく
+const loudness400mSec = new Float32Array(300).fill(0);//400mごとに保存していく
 let loudness400mIndex = 0;
-const loudnessY = new Int32Array(75).fill(250);//y座標
+const loudnessY = new Int32Array(300).fill(250);//y座標
 let loudness10dBGateY = 0;//-10dBの閾値のライン
 
 //画面用の変数
@@ -995,51 +996,22 @@ function drawLoudnessBox() {//ラウドネス表示
   ctxKB.fillStyle = "#f55";
   ctxKB.fillRect(0, loudnessGateY, KBlodksCanvas.width, 1);//-10dBの閾値
   ctxKB.fillStyle = "#f8d";
-  ctxKB.fillRect(0, loudnessFinalY, KBlodksCanvas.width, 2);//最終的なラウドネス
+  ctxKB.fillRect(0, loudnessFinalY - 1, KBlodksCanvas.width, 3);//最終的なラウドネス
 
   for(let i = 0; i < loudnessY.length - 1; i++) {
     const y = loudnessY[i + 1];
     loudnessY[i] = y;
     if (y <= loudnessGateY && y <= yLoudness70dB) ctxKB.fillStyle = Color4RMSKW;//Color4RMSKW
     else ctxKB.fillStyle = "#f88";//基準以下
-    ctxKB.fillRect(i, y, 2, 2);
+    ctxKB.fillRect(i * 0.25, y, 2, 2);
   }
   loudnessY[loudnessY.length - 1] = loudnessShortY;
   ctxKB.fillRect(loudnessY.length - 1, loudnessShortY, 1, 1);
+  ctxKB.fillStyle = "#f8d";
+  ctxKB.fillRect(0, loudnessFinalY, KBlodksCanvas.width, 1);//最終的なラウドネス
 
   const dBtext = `${(-loudnessFinal_dB).toFixed(2)}`;
   document.getElementById("loudnessLabel").textContent = `${dBtext.padStart(7, " ")}`;
-
-
-
-//  console.log(loudnessShort_dB);
-
-
-
-//const loudnessY = new Int32Array(75).fill(0);//y座標
-//let loudness10dBGateY = 0;//-10dBの閾値のライン
-//const loudness400mSec = new Float32Array(75).fill(0);//400mごとに保存していく
-
-//    <canvas id="KBlocks" width="75" height="200"></canvas>
-
-//const KBlodksCanvas = document.getElementById("KBlocks");//400mごとに計算したKフィルタ後のRMS表示用
-//const ctxKB = drawInfoCanvas.getContext("2d");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
 
@@ -1095,13 +1067,20 @@ async function start() {
       peakMeterPostIs = true;//データきたよーフラグを立てる
 
       //lufsっぽいの用
-      squareSumKW400mLufs += squareSumKW;//400m分集計の加算
-      dataNum400mLufs += dataNum;
-      if (count400mSecWatch < now) {//0.4秒ごとに更新
+      squareSumKW100mLufs[squareSum100mIndex] += squareSumKW;//100m分集計の加算
+      dataNum100mLufs[squareSum100mIndex] += dataNum;//100m分集計の加算
+      if (count100mSecWatch < now) {//0.4秒ごとに更新
+        squareSum100mIndex = (squareSum100mIndex + 1) % squareSumKW100mLufs.length;//インデックスをずらす
         loudness400mIndex = (loudness400mIndex + 1) % loudness400mSec.length;//インデックスをずらす
         if (loudness400mSec[loudness400mIndex] > loudness70dBInSquare) {//最終値が70dBを超えていたら平均用の数値を更新
           loudnessSum4Gate -= loudness400mSec[loudness400mIndex];
           loudnessNum4Gate--;
+        }
+        let squareSumKW400mLufs = 0;
+        let dataNum400mLufs = 0;
+        for (let i = 0; i < squareSumKW100mLufs.length; i++) {//全部足す
+          squareSumKW400mLufs += squareSumKW100mLufs[i];
+          dataNum400mLufs += dataNum100mLufs[i];
         }
         const tmpLoudnessSquare400m = (dataNum400mLufs > 0 && squareSumKW400mLufs > 0) ?
           squareSumKW400mLufs / dataNum400mLufs * loudnessOffsetInSquare : 1e-12;//今回値
@@ -1110,9 +1089,9 @@ async function start() {
           loudnessSum4Gate += tmpLoudnessSquare400m;
           loudnessNum4Gate++;
         }
-        squareSumKW400mLufs = 0;//リセット
-        dataNum400mLufs = 0;
-        count400mSecWatch = now + 400;//カウンタを進める
+        squareSumKW100mLufs[squareSum100mIndex] = 0;//100m分集計クリア
+        dataNum100mLufs[squareSum100mIndex] = 0;//100m分集計クリア
+        count100mSecWatch = now + 100;//カウンタを進める
         drawLoudnessBox();
       }
     };//戻り値処理の関数の終わり
@@ -1212,7 +1191,7 @@ async function start() {
     }
 
     startWatch = performance.now();//時計リセット
-    count400mSecWatch = startWatch + 400;
+    count100mSecWatch = startWatch + 100;
     timeDivX = startWatch - 1000;//始まったらすぐ縦線
 
     aveNum = (audioCtx.sampleRate * 0.052) | 0;//RMS系の平均用の配列切替えタイミング
