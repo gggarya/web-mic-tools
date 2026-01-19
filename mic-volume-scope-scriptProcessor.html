@@ -1001,8 +1001,6 @@ function drawLoudnessBox() {//ラウドネス表示
   const loudnessFinalY = KBlodksCanvas.height * loudnessFinal_dB * inv_dBmin | 0;//今回のY座標
   const loudnessGateBaseY = -10 * Math.log10(loudnessGateBase) * KBlodksCanvas.height * inv_dBmin | 0;//ゲートのベース
   const loudnessGateY = loudnessGateBaseY + (yDiv | 0);//ゲートのベース
-  const loudnessShort_dB = -10 * Math.log10(loudness400mSec[loudness400mIndex]);//今回値を保存
-  const loudnessShortY = loudnessShort_dB * KBlodksCanvas.height * inv_dBmin | 0;//今回値を保存
 
   ctxKB.fillStyle = "#000";
   ctxKB.fillRect(0, 0, KBlodksCanvas.width, KBlodksCanvas.height);//塗りつぶし
@@ -1016,19 +1014,26 @@ function drawLoudnessBox() {//ラウドネス表示
   ctxKB.fillStyle = "#f8d";
   ctxKB.fillRect(0, loudnessFinalY - 1, KBlodksCanvas.width, 3);//最終的なラウドネス
 
-  for(let i = 0; i < loudnessY.length - 1; i++) {
-    const y = loudnessY[i + 1];
-    loudnessY[i] = y;
+  for(let i = 0; i < loudnessY.length - squareSumKW100mLufs.length; i++)
+    loudnessY[i] = loudnessY[i + squareSumKW100mLufs.length];//よっつずらす
+  for (let i = 0; i < squareSumKW100mLufs.length; i++) {
+    const loudnessShort_dB = -10 * Math.log10(
+      loudness400mSec[(loudness400mSec.length + loudness400mIndex - i) % loudness400mSec.length]);//今回値を保存
+    const loudnessShortY = loudnessShort_dB * KBlodksCanvas.height * inv_dBmin | 0;//今回値を保存
+    loudnessY[loudnessY.length - 1 - i] = loudnessShortY;
+  }
+  for(let i = 0; i < loudnessY.length; i++) {
+    const y = loudnessY[i];
     if (y <= loudnessGateY && y <= yLoudness70dB) ctxKB.fillStyle = Color4RMSKW;//Color4RMSKW
     else ctxKB.fillStyle = "#f88";//基準以下
     ctxKB.fillRect(i * 0.25, y, 2, 2);
   }
-  loudnessY[loudnessY.length - 1] = loudnessShortY;
-  ctxKB.fillRect(loudnessY.length - 1, loudnessShortY, 1, 1);
   ctxKB.fillStyle = "#f8d";
   ctxKB.fillRect(0, loudnessFinalY, KBlodksCanvas.width, 1);//最終的なラウドネス
+
   const dBtext = `${(-loudnessFinal_dB).toFixed(2)}`;
   document.getElementById("loudnessLabel").textContent = `${dBtext.padStart(7, " ")}`;
+
 }
 
 micSelect.addEventListener("change", async (e) => {//マイク選択を変更した
@@ -1111,7 +1116,7 @@ async function start() {
         squareSumKW100mLufs[squareSum100mIndex] = 0;//100m分集計クリア
         dataNum100mLufs[squareSum100mIndex] = 0;//100m分集計クリア
         count100mSecWatch = now + 100;//カウンタを進める
-        drawLoudnessBox();
+        if (squareSum100mIndex === 0) drawLoudnessBox();
       }
     };//戻り値処理の関数の終わり
 
