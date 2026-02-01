@@ -652,9 +652,9 @@ function initFromURL() {//パラメを読み込む
         opt.textContent = `${tmpValue}秒`;
         selectMenu.appendChild(opt);
         selectMenu.value = tmpValue;
-      } else selectMenu.value = "0.5";//値がおかしかったらとりま
+      } else selectMenu.value = "0.3";//値がおかしかったらとりま
     }
-  } else selectMenu.value = "0.5";//アドレスにないなら
+  } else selectMenu.value = "0.3";//アドレスにないなら
   //キャンセル条件
   selectMenu = document.getElementById("cancelSelect");
   type = "cancelSec";
@@ -670,9 +670,9 @@ function initFromURL() {//パラメを読み込む
         opt.textContent = `${tmpValue}秒未満`;
         selectMenu.appendChild(opt);
         selectMenu.value = tmpValue;
-      } else selectMenu.value = "0.5";//値がおかしかったらとりま
+      } else selectMenu.value = "1.0";//値がおかしかったらとりま
     }
-  } else selectMenu.value = "0.5";//アドレスにないなら
+  } else selectMenu.value = "1.0";//アドレスにないなら
   //終了条件
   selectMenu = document.getElementById("endSelect");
   type = "stopSec";
@@ -688,9 +688,9 @@ function initFromURL() {//パラメを読み込む
         opt.textContent = `${tmpValue}秒`;
         selectMenu.appendChild(opt);
         selectMenu.value = tmpValue;
-      } else selectMenu.value = "1.0";//値がおかしかったらとりま
+      } else selectMenu.value = "0.5";//値がおかしかったらとりま
     }
-  } else selectMenu.value = "1.0";//アドレスにないなら
+  } else selectMenu.value = "0.5";//アドレスにないなら
   //ディレイ
   selectMenu = document.getElementById("delaySelect");
   type = "delaySec";
@@ -706,9 +706,9 @@ function initFromURL() {//パラメを読み込む
         opt.textContent = `${tmpValue}秒`;
         selectMenu.appendChild(opt);
         selectMenu.value = tmpValue;
-      } else selectMenu.value = "1.0";//値がおかしかったらとりま
+      } else selectMenu.value = "0.3";//値がおかしかったらとりま
     }
-  } else selectMenu.value = "1.0";//アドレスにないなら
+  } else selectMenu.value = "0.3";//アドレスにないなら
   //エンドレス、ワンタイム
   selectMenu = document.getElementById("endModeSelect");
   type = "oneTimeFlag";
