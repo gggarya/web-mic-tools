@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mic Volume Scope</title>
+<link rel="icon" href="data:,">
+<!--//■スタイル-->
+<style>
+  body {
+    background: #111;
+    color: #eee;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  .header {
+    font-size: 24px;
+    display: inline;
+    margin: 0px 10px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  .canvas-wrapper {
+    text-align: center;   /* 中央配置 */
+    margin: 0px 0px;
+  }
+  .canvas-container {
+    display: flex;
+    align-items: center;   /* ← 縦方向中央揃え */
+    justify-content: center;
+    gap: 0px;/*    ← これが td を1個挟むのと同じ役割 */
+    margin: 0px 0px;
+  }
+  canvas.gridLabel {
+    background: #111;
+    border: 0px solid #000;
+    display: block; /*※ これがないと margin の指定が効きにくい*/
+  }
+  canvas {
+    background: #000;
+    border: 1px solid #444;
+    display: block; /*※ これがないと margin の指定が効きにくい*/
+  }
+  .text-container {
+    display: inline-flex;
+    align-items: stretch;   /* ← 縦方向*/
+    justify-content: center;/*中央寄せ*/
+    gap: 0px;/*    ← これが td を1個挟むのと同じ役割 */
+  }
+  .txtInfo {
+    display: inline-block;
+    max-width: 200px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid #444;
+    color: #eee;
+    text-align: left;
+    line-height: 1.3;
+    padding: 8px 12px;
+    margin: 5px auto;
+    }
+  .txtInfoNoBorder {
+    display: inline-block;
+    max-width: 80%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 0px;
+    color: #eee;
+    text-align: left;
+    line-height: 1.3;
+    padding: 8px 12px;
+    margin: 5px auto;
+  }
+  .canvasMix {
+    align-items: start;   /* ← 縦方向中央揃え */
+    background: #000;
+    border: 0px solid #444;
+    height: 220px;
+  }
+  .VerticalNoBorder {
+    display: block;
+    margin: 0px 0px;
+  }
+  button {
+    font-size: 16px;
+    padding: 5px 10px;
+  }
+  .numText {
+    font-family: monospace;;
+    font-size: 14px;
+    margin: 5px 5px;
+    display: block;
+    width: 16ch;
+    text-align: center;
+    white-space: pre; 
+  }
+  .numTextNoMargin {
+    font-family: monospace;;
+    font-size: 14px;
+    margin: 0px 0px;
+    display: block;
+    text-align: center;
+    white-space: pre; 
+  }
+  #sampleRate_audioContext {
+    display: inline-block;
+    color: #ccc;
+    margin: 0px auto;
+    width: fit-content;
+  }
+  #drawInfo {
+    background: #111;
+  }
+  #micSelect {
+    display: block;
+    margin: 5px auto;        /* 水平方向中央 */
+    font-size: 14px;       /* 文字サイズ */
+  }
+  #spkSelect {
+    display: block;
+    margin: 5px auto;        /* 水平方向中央 */
+    font-size: 14px;       /* 文字サイズ */
+  }
+  hr {
+    border: none;
+    border-top: 0.5px solid #666;
+    margin: 3px 0;
+  }
+</style>
+</head>
+<body>
+
+<!--■□■□■□■□■□■ここが画面に配置するところ■□■□■□■□■□■-->
+<div class="header">オウム返し君</div>
+<button id="toggle" style="margin: 0px 10px">Start</button>
+  <div class="numTextNoMargin" style="display: inline-block; font-weight: bold; color: #ccc; margin: 0px auto">バッファサイズ</div>
+  <select id="bufferSelect">
+    <option value="10">最大10秒</option>
+    <option value="15">最大15秒</option>
+    <option value="20">最大20秒</option>
+  </select>
+<div class="canvas-wrapper">
+  <div class="canvas-container">
+    <canvas class="gridLabel" id="scopeLabelR" width="22" height="212"></canvas>
+    <canvas id="scope" width="480" height="200"></canvas>
+    <canvas class="gridLabel" id="scopeLabelL" width="22" height="212"></canvas>
+    <canvas id="MeterDecibel" width="15" height="200"></canvas>
+  </div>
+  <div class="canvas-container">
+    <div class="canvas-container">
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 10ch; color: #fa2; margin: 0px auto">録音レベル</div>
+        <select id="thresholdSelect">
+          <option value="30">-30dB超え</option>
+          <option value="40">-40dB超え</option>
+          <option value="50">-50dB超え</option>
+        </select>
+      </div>
+      <canvas class="gridLabel" id="drawInfo" width="50" height="55"></canvas>
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 9ch; color: #fa2; margin: 0px auto">プレ録音</div>
+        <select id="preRecSelect">
+          <option value="0.3">0.3秒</option>
+          <option value="0.5">0.5秒</option>
+          <option value="1.0">1.0秒</option>
+        </select>
+      </div>
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 13ch; color: #fa2; margin: 0px auto">無効判定</div>
+        <select id="cancelSelect" style="margin: 0px auto">
+          <option value="0.3">0.3秒未満</option>
+          <option value="0.5">0.5秒未満</option>
+          <option value="1.0">1.0秒未満</option>
+        </select>
+      </div>
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 11ch; color: #fa2; margin: 0px auto">終了判定</div>
+        <select id="endSelect" style="margin: 0px auto">
+          <option value="0.3">0.3秒</option>
+          <option value="0.5">0.5秒</option>
+          <option value="1.0">1.0秒</option>
+          <option value="1.5">1.5秒</option>
+          <option value="2.0">2.0秒</option>
+        </select>
+      </div>
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 13ch; color: #ad2; margin: 0px auto">再生ディレイ</div>
+        <select id="delaySelect" style="margin: 0px auto">
+          <option value="0.3">0.3秒</option>
+          <option value="0.5">0.5秒</option>
+          <option value="1.0">1.0秒</option>
+          <option value="1.5">1.5秒</option>
+          <option value="2.0">2.0秒</option>
+          <option value="-1">手動</option>
+        </select>
+      </div>
+      <div class="VerticalNoBorder">
+        <div class="numTextNoMargin" style="font-weight: bold; width: 9ch; color: #fa2; margin: 0px auto">繰り返し</div>
+        <select id="endModeSelect" style="margin: 0px auto">
+          <option value="false">エンドレス</option>
+          <option value="true">ワンタイム</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <hr style="width: 550px; margin: 0px auto">
+  <div style="display:block; text-align:center; margin: 0px auto">
+    <div class="numTextNoMargin" style="display:inline; font-weight: bold; width: 9ch; color: #ccc;">入力</div>
+    <select id="micSelect" style="display:inline;">
+      <option value="">（入力デバイス一覧未取得）</option>
+    </select>
+  </div>
+  <div style="display:block; text-align:center; margin: 0px auto">
+    <div class="numTextNoMargin" style="display:inline; font-weight: bold; width: 9ch; color: #ccc;">出力</div>
+    <select id="spkSelect" style="display:inline;">
+      <option value="">（出力デバイス一覧未取得）</option>
+    </select>
+  </div>
+</div>
+<hr style="width: 550px; margin: 0px auto">
+<pre class="txtInfoNoBorder"  style="display:block; text-align: center;">
+話し終えたらオウム返ししてくるスクリプト
+クリックかスペースで再生
+エンターか長押しで録音停止やワンタイムの再開
+バッファサイズ変更はスタート時にのみ反映
+</pre>
+<hr style="width: 550px; margin: 0px auto">
+<div class="numText" id="sampleRate_audioContext">sampleRate : ***** (device) , ***** (Context)</div>
+
+<!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
+<script>
+//オブジェクトやら
+const canvas = document.getElementById("scope");//オシロっぽいキャンバス
+const ctxSc = canvas.getContext("2d");
+const meterDecibelCanvas = document.getElementById("MeterDecibel");//デシベルメーター
+const ctxMD = meterDecibelCanvas.getContext("2d");
+const scopeLabelRCanvas = document.getElementById("scopeLabelR");//scopeの右ラベル
+const ctxSR = scopeLabelRCanvas.getContext("2d");
+const scopeLabelLCanvas = document.getElementById("scopeLabelL");//scopeの左ラベル
+const ctxSL = scopeLabelLCanvas.getContext("2d");
+const drawInfoCanvas = document.getElementById("drawInfo");//絵的な情報表示
+const ctxDI = drawInfoCanvas.getContext("2d");
+const toggleBtn = document.getElementById("toggle");
+const toggleBtnPlay = document.getElementById("Playtoggle");
+
+//音声処理系の変数
+let audioCtx = null; // = new AudioContext();
+let peakNode = null; // = new AudioWorkletNode(audioCtx, "peak-meter");
+let stream = null; // = await navigator.mediaDevices.getUserMedia({ audio: true });
+let rafId = null; // = requestAnimationFrame(draw);
+let devices = null; // = await navigator.mediaDevices.enumerateDevices();
+let micDevice = undefined;//マイクデバイスID
+let spkDevice = undefined;//スピーカデバイスID
+let sampleRateDevice = 0;
+
+let running = false;//drawが動いているかのフラグ
+let peakMeterPostIs = false;//ピークメータのプロセッサからのデータありフラグ
+let peakMax4Display = -Infinity; // UI側で描画用に最大値を保持
+let peakMin4Display = Infinity; // UI側で描画用に最小を保持
+let outMax4Display = -Infinity; // UI側で描画用に最大値を保持
+let outMin4Display = Infinity; // UI側で描画用に最小を保持
+let squareSum4Display = 0; // UI側で描画用に二乗和を保持
+let dataNum4Display = 0; // UI側で描画用にデータ数を保持
+let startWatch = 0;//スタートにて開始する時計
+
+let recPhase = Infinity;//録音フェーズ
+let recStX = 0;//録音開始のx座標
+let previousRecPhase = Infinity;//録音フェーズ
+let playPhase = Infinity;//再生フェーズ
+let recPhaseToggle = false;//録音フェーズ
+let previousRecPhaseToggle = false;//録音フェーズ
+
+//画面用の変数
+let x = 0;
+let yPreviousPeak = Number(canvas.height);//前回描画y位置
+let yPreviousPeakMax = Number(canvas.height);//前回描画y位置
+let yPreviousPeakMin = Number(canvas.height);//前回描画y位置
+let PreviousPeak = 0;//前回描画の値
+let PreviousRMS = 0;//前回描画の値
+let yPreviousRMS = Number(canvas.height);//前回描画y位置
+let timeDivX = 0;//縦線用の時間計測用
+let xDivYet = true;//縦線を書いたかのフラグ
+let peakViewIsDirty = true;//ピーク表示したかのフラグ
+const peakViewThreshold = Math.pow(10, -25 / 20);//ピークビューワに表示する閾値
+const dBred = 6;//赤dB
+const dByellow = 20;//黄dB
+const dBgreen = 40;//緑dB
+const dBmin = 80;//下端dB
+const inv_dBmin = 1 / dBmin;
+const yDiv = canvas.height * 10 * inv_dBmin;//10dBの画面幅
+const ydBred = canvas.height * dBred * inv_dBmin | 0;//赤のy
+const ydByellow = canvas.height * dByellow * inv_dBmin | 0;//黄のy
+const ydBgreen = canvas.height * dBgreen * inv_dBmin | 0;//黄のy
+const liniear_dBmin = Math.pow(0.1, dBmin / 20);//下端dBってリニアだといくつ？
+
+//色
+const bgColorRed = "#600";//赤部分の背景色
+const bgColorYellow = "#440";//黄色部分の背景色
+const bgColorGreen = "#040";//緑部分の背景色
+const bgColorBlue = "#033";//青緑部分の背景色
+const bgColorDiv = "#888";//グリッド線の色
+const Color4Wave = "#bcf";//波形の線の色
+const Color4Peak = "#0c0";//ピークの線の色
+const Color4RMS = "#fff";//RMSの線の色
+const Color4rec = "#ff4fa3";//RMSの線の色
+const Color4cancel = "#9aa0a6";//キャンセルされた色
+
+const ColorLedRedOff =  "rgba(120, 40, 40, 1.0)";//消えてるLED
+const ColorLedRedOn1 =  "rgba(255, 60, 60, 1.0)";//点灯LED
+const ColorLedRedOn0 =  "rgba(255, 160, 160, 0.9)";//ハイライト
+const ColorLedRedOn2 =  "rgba(255, 60, 60, 0.45)";//周辺光１
+const ColorLedRedOn3 =  "rgba(200, 40, 40, 0.15)";//周辺光２
+const ColorLedGreenOff =  "rgba(20, 90, 20, 1.0)";//消えてるLED
+const ColorLedGreenOn1 =  "rgba(40, 255, 40, 1.0)";//点灯LED
+const ColorLedGreenOn0 =  "rgba(180, 255, 180, 0.9)";//ハイライト
+const ColorLedGreenOn2 =  "rgba(60, 255, 60, 0.45)";//周辺光１
+const ColorLedGreenOn3 =  "rgba(40, 200, 40, 0.15)";//周辺光２
+
+//▼AudioWorklet用のコード開始
+const processorCode = `
+class PeakMeterProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();//継承元のコンストラクタ
+    const opts = options.processorOptions;//生成時のオプション取得
+    const recMarginSec = 0.3;//開始点にかぶらないために設ける余白
+    const recMaxSec = opts.bufferSec + recMarginSec;//何秒のバッファにする？
+    const rmsAveSec = 0.2;//RMSは何秒平均にする？
+    this.sr = sampleRate;
+    this.recSize = this.sr * recMaxSec;
+    this.rmsSize = this.sr * rmsAveSec;
+    this.revRmsSize = 1 / this.rmsSize;//メッセージ返却時に平均するためにかける
+    this.recBuffer = new Float32Array(this.recSize);//録音バッファ
+    this.rmsBuffer = new Float32Array(this.rmsSize);//rmsバッファ
+    this.recWriteIndex = 0;//書き込み位置
+    this.rmsWriteIndex = 0;//書き込み位置
+    this.thresholdSquare = Math.pow(0.1, 40 / 10) * this.rmsSize;//閾値＠二乗値*rmsサイズ
+    this.squareSum = 0;//二乗を合計していく
+    this.returnInterval = this.sr * 0.02;//値を返す頻度
+    this.returnCounter = 0;//インターバル計測用のカウンタ
+    this.peakMax = -Infinity;//上側
+    this.peakMin = Infinity;//下側
+    this.outMax = -Infinity;//上側
+    this.outMin = Infinity;//下側
+
+    this.recPhase = 0;//録音状態。0未、1試用期間、2録音中、3端末処理、4停止状態
+    this.recPhaseToggle = false;//録音開始位置を送信するためにトグルで保持
+    this.recCounter = 0;//
+    this.stopCounter = 0;//
+    this.delayCounter = -1;//ディレイ計測用
+    this.recCounterThreshold = this.sr * 0.5;//無効期間のフレーム数
+    this.stopCounterThreshold = this.sr * 0.5;//停止判定のフレーム数
+    this.delayCounterSetting = this.sr * 0.5;//ディレイのフレーム数
+    this.abortCounterSetting = this.sr * 0.1;//ゼロクロスの走査打ち切りフレーム数
+    this.preRecSize = this.sr * 0.2;//プレ録音のフレーム数
+    this.marginSize = this.sr * recMarginSec;//録音が長くなった時のマージン確保のフレーム数。
+    this.recTmpStPoint = 0;//仮の開始位置。スレッショルドを超えた位置
+    this.recStPoint = 0;//採用した開始位置。仮位置からプレ録音分を引き、さらにゼロクロスがあったヵ所
+    this.recEndPoint = 0;//停止位置。停止位置からさらにゼロクロスがあったヵ所
+    this.recTmpEndPoint = 0;//停止位置。スレッショルドを下回った位置
+    this.marginPoint = this.recSize;//録音が長すぎた時に、ここまできてたら終わる点
+    this.previousSample = 0;//前回のサンプル値。ゼロクロス調査用
+    this.oneTimeFlag = false;//falseはエンドレス
+
+    this.playPhase = 0;//状態、0停止、1再生リクエスト、2再生中、3停止リクエスト
+    this.playPoint = 0;//再生位置
+    this.recDataIs = false;//録音データがあるかのフラグ
+
+    this.port.onmessage = (event) => {//**************** メッセージ受信 ***************
+      const { type, value } = event.data;
+      switch (type) {
+        case "threshold":
+          this.thresholdSquare = Math.pow(0.1, value / 10) * this.rmsSize;//閾値＠二乗値
+          break;
+        case "preRecSec":
+          this.preRecSize = this.sr * value;//プレ録音のフレーム数
+          break;
+        case "cancelSec":
+          this.recCounterThreshold = this.sr * value;//無効期間のフレーム数
+          break;
+        case "stopSec":
+          this.stopCounterThreshold = this.sr * value;//停止判定のフレーム数
+          break;
+        case "delaySec":
+          this.delayCounterSetting = this.sr * value;//ディレイのフレーム数
+          break;
+        case "oneTimeFlag":
+          this.oneTimeFlag = value;//falseはエンドレス
+          if (!value && this.recPhase === 4) this.recPhase = 0;//停止フェーズでエンドレス指定がきたらフェーズを戻す
+          break;
+        case "play":
+          if (this.playPhase === 0) this.playPhase = 1;//再生リクエスト状態にする
+          else this.playPhase = 0;//それ以外なら逆に止める
+          break;
+        case "reStart":
+          if (this.recPhase === 4) this.recPhase = 0;//ワンタイムで止まっていたら初期状態に戻す
+          else {//それ以外なら逆に止める
+            if (this.recPhase === 2) this.recEndPoint = (this.recWriteIndex - 1 + this.recBuffer.length) % this.recBuffer.length;//一つ前を終了点にする
+            this.recPhase = 4;
+          }
+          break;
+      }
+//console.log(type, value);
+    };
+  }//コンストラクタの終わり
+  process(inputs, outputs) {//[ノード数][チャンネル数][サンプル数]らしい
+    const channels = inputs[0];
+    if (channels.length === 0) return true;//チャンネルないなら終わる
+    const samples = channels[0];
+    if (samples.length === 0) return true;//データないなら終わる
+    const outData = outputs[0][0];//出力はここ
+
+    //再生後のマイナスフェーズだったら
+    if (this.playPhase < 0) {
+      let i = 0;
+      let sample_i = this.recBuffer[this.playPoint];
+      while (i < outData.length && this.playPhase < 0) {//フェードオフしてプツ音をなくす
+        sample_i *= 0.5;
+        outData[i] = sample_i;//出力
+        i++;
+        this.playPhase++;
+      }
+    }    
+    //再生部
+    if (this.playPhase === 2) {//再生中なら
+      let i = 0;
+      while (i < outData.length && this.playPoint !== this.recEndPoint) {//バッファ分か終了点になるまで出力する
+        const sample_i = this.recBuffer[this.playPoint];
+        outData[i] = sample_i;//出力
+        if (sample_i > this.outMax) this.outMax = sample_i;//上側最大値
+        if (sample_i < this.outMin) this.outMin = sample_i;//下側最大値
+        i++;
+        this.playPoint = (this.playPoint + 1) % this.recBuffer.length;
+      }
+      if (this.playPoint === this.recEndPoint) {
+        this.playPhase = -10;//終了点で終わっていたら停止
+        let sample_i = this.recBuffer[this.playPoint];
+        while (i < outData.length && this.playPhase < 0) {//フェードオフしてプツ音をなくす
+          sample_i *= 0.5;
+          outData[i] = sample_i;//出力
+          i++;
+          this.playPhase++;
+        }
+      }
+    }
+    //再生リクエスト処理。初回はほぼゼロで埋めて最後にフェードイン
+    if (this.playPhase === 1 && this.recDataIs === true) {//再生リクエストがあったら
+      this.playPoint = this.recStPoint;//再生位置を録音開始位置にする
+      let i = 0;
+      while (i < outData.length - 10) {//バッファの終わりの少し前までゼロで埋める
+          outData[i] = 0;//出力
+          i++;
+      }
+      let sample_i = this.recBuffer[this.playPoint] * 0.5;
+      let j = outData.length - 1;
+      while (i < j) {//バッファの終わりの少し前までゼロで埋める
+          outData[j] = sample_i;//出力
+          sample_i *= 0.5;
+          j--;
+      }
+      this.playPhase = 2;//再生中にする
+    }
+
+    //入力データの処理
+    for (let i = 0; i < samples.length; i++) {
+      //最大値とRMS計算
+      const sample_i = samples[i];
+      const sampleSquare = sample_i * sample_i;
+
+      //ディレイ処理
+      if (this.delayCounter > 0) {//ディレイ処理
+        this.delayCounter--;
+        if (this.delayCounter === 0) this.playPhase = 1;//再生リクエスト
+      }
+
+      //終了フェーズ
+      if (this.recPhase === 3) {//終了フェーズなら
+        if (sample_i * this.previousSample < 0 || sample_i < 1e-4) {//ゼロクロスか今回値が十分小さかったら
+          //エンドレス、ワンタイム分け
+          if (this.oneTimeFlag === true) {;//falseはエンドレス
+            this.recPhase = 4;//停止フェーズにする
+          } else {
+            this.recPhase = 0;//初期状態に戻す
+          }
+          this.delayCounter = this.delayCounterSetting;//ディレイ値を設定
+
+          //録音の終了点を設定
+          if (sample_i * this.previousSample < 0) //ゼロクロスで止まったのなら
+            this.recEndPoint = (this.recWriteIndex - 1 + this.recBuffer.length) % this.recBuffer.length;//一つ前を終了点にする
+          else this.recEndPoint = this.recWriteIndex;//小さくて止まったのならそこを終了点にする
+        } else this.previousSample = sample_i;//ちがかったら、今回値を保存して次回またチェック
+      }
+
+      //録音キューを回す
+      if (this.recPhase !== 4) {//停止フェーズじゃいなら
+        this.recWriteIndex = (this.recWriteIndex + 1) % this.recBuffer.length;//録音インデックス更新
+        this.recBuffer[this.recWriteIndex] = sample_i;//録音バッファに保存
+        if (this.marginPoint === this.recWriteIndex) {//マージン位置に一致していたら
+          this.marginPoint = Infinity;//マージン位置を無効化
+          if (this.recPhase === 2 || this.recPhase === 3) {//録音中なら
+            this.recPhase = 3;//終了フェーズに移行する
+            this.previousSample = sample_i;//ゼロクロス探し用に前回値を保存する
+          }
+        }
+        if (this.recStPoint - 1 === this.recWriteIndex) this.recDataIs = false;//開始点まできたら→録音データは壊れました
+      }
+
+      //最大値判定
+      if (sample_i > this.peakMax) this.peakMax = sample_i;//上側最大値
+      if (sample_i < this.peakMin) this.peakMin = sample_i;//下側最大値
+      //RMS用計算
+      this.squareSum -= this.rmsBuffer[this.rmsWriteIndex];
+      this.squareSum += sampleSquare;
+      this.rmsBuffer[this.rmsWriteIndex] = sampleSquare;
+      this.rmsWriteIndex = (this.rmsWriteIndex + 1) % this.rmsBuffer.length;
+
+      //停止判定
+      if (this.squareSum > this.thresholdSquare) {//スレッショルドを超えていたら
+        this.stopCounter = 0;//ストップカウンタをゼロに
+        this.recTmpEndPoint = this.recWriteIndex;//仮の終了位置
+      } else if (this.recPhase === 0) {//録音未で下回っても何もしない
+      } else {//何かしらの録音状態だったら
+        this.stopCounter++;//ストップカウンタを進める
+        if (this.stopCounter > this.stopCounterThreshold) {//さらに停止判定を超えた
+          if (this.recPhase === 1) this.recPhase = 0;//試用期間だったら録音前に戻す
+          else if (this.recPhase === 2) {
+            this.recEndPoint = this.recTmpEndPoint;//終了点は仮の終了点にする
+            let test1 = this.recBuffer[this.recEndPoint];
+            this.recEndPoint = (this.recEndPoint + 1) % this.recBuffer.length;//開始位置を一つ後ろに移動
+            let test2 = this.recBuffer[this.recEndPoint];
+            let abortCounter = this.abortCounterSetting;//打ち切りカウンタ
+            while (test1 * test2 > 0 && test1 > 1e-4 && abortCounter > 0) {//ゼロクロスか、値が80dBを下回る位置を探す
+              test1 = test2;
+              this.recEndPoint = (this.recEndPoint + 1) % this.recBuffer.length;//開始位置を一つ後ろに移動
+              test2 = this.recBuffer[this.recEndPoint];
+              abortCounter--;//打ち切りカウンタ
+            }
+            if (test1 * test2 < 0) this.recEndPoint = (this.recEndPoint - 1  + this.recBuffer.length) % this.recBuffer.length;//ゼロクロスの時はその前にする
+            //エンドレス、ワンタイム分け
+            if (this.oneTimeFlag === true) {;//falseはエンドレス
+              this.recPhase = 4;//停止フェーズにする
+            } else {
+              this.recPhase = 0;//初期状態に戻す
+            }
+            this.delayCounter = this.delayCounterSetting;//ディレイ値を設定
+          }
+        }//停止判定処理の終わり
+      }
+
+      //録音判定
+      if (this.recPhase === 0 && this.squareSum > this.thresholdSquare) {//録音未で、RMSが閾値を超えていたなら
+          this.recPhaseToggle = !this.recPhaseToggle;//録音開始位置を表すトグル変数
+          this.recPhase = 1;//試用期間フェーズにする
+          this.recTmpStPoint = this.recWriteIndex;//仮の開始位置。スレッショルドを超えた位置
+          this.recCounter = 1;//カウンタ１にする
+      } else if (this.recPhase === 1) {//試用期間中
+        this.recCounter++;//録音カウンタを進める
+        if (this.recCounter >= this.recCounterThreshold && this.stopCounter === 0) {
+          this.recPhase = 2;//試用期間を超えていたら録音フェーズに移行
+          this.recDataIs = true;//録音データあるよフラグ
+          //開始位置の設定
+          this.recStPoint = (this.recTmpStPoint - this.preRecSize + this.recBuffer.length) % this.recBuffer.length;//開始位置を設定
+          let test1 = this.recBuffer[this.recStPoint];
+          this.recStPoint = (this.recStPoint - 1 + this.recBuffer.length) % this.recBuffer.length;//開始位置を一つ前に移動
+          let test2 = this.recBuffer[this.recStPoint];
+          let abortCounter = this.abortCounterSetting;//打ち切りカウンタ
+          while (test1 * test2 > 0 && test1 > 1e-4 && abortCounter > 0) {//ゼロクロスか、値が80dBを下回る位置を探す
+            test1 = test2;
+            this.recStPoint = (this.recStPoint - 1 + this.recBuffer.length) % this.recBuffer.length;//開始位置を一つ前に移動
+            test2 = this.recBuffer[this.recStPoint];
+            abortCounter--;//打ち切りカウンタ
+          }
+          if (test1 * test2 < 0) this.recStPoint = (this.recStPoint + 1) % this.recBuffer.length;//ゼロクロスの時はその後ろにする
+          //スタート位置が前回の終了位置の前に来ちゃってたら、終了位置を動かす
+          const recStTotmpSt = (this.recTmpStPoint - this.recStPoint + this.recBuffer.length) % this.recBuffer.length;
+          const recEndTotmpSt = (this.recTmpStPoint - this.recEndPoint + this.recBuffer.length) % this.recBuffer.length;
+          if (recStTotmpSt > recEndTotmpSt) {
+            this.recEndPoint = (this.recStPoint - 1 + this.recBuffer.length) % this.recBuffer.length;
+            console.log(this.recTmpStPoint, this.recStPoint, this.recEndPoint);
+          }
+          //マージン位置を設定
+          this.marginPoint = (this.recStPoint - this.marginSize + this.recBuffer.length) % this.recBuffer.length;//マージン位置を設定
+        }
+      } else if (this.recPhase === 2) {//録音中
+        this.recCounter++;//録音カウンタを進める
+      }
+    }
+
+    this.returnCounter += samples.length;
+    if (this.returnCounter > this.returnInterval) {//カウンタがインターバルを超えていたら返す
+      const tmpPeakMax = this.peakMax;
+      const tmpPeakMin = this.peakMin;
+      const tmpOutMax = this.outMax;
+      const tmpOutMin = this.outMin;
+      const tmpSquareSum = this.squareSum;//二乗の合計を送る用。破棄されることもあるのでこれ以上計算しない
+      const tmpDataNum = this.rmsSize;//データ数を返す用
+      const rPhase = this.recPhase;
+      const pPhase = this.playPhase;
+      const playableDataIs = this.recDataIs;
+      const rPhaseToggle = this.recPhaseToggle;//録音開始位置を表すトグル変数
+      this.port.postMessage({ tmpPeakMax, tmpPeakMin, tmpOutMax, tmpOutMin, tmpSquareSum, tmpDataNum, rPhase, pPhase, playableDataIs, rPhaseToggle });
+      this.peakMax = -Infinity;//上側
+      this.peakMin = Infinity;//下側
+      this.outMax = -Infinity;//上側
+      this.outMin = Infinity;//下側
+      this.returnCounter = 0;//カウンタリセット
+    }
+
+    //値を戻す
+    return true;
+  }
+}
+registerProcessor("peak-meter", PeakMeterProcessor);
+`;//▲AudioWorklet用終わり
+// Blob を作って URL 化
+const blob = new Blob([processorCode], { type: "application/javascript" });
+const url = URL.createObjectURL(blob);
+
+//初期値設定
+//const selectThreshold = document.getElementById("thresholdSelect");
+function initFromURL() {//パラメを読み込む
+  const params = new URLSearchParams(window.location.search);
+  //スレッショルド
+  let selectMenu = document.getElementById("thresholdSelect");
+  let type = "threshold";
+  let tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum > 0 && tmpValueNum < 100) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `-${tmpValue}dB超え`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "40";//値がおかしかったらとりま40dB
+    }
+  } else selectMenu.value = "40";//アドレスにないなら40dB
+  //プレ録音
+  selectMenu = document.getElementById("preRecSelect");
+  type = "preRecSec";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum >= 0 && tmpValueNum <= 5) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `${tmpValue}秒`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "0.5";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "0.5";//アドレスにないなら
+  //キャンセル条件
+  selectMenu = document.getElementById("cancelSelect");
+  type = "cancelSec";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum >= 0.1 && tmpValueNum <= 5) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `${tmpValue}秒未満`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "0.5";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "0.5";//アドレスにないなら
+  //終了条件
+  selectMenu = document.getElementById("endSelect");
+  type = "stopSec";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum >= 0.3 && tmpValueNum <= 5) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `${tmpValue}秒`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "1.0";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "1.0";//アドレスにないなら
+  //ディレイ
+  selectMenu = document.getElementById("delaySelect");
+  type = "delaySec";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum >= 0.3 && tmpValueNum <= 5) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `${tmpValue}秒`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "1.0";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "1.0";//アドレスにないなら
+  //エンドレス、ワンタイム
+  selectMenu = document.getElementById("endModeSelect");
+  type = "oneTimeFlag";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {
+      selectMenu.value = "false";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "false";//アドレスにないなら
+  //バッファサイズ
+  selectMenu = document.getElementById("bufferSelect");
+  type = "bufferSec";
+  tmpValue = params.get(type);//仮の設定値
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {//選択肢になかったなら追加検討
+      const tmpValueNum = Number(tmpValue);
+      if (tmpValueNum >= 5 && tmpValueNum <= 60) {//数値でこの範囲内なら、選択肢に追加しちゃう
+        const opt = document.createElement("option");
+        opt.value = tmpValue;
+        opt.textContent = `最大${tmpValue}秒`;
+        selectMenu.appendChild(opt);
+        selectMenu.value = tmpValue;
+      } else selectMenu.value = "10";//値がおかしかったらとりま
+    }
+  } else selectMenu.value = "10";//アドレスにないなら
+}
+initFromURL();
+
+function calcPeak(samples) {//ピークと二乗平均を計算
+    if (samples.length === 0) return true;
+    let peakMax = -1;//上側
+    let peakMin = 1;//下側
+    let squareSum = 0;
+    const dataNum = samples.length;
+    for (let i = 0; i < dataNum; i++) {
+      const sample_i = samples[i];
+      if (sample_i > peakMax) peakMax = sample_i;//上側最大値
+      if (sample_i < peakMin) peakMin = sample_i;//下側最大値
+      squareSum += sample_i * sample_i;//単純な二乗和
+    }
+    //値を戻す
+    return { peakMax, peakMin, squareSum, dataNum };
+}
+
+{//ラベル描画
+  let topMargin = (scopeLabelRCanvas.height - canvas.height) * 0.5 | 0;
+  ctxSR.fillStyle = "#aaa";
+  ctxSR.font = "12px JetBrains Mono, Fira Code, monospace";
+  ctxSR.textBaseline = "middle";
+  ctxSR.textAlign = "center";
+  for (let i = 0; i <= dBmin; i += 10) {
+    const y = topMargin + canvas.height * i * inv_dBmin | 0;
+    ctxSR.fillText(-i, scopeLabelRCanvas.width * 0.5 | 0, y);
+  }
+  ctxSR.fillStyle = "#ff0";
+  ctxSR.fillText(-20, scopeLabelRCanvas.width * 0.5 | 0, topMargin + canvas.height * 20 * inv_dBmin | 0);
+  ctxSR.fillStyle = "#f88";
+  ctxSR.fillText(-6, scopeLabelRCanvas.width * 0.5 | 0, topMargin + canvas.height * 5.5 * inv_dBmin | 0);
+  ctxSL.drawImage(scopeLabelRCanvas, 0, 0);//右のラベルを左にコピー
+}
+//消灯LEDを書く
+const peakLedX = 13;
+const peakLedY = 17;//SIG
+const sigLedY = peakLedY + 20;//SIG
+const LedR1 = 5;
+const LedR0 = LedR1 * 0.5;
+const LedR2 = LedR1 * 1.1;
+const LedR3 = LedR1 * 1.5;
+let peakLedIs = false;
+let sigLedIs = false;
+{
+  ctxDI.fillStyle = ColorLedRedOff;
+  ctxDI.beginPath();
+  ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+  ctxDI.fill();
+  ctxDI.fillStyle = "#f9a";
+  ctxDI.font = "11px JetBrains Mono, Fira Code";
+  ctxDI.textBaseline = "middle";
+  ctxDI.textAlign = "left";
+  ctxDI.fillText("REC", peakLedX + 9, peakLedY);
+  ctxDI.fillStyle = ColorLedGreenOff;
+  ctxDI.beginPath();
+  ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+  ctxDI.fill();
+  ctxDI.fillStyle = "#8f8";
+  ctxDI.fillText("DATA", peakLedX + 9, sigLedY);
+}
+
+function redLed(isOn) {//赤LED処理
+  if (isOn && !peakLedIs) {//OFFからON
+    ctxDI.fillStyle = ColorLedRedOn3;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn2;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR2, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn1;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOn0;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX , peakLedY - .5, LedR0, 0, Math.PI*2);
+    ctxDI.fill();
+    peakLedIs = true;
+  } else if (!isOn && peakLedIs) {
+    ctxDI.fillStyle = "#000";
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedRedOff;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, peakLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    peakLedIs = false;
+  }
+}
+function greenLed(isOn) {//緑LED処理
+  if (isOn && !sigLedIs) {//OFFからON
+    ctxDI.fillStyle = ColorLedGreenOn3;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn2;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR2, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn1;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOn0;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR0, 0, Math.PI*2);
+    ctxDI.fill();
+    sigLedIs = true;
+  } else if (!isOn && sigLedIs) {
+    ctxDI.fillStyle = "#000";
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR3, 0, Math.PI*2);
+    ctxDI.fill();
+    ctxDI.fillStyle = ColorLedGreenOff;
+    ctxDI.beginPath();
+    ctxDI.arc(peakLedX, sigLedY, LedR1, 0, Math.PI*2);
+    ctxDI.fill();
+    sigLedIs = false;
+  }
+}
+
+
+toggleBtn.onclick = async () => {//開始ボタンクリック
+  if (!running) {
+    await start();
+  } else {
+    stop();
+  }
+};
+
+micSelect.addEventListener("change", async (e) => {//マイクを変更した
+  micDevice = e.target.value;
+  if (running) {
+    stop();
+    await start();
+  }
+});
+spkSelect.addEventListener("change", async (e) => {//出力を変更した
+  spkDevice = e.target.value;
+  if (running) {
+    stop();
+    await start();
+  }
+});
+thresholdSelect.addEventListener("change", async (e) => {//スレッショルドを変更した
+  const selectMenu = document.getElementById("thresholdSelect");
+  const type = "threshold";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+    const value = Number(selectMenu.value);
+    peakNode.port.postMessage({ type, value });
+  }
+});
+preRecSelect.addEventListener("change", async (e) => {//プレ録音を変更した
+  const selectMenu = document.getElementById("preRecSelect");
+  const type = "preRecSec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+      const value = Number(selectMenu.value);
+      peakNode.port.postMessage({ type, value });
+  }
+});
+cancelSelect.addEventListener("change", async (e) => {//キャンセル条件を変更した
+  const selectMenu = document.getElementById("cancelSelect");
+  const type = "cancelSec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+      const value = Number(selectMenu.value);
+      peakNode.port.postMessage({ type, value });
+  }
+});
+endSelect.addEventListener("change", async (e) => {//終了判定を変更した
+  const selectMenu = document.getElementById("endSelect");
+  const type = "stopSec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+      const value = Number(selectMenu.value);
+      peakNode.port.postMessage({ type, value });
+  }
+});
+delaySelect.addEventListener("change", async (e) => {//ディレイを変更した
+  const selectMenu = document.getElementById("delaySelect");
+  const type = "delaySec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+      const value = Number(selectMenu.value);
+      peakNode.port.postMessage({ type, value });
+  }
+});
+endModeSelect.addEventListener("change", async (e) => {//エンドレス、ワンタイムを変更した
+  const selectMenu = document.getElementById("endModeSelect");
+  const type = "oneTimeFlag";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+  if (peakNode) {
+      const value = JSON.parse(selectMenu.value);
+      peakNode.port.postMessage({ type, value });
+  }
+});
+bufferSelect.addEventListener("change", async (e) => {//バッファサイズを変更した
+  const selectMenu = document.getElementById("bufferSelect");
+  const type = "bufferSec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+});
+
+
+
+
+//キャンバスタップ操作
+function canvasLongPress() {
+  if (peakNode) {
+    //const { type, value } = event.data;
+    const type = "reStart";
+    const value = 0;
+    peakNode.port.postMessage({ type, value });
+  }
+};
+function canvasClick() {
+  if (peakNode) {
+    //const { type, value } = event.data;
+    const type = "play";
+    const value = 0;
+    peakNode.port.postMessage({ type, value });
+  }
+};
+const LONG_PRESS_MS = 500;//長押し判定
+let pressTimer = null;
+let longPressed = false;
+canvas.addEventListener("pointerdown", (e) => {
+  e.preventDefault();//デフォルト操作を禁止
+  longPressed = false;
+  pressTimer = setTimeout(() => {
+    longPressed = true;
+    canvasLongPress();
+  }, LONG_PRESS_MS);
+});
+canvas.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+  clearTimeout(pressTimer);
+  if (!longPressed) {
+    canvasClick();
+  }
+});
+canvas.addEventListener("pointerleave", () => {
+  clearTimeout(pressTimer);
+});
+//キー操作
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault();}//エンターとスペース時はデフォルト操作無効
+  if (e.code === 'Space' && peakNode) {canvasClick();}//スペースで再生
+  if (e.code === 'Enter' && peakNode) {canvasLongPress();}//エンターでエンドレス再開
+  console.log(e.code, e.key);
+});
+
+
+
+function canSetSinkId(audioCtx) {//出力選択が有効かを調べる
+  return (audioCtx && typeof audioCtx.setSinkId === "function");
+}
+
+async function trySetSinkId(ctx, deviceId) {//出力選択をトライする
+  if (!canSetSinkId(ctx)) return false;
+  try {
+    await ctx.setSinkId(deviceId);
+    return true;
+    } catch (e) {
+      console.warn("setSinkId failed:", e);
+    return false;
+  }
+}
+
+async function start() {//音声取得開始
+  try {
+    //情報窓をクリアしておく
+    document.getElementById("sampleRate_audioContext").textContent = "sampleRate : ***** (device) , ***** (Context)";
+    // 1. 事前チェック
+    const tmpDevices = await navigator.mediaDevices.enumerateDevices();
+    const tmpAudioInputs = tmpDevices.filter(d => d.kind === "audioinput");    
+    if (tmpAudioInputs.length === 0) {
+      throw new Error("NO_MIC");//マイクが無かったらエラーを出して抜ける
+    }
+
+    if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
+    else audioCtx = new AudioContext();//指定なし
+
+    await audioCtx.audioWorklet.addModule(url);//AudioWorklet用のコードを実装
+    peakNode = new AudioWorkletNode(audioCtx, "peak-meter", {
+      numberOfInputs: 1,
+      channelCount: 1,
+      channelCountMode: "explicit",
+      channelInterpretation: "speakers",
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+      processorOptions: {
+        bufferSec: Number(bufferSelect.value)
+        }
+      });
+
+    peakNode.port.onmessage = (e) => {//######################################戻り値の処理の関数
+      const now = performance.now();
+      const { tmpPeakMax, tmpPeakMin, tmpOutMax, tmpOutMin, tmpSquareSum, tmpDataNum, rPhase, pPhase, playableDataIs, rPhaseToggle } = e.data;
+      peakMax4Display = Math.max(peakMax4Display, tmpPeakMax); // UI側で保持
+      peakMin4Display = Math.min(peakMin4Display, tmpPeakMin); // UI側で保持
+      outMax4Display = Math.max(outMax4Display, tmpOutMax); // UI側で保持
+      outMin4Display = Math.min(outMin4Display, tmpOutMin); // UI側で保持
+      squareSum4Display += tmpSquareSum; // UI側で描画用に二乗和を保持
+      dataNum4Display += tmpDataNum; // UI側で描画用にデータ数を保持
+      peakMeterPostIs = true;//データきたよーフラグを立てる
+      recPhaseToggle = rPhaseToggle;//録音フェーズ
+
+      if (rPhase > 0 && rPhase <= 3) redLed(true); else redLed(false);
+      greenLed(playableDataIs);
+
+      recPhase = rPhase;//録音フェーズ
+      playPhase = pPhase;//再生フェーズ
+
+//      console.log(rPhase, pPhase, tmpOutMax, tmpOutMin);//###################################
+    };//戻り値処理の関数の終わり
+
+    //audioWorkletの設定値を送信
+    {
+      let type = "threshold";
+      let value = Number(thresholdSelect.value);
+      peakNode.port.postMessage({ type, value });
+      type = "preRecSec";
+      value = Number(preRecSelect.value);
+      peakNode.port.postMessage({ type, value });
+      type = "cancelSec";
+      value = Number(cancelSelect.value);
+      peakNode.port.postMessage({ type, value });
+      type = "stopSec";
+      value = Number(endSelect.value);
+      peakNode.port.postMessage({ type, value });
+      type = "delaySec";
+      value = Number(delaySelect.value);
+      peakNode.port.postMessage({ type, value });
+      type = "oneTimeFlag";
+      value = JSON.parse(endModeSelect.value);
+//      console.log(value, endModeSelect.value);//###################################
+      peakNode.port.postMessage({ type, value });
+    }
+
+    // 2. constraints 構築
+    const audioConstraints = {
+      autoGainControl: { ideal: false },
+      noiseSuppression: { ideal: false },
+      echoCancellation: { ideal: false },
+      voiceIsolation: { ideal: false },
+      latency: { ideal: 0 }
+    };
+
+    if (micDevice && tmpAudioInputs.some(d => d.deviceId === micDevice)) {//デバイスが指定されていれば
+      audioConstraints.deviceId = { exact: micDevice };//設定にデバイスを追加する
+    }    
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints
+      });
+    } catch (e) {
+      throw new Error("GET_USER_MEDIA_FAILED");//指定マイクが無いなどで失敗。（exactなので）
+    }
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    source.connect(peakNode).connect(audioCtx.destination);//ピークノードのみ使用
+
+//    console.log(capabilities);
+
+    //デバイス情報
+    devices = await navigator.mediaDevices.enumerateDevices();
+    //マイク選択のプルダウンに選択肢を追加
+    const audioInputs = devices.filter(d => d.kind === "audioinput");
+    micSelect.options.length = 0;//一旦全消し
+    audioInputs.forEach(mic => { 
+    const opt = document.createElement("option");
+      opt.value = mic.deviceId;
+      opt.textContent = mic.label;
+      micSelect.appendChild(opt);
+    });
+    //スピーカ選択のプルダウンに選択肢を追加
+    const audioOutputs = devices.filter(d => d.kind === "audiooutput");
+    spkSelect.options.length = 0;//一旦全消し
+    audioOutputs.forEach(spk => { 
+      const opt = document.createElement("option");
+      opt.value = spk.deviceId;
+      opt.textContent = spk.label;
+      spkSelect.appendChild(opt);
+    });
+    if (canSetSinkId(audioCtx)) spkSelect.hidden = false; // setSinkIdが使えるならスピーカ選択を表示
+    else spkSelect.hidden = true; // 使えないならスピーカ選択を非表示
+    if (spkDevice && audioOutputs.some(d => d.deviceId === spkDevice)) {//デバイスが指定されていて、実際に出力にもあるなら
+      spkSelect.value = spkDevice;//プルダウンを選択
+      const opt = spkSelect.querySelector('option[value=""]');//初めにあったオブジェクト
+      if (opt !== null) opt.remove();//を除去
+      trySetSinkId(audioCtx, spkDevice);//出力デバイスの設定を試みる
+    }
+
+    const track = stream.getAudioTracks()[0];
+    const settings = track.getSettings();
+    const activeDeviceId = settings.deviceId;//選択結果のデバイスＩＤ
+    sampleRateDevice = settings.sampleRate;//デバイスのサンプルレートを保存
+    if (sampleRateDevice === audioCtx.sampleRate) //現在のサンプルレートを表示する
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device & Context)`;
+    else
+      document.getElementById("sampleRate_audioContext").textContent = `sampleRate : ${sampleRateDevice} (device) , ${audioCtx.sampleRate} (Context)`;
+
+    const deviceObj = audioInputs.find(d => d.deviceId === activeDeviceId);//選択中のデバイス
+    micDevice = deviceObj?.deviceId;
+    if (micDevice !== undefined) {
+      micSelect.value = micDevice;//プルダウンを選択
+      const opt = micSelect.querySelector('option[value=""]');//初めにあったオブジェクト
+      if (opt !== null) opt.remove();//を除去
+    }
+ 
+
+    running = true;
+    toggleBtn.textContent = "Stop";
+
+    startWatch = performance.now();//時計リセット
+    timeDivX = startWatch - 1000;//始まったらすぐ縦線
+
+
+    if (rafId) {//無いはずだけどアニメーション動いてたらいったん止める
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    requestAnimationFrame(draw);//アニメーション再開
+  } catch (e) {
+    if (e.message === "NO_MIC") {
+      alert("マイクが接続されていません");
+    } else {
+      alert("マイクを使用できません");
+    }
+  }
+}
+
+function stop() {//停止処理
+  running = false;
+  toggleBtn.textContent = "Start";
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  if (stream) {//ストリーム削除
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  if (peakNode) {
+    peakNode.port.onmessage = null; // クロージャ切断
+    peakNode.disconnect();          // AudioGraph から切断
+    peakNode = null;                // GC 対象に  
+    }
+  if (audioCtx) {//audioContext削除
+    audioCtx.close();
+    audioCtx = null;
+  }
+}
+
+function draw(now) {//音量描画
+  rafId = requestAnimationFrame(draw);
+
+  //事前計算
+
+  //背景描画
+//  if (!x)  timeDivX = now;//x=0なら時間をクリア
+  let bgWidth = 1;
+  let bgOffset = 0;
+  if (now - timeDivX < 1000) {
+    ctxSc.fillStyle = bgColorRed;
+    ctxSc.fillRect(x + bgOffset, 0, bgWidth, ydBred);
+    ctxSc.fillStyle = bgColorYellow;
+    ctxSc.fillRect(x + bgOffset, ydBred, bgWidth, ydByellow - ydBred);
+    ctxSc.fillStyle = bgColorGreen;
+    ctxSc.fillRect(x + bgOffset, ydByellow, bgWidth, ydBgreen - ydByellow);
+    ctxSc.fillStyle = bgColorBlue;
+    ctxSc.fillRect(x + bgOffset, ydBgreen, bgWidth, canvas.height - ydBgreen);
+    //デシベルの線
+    let y = yDiv;
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x + bgOffset, y | 0, bgWidth, 1); y += yDiv;//-10dB
+    ctxSc.fillStyle = "#ff0";
+    ctxSc.fillRect(x + bgOffset, y, bgWidth, 1.5); y += yDiv;//-20dBの黄色
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x + bgOffset, y, bgWidth, 1.5); y += yDiv;//-30dB
+    ctxSc.fillStyle = Color4Wave;
+    ctxSc.fillRect(x + bgOffset, y, bgWidth, 1.5); y += yDiv;//-40dB、波形表示の端なので色を変える
+    ctxSc.fillStyle = bgColorDiv;
+    for ( ; y < canvas.height; y += yDiv) {
+      ctxSc.fillRect(x + bgOffset, y | 0, bgWidth, 1);
+    }
+    ctxSc.fillStyle = "#f00";
+    ctxSc.fillRect(x + bgOffset, ydBred | 0, bgWidth, 1);//-6dB
+  } else {
+    ctxSc.fillStyle = bgColorDiv;
+    ctxSc.fillRect(x + bgOffset, 0, bgWidth, canvas.height);
+    while (now - timeDivX >= 1000) timeDivX += 1000;//画面が背面に言っていると、すげー時間たってる
+  }
+
+  if (recPhase === 4) {
+    if ((now - timeDivX + 1000) % 1000 < 500) {ctxSc.fillStyle = "#000";} else {ctxSc.fillStyle = "#ccc";}
+    ctxSc.fillRect(x - 3, 0, 5, canvas.height);
+    bgWidth = 5;
+    bgOffset = -3;
+  }
+
+
+  // 波形の振幅を描画
+  const yZero = yDiv * 2;
+  let yPeakMax = canvas.height - yZero - yZero * peakMax4Display;//上側のy位置
+  let yPeakMin = canvas.height - yZero - yZero * peakMin4Display;//下側のy位置
+  if (peakMeterPostIs) {//新しいデータあり
+    yPreviousPeakMax = yPeakMax;//今回の描画yを記録
+    yPreviousPeakMin = yPeakMin;//今回の描画yを記録
+  } else {//新しいデータなし→前回値を使う
+    yPeakMax = yPreviousPeakMax;
+    yPeakMin = yPreviousPeakMin;
+  }
+  if (yPeakMax > yPeakMin) {//ないと思うけど逆転しちゃってたらゼロにする
+    yPeakMax = canvas.height - yZero;
+    yPeakMin = canvas.height - yZero;
+  }
+  if (Math.abs(yPeakMin - yPeakMax) < 1.5) {//近いなら点を打つ
+    ctxSc.fillStyle = Color4Wave;
+    ctxSc.fillRect(x, (yPeakMax + yPeakMin) * 0.5, 1, 1);
+  } else {//上と下の値が違ったら線を引く
+    ctxSc.strokeStyle = Color4Wave;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x, yPeakMax);
+    ctxSc.lineTo(x, yPeakMin);
+    ctxSc.stroke();
+  }
+
+  //ピーク描画
+  let peakAbs = Math.max(Math.abs(peakMax4Display), Math.abs(peakMin4Display));//絶対値で大きい方
+  if (peakMeterPostIs) {//新しいデータあり→次回用に値を更新
+    PreviousPeak = peakAbs;
+  } else {//新しいデータなし→前回値を使う
+    peakAbs = PreviousPeak;
+  }
+  const peakAbs_dB = 20 * Math.log10(Math.max(peakAbs, 1e-12));
+  let yPeak = canvas.height;//初期値は下端
+  let peakNowColor = Color4Peak;//実際に描画する色。振り切れてたら変える。
+  if (peakAbs >= 1.0) {//クリッピングしていたら色を変える
+    yPeak = 0;//描画位置は上端
+    peakNowColor = "#f00";//実際に描画する色。振り切れてたら変える。
+  } else if (peakAbs < liniear_dBmin) {//下限以下なら色を変える
+    peakNowColor = "#f00";//実際に描画する色。振り切れてたら変える。
+  } else {
+    yPeak = Math.abs(peakAbs_dB * canvas.height * inv_dBmin);//マイナスで出てくるのでabs
+  }
+  if (x) {//xがゼロじゃないなら線で描画
+    if (yPeak === yPreviousPeak && (yPeak <= 0 || yPeak >= canvas.height)) {//範囲外に出て２回目
+      ctxSc.strokeStyle = peakNowColor;//範囲外の時の色指定
+    } else {
+      ctxSc.strokeStyle = Color4Peak;//通常の色指定
+    }
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousPeak);
+    ctxSc.lineTo(x, yPeak);
+    ctxSc.stroke();
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = peakNowColor;
+    ctxSc.fillRect(x, yPeak, 1, 1);
+  }
+  if (PreviousPeak >= 1) {//前回値がクリッピング位置だったら目立たせる
+    ctxSc.fillStyle = "#f00";
+    ctxSc.fillRect(x - 2 , 0, 2, 3);
+  }
+  yPreviousPeak = yPeak;//次回の線の開始位置用に値を保存
+
+  //RMS描画
+  let RMS = PreviousRMS;//とりあえず前回値
+  if (dataNum4Display) {
+    RMS = Math.sqrt(squareSum4Display / dataNum4Display);//データあるなら計算
+  }
+  const RMS_dB = 20 * Math.log10(Math.max(RMS, 1e-12));
+  let yRMS = canvas.height;//とりあえず下端
+  if (RMS > 1e-12) yRMS = Math.abs(RMS_dB * canvas.height * inv_dBmin);//ゼロじゃないならdB化
+
+  if (previousRecPhaseToggle !== recPhaseToggle) {//録音開始
+    ctxSc.fillStyle = Color4rec;
+    ctxSc.fillRect(x - 3, 0, 3, canvas.height);
+    recStX = x - 2;
+  } else if (previousRecPhase === 1 && recPhase === 0) {//キャンセル
+    ctxSc.fillStyle = "#000";
+    ctxSc.fillRect(recStX - 1, 0, 3, canvas.height);
+    ctxSc.save();
+    ctxSc.setLineDash([6, 4]); // 破線
+    ctxSc.strokeStyle = Color4cancel;//キャンセル色
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(recStX, 0);
+    ctxSc.lineTo(recStX, canvas.height);
+    ctxSc.stroke();
+    ctxSc.restore();
+  } else if (previousRecPhase === 2 && recPhase !== 2) {//終了
+    ctxSc.fillStyle = bgColorBlue;
+    ctxSc.fillRect(x - 3, 0, 2, canvas.height);
+    ctxSc.save();
+    ctxSc.setLineDash([6, 6]); // 破線
+    ctxSc.strokeStyle = Color4rec;//録音色
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 2, 0);
+    ctxSc.lineTo(x - 2, canvas.height);
+    ctxSc.stroke();
+    ctxSc.restore();
+  }
+
+  if (x) {//xがゼロじゃないなら線で描画
+    ctxSc.strokeStyle = Color4RMS;//通常の色指定
+    ctxSc.lineWidth = 3;
+    ctxSc.beginPath();
+    ctxSc.moveTo(x - 1, yPreviousRMS);
+    ctxSc.lineTo(x, yRMS);
+    ctxSc.stroke();
+    ctxSc.lineWidth = 1;
+  } else {//xがゼロなら点で描画
+    ctxSc.fillStyle = Color4RMS;
+    ctxSc.fillRect(x, yRMS-1, 1, 3);
+  }
+
+  //デシベルメーター
+  const meterMargin = 0;
+  const gridMargin = meterDecibelCanvas.width * 0.2 | 0;
+  const meterWidth = meterDecibelCanvas.width | 0;
+  const gridWidth = (meterDecibelCanvas.width - gridMargin - gridMargin - 1) | 0;
+  let yOut = canvas.height;//初期値は下端
+  let outAbs = Math.max(Math.abs(outMax4Display), Math.abs(outMin4Display));//絶対値で大きい方
+  if (outMax4Display < outMin4Display) outAbs = 0;
+  const outAbs_dB = 20 * Math.log10(Math.max(outAbs, 1e-12));
+  if (outAbs >= 1.0) {//クリッピングしていたら色を変える
+    yOut = 0;//描画位置は上端
+  } else if (outAbs < liniear_dBmin) {//下限以下なら色を変える
+  } else { yOut = Math.abs(outAbs_dB * canvas.height * inv_dBmin);}//マイナスで出てくるのでabs
+  if (peakMeterPostIs) {
+    if (yOut > 0) {
+      if (yOut > ydByellow) {//黄色より下
+        ctxMD.fillStyle = bgColorGreen;
+        ctxMD.fillRect(0, ydByellow, meterWidth, yOut - ydByellow);
+        ctxMD.fillStyle = bgColorYellow;
+        ctxMD.fillRect(0, ydBred, meterWidth, ydByellow - ydBred);
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(0, 0, meterWidth, ydBred);
+      } else if (yOut > ydBred) {//黄色より上、赤より下
+        ctxMD.fillStyle = bgColorYellow;
+        ctxMD.fillRect(0, ydBred, meterWidth, yOut - ydBred);
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(0, 0, meterWidth, ydBred);
+      } else {//赤以上
+        ctxMD.fillStyle = bgColorRed;
+        ctxMD.fillRect(0, 0, meterWidth, yOut - 1);
+      }
+        ctxMD.fillStyle = "#0d0";//メータ本体
+        ctxMD.fillRect(0, yOut, meterWidth, meterDecibelCanvas.height - yOut);
+    }
+    for (let i = 10; i < dBmin; i += 10) {//グリッド線
+      ctxMD.fillStyle = bgColorDiv;
+      ctxMD.fillRect(gridMargin + 1, meterDecibelCanvas.height * i * inv_dBmin | 0, gridWidth, 1);
+    }
+    ctxMD.fillStyle = "#ff0";
+    ctxMD.fillRect(gridMargin + 1, meterDecibelCanvas.height * dByellow * inv_dBmin | 0, gridWidth, 1);
+    ctxMD.fillStyle = "#f88";
+    ctxMD.fillRect(gridMargin + 1, meterDecibelCanvas.height * dBred * inv_dBmin | 0, gridWidth, 1);
+  }
+ 
+
+  //テキスト出力
+//  let dBtext = `${(peakAbs_dB).toFixed(2)} dB`;
+//  document.getElementById("peakLabel").textContent = `PEAK ${dBtext.padStart(10, " ")}`;
+//  dBtext = `${(RMS_dB).toFixed(2)} dB`;
+//  document.getElementById("RMSLabel").textContent = `RMS_Z${dBtext.padStart(10, " ")}`;
+
+
+
+  //以下、次に向けての更新処理
+  if (peakMeterPostIs) {//新しいデータあり→次回用に値を更新
+    yPreviousRMS = yRMS;//前回描画y位置
+    PreviousRMS = RMS;//とりあえず前回値
+    previousRecPhase = recPhase;
+    previousRecPhaseToggle = recPhaseToggle;//録音フェーズ
+
+    peakMax4Display = -Infinity; // ピーク値をリセット
+    peakMin4Display = Infinity; // ピーク値をリセット
+    outMax4Display = -Infinity; // ピーク値をリセット
+    outMin4Display = Infinity; // ピーク値をリセット
+    squareSum4Display = 0; // UI側で描画用に二乗和を保持
+    dataNum4Display = 0; // UI側で描画用にデータ数を保持
+    peakMeterPostIs = false;//データありのフラグリセット
+  }
+
+  if (recPhase !== 4) {
+    x++;//録音フェーズが停止以外ならずらす
+    if (x >= canvas.width) {//右端にいってたら左に戻す
+      x = 0;
+    } else {
+      ctxSc.fillStyle = "#000";
+      ctxSc.fillRect(x + 1, 0, 1, canvas.height);
+    }
+  }
+}
+</script>
+
+</body>
+</html>
