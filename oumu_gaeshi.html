@@ -133,12 +133,6 @@
 <!--■□■□■□■□■□■ここが画面に配置するところ■□■□■□■□■□■-->
 <div class="header">オウム返し君</div>
 <button id="toggle" style="margin: 0px 10px">Start</button>
-  <div class="numTextNoMargin" style="display: inline-block; font-weight: bold; color: #ccc; margin: 0px auto">バッファサイズ</div>
-  <select id="bufferSelect">
-    <option value="10">最大10秒</option>
-    <option value="15">最大15秒</option>
-    <option value="20">最大20秒</option>
-  </select>
 <div class="canvas-wrapper">
   <div class="canvas-container">
     <canvas class="gridLabel" id="scopeLabelR" width="22" height="212"></canvas>
@@ -216,6 +210,19 @@
       <option value="">（出力デバイス一覧未取得）</option>
     </select>
   </div>
+  <div class="numTextNoMargin" style="display: inline-block; font-weight: bold; color: #ccc; margin: 0px auto">バッファサイズ</div>
+  <select id="bufferSelect">
+    <option value="10">最大10秒</option>
+    <option value="15">最大15秒</option>
+    <option value="20">最大20秒</option>
+  </select>
+  <div class="numTextNoMargin" style="display: inline-block; font-weight: bold; color: #ccc; margin: 0px auto">,　エコキャンなど</div>
+  <select id="echoSelect">
+    <option value="00">ナシナシ</option>
+    <option value="10">エコーキャンセラーＯＮ</option>
+    <option value="01">ノイズサプレッサーＯＮ</option>
+    <option value="11">エコキャン＋サプレッサ</option>
+  </select>
 </div>
 <hr style="width: 550px; margin: 0px auto">
 <pre class="txtInfoNoBorder"  style="display:block; text-align: center;">
@@ -738,6 +745,20 @@ function initFromURL() {//パラメを読み込む
       } else selectMenu.value = "10";//値がおかしかったらとりま
     }
   } else selectMenu.value = "10";//アドレスにないなら
+  //エコーキャンセラー
+  selectMenu = document.getElementById("echoSelect");
+  type = "echocan";
+  tmpValue = params.get(type);//仮の設定値
+  let defaultValue = "00";
+  //スマホ判定
+  if(window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(hover: none)").matches) defaultValue = "11";
+  if (tmpValue) {//アドレスにオプションがあったら
+    if ([...selectMenu.options].some(o => o.value === tmpValue)) {//選択肢にあったなら
+      selectMenu.value = tmpValue;//そいつを選択
+    } else {
+      selectMenu.value = defaultValue;//値がおかしかったらとりま
+    }
+  } else selectMenu.value = defaultValue;//アドレスにないなら
 }
 initFromURL();
 
@@ -864,7 +885,6 @@ function greenLed(isOn) {//緑LED処理
   }
 }
 
-
 toggleBtn.onclick = async () => {//開始ボタンクリック
   if (!running) {
     await start();
@@ -956,6 +976,13 @@ endModeSelect.addEventListener("change", async (e) => {//エンドレス、ワ�
 bufferSelect.addEventListener("change", async (e) => {//バッファサイズを変更した
   const selectMenu = document.getElementById("bufferSelect");
   const type = "bufferSec";
+  const url = new URL(window.location.href);
+  url.searchParams.set(type, selectMenu.value);
+  history.replaceState(null, "", url);
+});
+echoSelect.addEventListener("change", async (e) => {//エコキャン選択を変更した
+  const selectMenu = document.getElementById("echoSelect");
+  const type = "echocan";
   const url = new URL(window.location.href);
   url.searchParams.set(type, selectMenu.value);
   history.replaceState(null, "", url);
@@ -1100,12 +1127,29 @@ async function start() {//音声取得開始
 
     // 2. constraints 構築
     const audioConstraints = {
-      autoGainControl: { ideal: false },
-      noiseSuppression: { ideal: false },
-      echoCancellation: { ideal: false },
+      autoGainControl: false,
       voiceIsolation: { ideal: false },
       latency: { ideal: 0 }
     };
+
+    switch (echoSelect.value) {
+        case "00":
+          audioConstraints.echoCancellation = false;//エコーキャンセラー
+          audioConstraints.noiseSuppression = false;//ノイズサプレッション
+          break;
+        case "10":
+          audioConstraints.echoCancellation = true;//エコーキャンセラー
+          audioConstraints.noiseSuppression = false;//ノイズサプレッション
+          break;
+        case "01":
+          audioConstraints.echoCancellation = false;//エコーキャンセラー
+          audioConstraints.noiseSuppression = true;//ノイズサプレッション
+          break;
+        case "11":
+          audioConstraints.echoCancellation = true;//エコーキャンセラー
+          audioConstraints.noiseSuppression = true;//ノイズサプレッション
+          break;
+    }
 
     if (micDevice && tmpAudioInputs.some(d => d.deviceId === micDevice)) {//デバイスが指定されていれば
       audioConstraints.deviceId = { exact: micDevice };//設定にデバイスを追加する
@@ -1122,7 +1166,6 @@ async function start() {//音声取得開始
     const source = audioCtx.createMediaStreamSource(stream);
     source.connect(peakNode).connect(audioCtx.destination);//ピークノードのみ使用
 
-//    console.log(capabilities);
 
     //デバイス情報
     devices = await navigator.mediaDevices.enumerateDevices();
@@ -1169,6 +1212,7 @@ async function start() {//音声取得開始
       const opt = micSelect.querySelector('option[value=""]');//初めにあったオブジェクト
       if (opt !== null) opt.remove();//を除去
     }
+    console.log(settings);
  
 
     running = true;
