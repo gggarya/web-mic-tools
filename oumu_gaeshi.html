@@ -410,10 +410,6 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
     };
   }//コンストラクタの終わり
   process(inputs, outputs) {//[ノード数][チャンネル数][サンプル数]らしい
-    const channels = inputs[0];
-    if (channels.length === 0) return true;//チャンネルないなら終わる
-    const samples = channels[0];
-    if (samples.length === 0) return true;//データないなら終わる
     const outData = outputs[0][0];//出力はここ
 
     //再生後のマイナスフェーズだったら
@@ -468,6 +464,10 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
     }
 
     //入力データの処理
+    const channels = inputs[0];
+    if (channels.length === 0) return true;//チャンネルないなら終わる
+    const samples = channels[0];
+    if (samples.length === 0) return true;//データないなら終わる
     for (let i = 0; i < samples.length; i++) {
       //最大値とRMS計算
       const sample_i = samples[i];
@@ -1065,7 +1065,7 @@ async function start() {//音声取得開始
       throw new Error("NO_MIC");//マイクが無かったらエラーを出して抜ける
     }
 
-    if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
+    if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice, latencyHint: "playback"});
     else audioCtx = new AudioContext();//指定なし
 
     await audioCtx.audioWorklet.addModule(url);//AudioWorklet用のコードを実装
@@ -1212,7 +1212,7 @@ async function start() {//音声取得開始
       const opt = micSelect.querySelector('option[value=""]');//初めにあったオブジェクト
       if (opt !== null) opt.remove();//を除去
     }
-    console.log(settings);
+//    console.log(settings);
  
 
     running = true;
