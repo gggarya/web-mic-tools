@@ -468,6 +468,24 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
     if (channels.length === 0) return true;//チャンネルないなら終わる
     const samples = channels[0];
     if (samples.length === 0) return true;//データないなら終わる
+
+    //今回データのみの最大最小をさぐる
+    let tmpMax = -Infinity;//上側
+    let tmpMin = Infinity;//下側
+    for (let i = 0; i < samples.length; i++) {
+      //最大値とRMS計算
+      const sample_i = samples[i];
+      if (sample_i > tmpMax) tmpMax = sample_i;//上側最大値
+      if (sample_i < tmpMin) tmpMin = sample_i;//下側最大値
+    }
+
+    if (Math.max(Math.abs(tmpMax), Math.abs(tmpMin)) < 1e-12) return true;//フレーム内が全部ゼロだったら無かったことにする
+
+    //最大値判定
+    if (tmpMax > this.peakMax) this.peakMax = tmpMax;//上側最大値
+    if (tmpMin < this.peakMin) this.peakMin = tmpMin;//下側最大値
+
+    //RMSと録音処理
     for (let i = 0; i < samples.length; i++) {
       //最大値とRMS計算
       const sample_i = samples[i];
@@ -511,9 +529,6 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
         if (this.recStPoint - 1 === this.recWriteIndex) this.recDataIs = false;//開始点まできたら→録音データは壊れました
       }
 
-      //最大値判定
-      if (sample_i > this.peakMax) this.peakMax = sample_i;//上側最大値
-      if (sample_i < this.peakMin) this.peakMin = sample_i;//下側最大値
       //RMS用計算
       this.squareSum -= this.rmsBuffer[this.rmsWriteIndex];
       this.squareSum += sampleSquare;
@@ -582,7 +597,7 @@ class PeakMeterProcessor extends AudioWorkletProcessor {
           const recEndTotmpSt = (this.recTmpStPoint - this.recEndPoint + this.recBuffer.length) % this.recBuffer.length;
           if (recStTotmpSt > recEndTotmpSt) {
             this.recEndPoint = (this.recStPoint - 1 + this.recBuffer.length) % this.recBuffer.length;
-            console.log(this.recTmpStPoint, this.recStPoint, this.recEndPoint);
+            //console.log(this.recTmpStPoint, this.recStPoint, this.recEndPoint);
           }
           //マージン位置を設定
           this.marginPoint = (this.recStPoint - this.marginSize + this.recBuffer.length) % this.recBuffer.length;//マージン位置を設定
