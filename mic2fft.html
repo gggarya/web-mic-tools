@@ -247,6 +247,7 @@ let waveWindowRate = 0.3;
 let waveWindowH = fftCanvas.height * waveWindowRate | 0;
 let spectrumHistoryRate = 0.6;
 let spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
+let HistoryWriteLine = spectrumHistoryH - 1;
 let fftViewH = fftCanvas.height - spectrumHistoryH;
 let fftViewZeroY = spectrumHistoryH + 1
 let YPerDecivel = fftViewH / viewDecivelRange;
@@ -347,7 +348,7 @@ const bgColorRed = "#600";//赤部分の背景色
 
 function resizeCanvas() {//キャンバスサイズの変更関数
   const dpr = window.devicePixelRatio || 1;
-  const rect = fftCanvas.getBoundingClientRect();
+  const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
   const w = Math.round(rect.width * dpr);
   const h = Math.round(rect.height * dpr);
   fftCanvas.width = w;
@@ -356,10 +357,35 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   updateViewParams();
   historyCanvas.width = w;
   historyCanvas.height = (spectrumHistoryH - waveWindowH)* dpr;
+  HistoryWriteLine = spectrumHistoryH - 1;
+
+console.log(dpr, rect.width, rect.height);
   draw();
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
 resizeCanvas();//まず一回サイズを合わせておく
+
+function drawDebug(ctx, canvas) {
+  const rect = canvas.getBoundingClientRect();
+
+  ctx.save();
+
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillRect(0,0,220,120);
+
+  ctx.fillStyle = "#00ff00";
+  ctx.font = "12px monospace";
+
+  ctx.fillText("canvas.width  : " + canvas.width, 10,20);
+  ctx.fillText("canvas.height : " + canvas.height, 10,35);
+
+  ctx.fillText("CSS width  : " + rect.width, 10,55);
+  ctx.fillText("CSS height : " + rect.height, 10,70);
+
+  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,90);
+
+  ctx.restore();
+}
 
 function updateViewParams() {//画面サイズやサンプルレート、fftサイズ変更など
   viewDecivelRange = viewMaxDecivel - viewMinDecivel;
@@ -2457,7 +2483,7 @@ function draw(now) {
 
   //上部のスペクトルヒストリー
   if (rafId && spectrumHistoryH > waveWindowH) {
-    scrollHistory();//スクロール
+//    scrollHistory();//スクロール
     drawSpectrumHistory (now, tmpSpline);//ヒストリー領域の描画
     ctxFft.drawImage(
       historyCanvas,
@@ -2526,7 +2552,7 @@ function draw(now) {
       ctxFft.fillRect(x - 1, spectrumHistoryH - 1, 3, 2);
       ctxFft.restore();
     }
-    console.log(zeroCounter, waveLength)
+//    console.log(zeroCounter, waveLength)
 
 
     const viewSampleRange = waveLength * 2.5 | 0; //表示するサンプル数
@@ -2549,7 +2575,7 @@ function draw(now) {
 
   }
 
-
+drawDebug(ctxFft, fftCanvas);
 //console.log(splineEndIndex, viewMaxBinIndex);
 }
 
