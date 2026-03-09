@@ -216,6 +216,8 @@
 //オブジェクトやら
 const fftCanvas = document.getElementById("fftWindow");//メインウィンド
 const ctxFft = fftCanvas.getContext("2d");//描画コンテキスト
+const historyCanvas = document.createElement("canvas");//ヒストリー用
+const historyCtx = historyCanvas.getContext("2d");
 const overlay = document.getElementById("overlay");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
@@ -346,10 +348,14 @@ const bgColorRed = "#600";//赤部分の背景色
 function resizeCanvas() {//キャンバスサイズの変更関数
   const dpr = window.devicePixelRatio || 1;
   const rect = fftCanvas.getBoundingClientRect();
-  fftCanvas.width  = rect.width  * dpr;
-  fftCanvas.height = rect.height * dpr;
+  const w = Math.round(rect.width * dpr);
+  const h = Math.round(rect.height * dpr);
+  fftCanvas.width = w;
+  fftCanvas.height = h;
   ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
   updateViewParams();
+  historyCanvas.width = w;
+  historyCanvas.height = (spectrumHistoryH - waveWindowH)* dpr;
   draw();
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
@@ -2228,15 +2234,29 @@ function drawPeakText (tmpSpline) {
     ctxFft.restore();
   }
 }
-function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
-  ctxFft.drawImage(// 全体を1px上にずらしてコピー
-    fftCanvas, 0, waveWindowH + 2, // 元の y=1 から
-    fftCanvas.width, spectrumHistoryH - waveWindowH,//コピーサイズ
-    0, waveWindowH + 1,                  // 貼り付け先
-    fftCanvas.width, spectrumHistoryH - waveWindowH,//コピーサイズ
+
+function scrollHistory(){
+  historyCtx.drawImage(
+    historyCanvas,
+    0, 1,
+    historyCanvas.width,
+    historyCanvas.height - 1,
+    0, 0,
+    historyCanvas.width,
+    historyCanvas.height - 1
   );
-  ctxFft.fillStyle = "#000";
-  ctxFft.fillRect(0, spectrumHistoryH , fftCanvas.width, 1);
+}
+
+function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
+//  ctxFft.drawImage(// 全体を1px上にずらしてコピー
+//    fftCanvas, 0, waveWindowH + 2, // 元の y=1 から
+//    fftCanvas.width, spectrumHistoryH - waveWindowH,//コピーサイズ
+//    0, waveWindowH + 1,                  // 貼り付け先
+//    fftCanvas.width, spectrumHistoryH - waveWindowH,//コピーサイズ
+//  );
+  const y = historyCanvas.height - 1;
+  historyCtx.fillStyle = "#000";
+  historyCtx.fillRect(0, y , historyCanvas.width, 1);
   for (let i = 0; i <= splineEndX; i++) {//スプライン部分の描画ターン
     const dB = tmpSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getFreqWeightingDb(xToFreq(i));
     let norm = Math.max(0, Math.min(1, 1 + dB * invDecivelRange));
@@ -2244,8 +2264,8 @@ function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
     const v = Math.floor(norm * 255);
     const norm2 = Math.pow(norm, spectrumContrast * 3);
     const v2 = Math.floor(norm2 * 64);
-    ctxFft.fillStyle = `rgb(${v2}, ${v}, ${v2})`;
-    ctxFft.fillRect(i, spectrumHistoryH , 1, 1);
+    historyCtx.fillStyle = `rgb(${v2}, ${v}, ${v2})`;
+    historyCtx.fillRect(i, y , 1, 1);
   }
   let tmpMaxdB = -Infinity;
   let tmpNowX = Math.round(freqToX(Math.max(0, splineEndIndex) * fftBinFreq));
@@ -2256,8 +2276,8 @@ function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
       let norm = Math.max(Math.min(1, 1 + tmpMaxdB * invDecivelRange));
       norm = Math.pow(norm, spectrumContrast);   // 明部強調
       const v = Math.floor(norm * 255);
-      ctxFft.fillStyle = `rgb(${0}, ${v}, ${0})`;
-      ctxFft.fillRect(tmpNowX, spectrumHistoryH , 1, 1);
+      historyCtx.fillStyle = `rgb(${0}, ${v}, ${0})`;
+      historyCtx.fillRect(tmpNowX, y , 1, 1);
       tmpNowX = x
       tmpMaxdB = -Infinity;
     }
@@ -2268,16 +2288,16 @@ function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
     let norm = Math.max(Math.min(1, 1 + tmpMaxdB * invDecivelRange));
     norm = Math.pow(norm, 0.7);   // 明部強調
     const v = Math.floor(norm * 255);
-    ctxFft.fillStyle = `rgb(${0}, ${v}, ${0})`;
-    ctxFft.fillRect(tmpNowX, spectrumHistoryH , 1, 1);
+    historyCtx.fillStyle = `rgb(${0}, ${v}, ${0})`;
+    historyCtx.fillRect(tmpNowX, y , 1, 1);
   }
   if (now > secDivTime) {//一秒ごとの横線
     while (now > secDivTime) secDivTime += 1000;//１秒あとに送る
-    ctxFft.save();
-    ctxFft.globalCompositeOperation = "lighter";//加算モード
-    ctxFft.fillStyle = "#777";
-    ctxFft.fillRect(0, spectrumHistoryH , fftCanvas.width, 1);
-    ctxFft.restore();
+    historyCtx.save();
+    historyCtx.globalCompositeOperation = "lighter";//加算モード
+    historyCtx.fillStyle = "#777";
+    historyCtx.fillRect(0, y , historyCanvas.width, 1);
+    historyCtx.restore();
   }
 }
 
@@ -2437,7 +2457,15 @@ function draw(now) {
 
   //上部のスペクトルヒストリー
   if (rafId && spectrumHistoryH > waveWindowH) {
+    scrollHistory();//スクロール
     drawSpectrumHistory (now, tmpSpline);//ヒストリー領域の描画
+    ctxFft.drawImage(
+      historyCanvas,
+      0,
+      waveWindowH,
+    );
+
+
   }
 
   //波形表示
