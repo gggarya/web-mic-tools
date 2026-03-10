@@ -365,8 +365,8 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 
 
   const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
-  const w = Math.round(clientW * invDpr * invDpr);//物理サイズ？
-  const h = Math.round(clientH * invDpr * invDpr);
+  const w = Math.round(clientW * dpr);//物理サイズ？
+  const h = Math.round(clientH * dpr);
 //  const w = Math.round(rect.width * 1);
 //  const h = Math.round(rect.height * 1);
   fftCanvas.width = w;
