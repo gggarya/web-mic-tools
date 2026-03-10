@@ -26,6 +26,10 @@
     background: #000;
     border: 20px solid #4f4;
     display: block; /*※ これがないと margin の指定が効きにくい*/
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;    
   }
 
   #canvasWrapper {
@@ -383,6 +387,8 @@ function drawDebug(ctx, canvas) {
   ctx.fillText("CSS height : " + rect.height, 10,70);
 
   ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,90);
+
+  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,90);
 
   ctx.restore();
 }
@@ -2485,11 +2491,11 @@ function draw(now) {
   if (rafId && spectrumHistoryH > waveWindowH) {
 //    scrollHistory();//スクロール
     drawSpectrumHistory (now, tmpSpline);//ヒストリー領域の描画
-    ctxFft.drawImage(
-      historyCanvas,
-      0,
-      waveWindowH,
-    );
+//    ctxFft.drawImage(
+//      historyCanvas,
+//      0,
+//      waveWindowH,
+//    );
 
 
   }
