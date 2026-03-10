@@ -14,6 +14,7 @@
     margin: 0;
     padding: 0;
     height: 100%;
+    width: 100%;
     overflow-x: hidden;   /* 横スクロールバーは出さない */
     overflow-y: hidden;   /* 横スクロールバーは出さない */
     }
@@ -60,9 +61,9 @@
   #fftWindow {/*メインウィンド*/
     display: block;
     background: #222;
-    max-width: 1200px;
+/*    max-width: 1200px;
     width: 100%;
-    height: 100dvh;
+    height: 100dvh;*/
     border: 0px;
     margin: 0 auto;
     padding: 0;
@@ -235,6 +236,11 @@ const smoothingMenu = document.getElementById('popupSmoothingMenu');
 const unitMenu = document.getElementById('popupUnitMenu');
 const peakMenu = document.getElementById('popUpPeakMenu');
 
+//画面設定
+let dpr = window.devicePixelRatio || 1;
+let invDpr = 1 / dpr;
+
+
 //音声処理系の変数
 let audioCtx = null; // = new AudioContext();
 let stream = null; // = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -351,21 +357,30 @@ makeWavelet8();
 const bgColorRed = "#600";//赤部分の背景色
 
 function resizeCanvas() {//キャンバスサイズの変更関数
-  const dpr = window.devicePixelRatio || 1;
+  dpr = window.devicePixelRatio || 1;//
+  invDpr = 1 / dpr;
+
+  clientW = document.documentElement.clientWidth;//スクロールバーを含まない画面幅、SCC系
+  clientH = document.documentElement.clientHeight;
+
+
   const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
-//  const w = Math.round(rect.width * dpr);
-//  const h = Math.round(rect.height * dpr);
-  const w = Math.round(rect.width * 1);
-  const h = Math.round(rect.height * 1);
+  const w = Math.round(clientW * invDpr * invDpr);//物理サイズ？
+  const h = Math.round(clientH * invDpr * invDpr);
+//  const w = Math.round(rect.width * 1);
+//  const h = Math.round(rect.height * 1);
   fftCanvas.width = w;
   fftCanvas.height = h;
-  ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
+  fftCanvas.style.width = `${clientW}px`;
+  fftCanvas.style.height = `${clientH}px`;
+
+console.log(dpr, clientW, w, fftCanvas.width);
+//  ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
   updateViewParams();
   historyCanvas.width = w;
   historyCanvas.height = (spectrumHistoryH - waveWindowH)* dpr;
   HistoryWriteLine = spectrumHistoryH - 1;
 
-console.log(dpr, rect.width, rect.height);
   draw();
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
