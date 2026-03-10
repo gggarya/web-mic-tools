@@ -365,8 +365,10 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 //  dpr = window.devicePixelRatio || 1;//
 //  invDpr = 1 / dpr;
 
-  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
-  let clientH = document.documentElement.clientHeight - 1;
+  let clientW = window.visualViewport.width - 1;//スクロールバーを含まない画面幅、SCC系
+  let clientH = window.visualViewport.height - 1;
+//  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
+//  let clientH = document.documentElement.clientHeight - 1;
 //  if (clientW > clientH) clientW *= 0.95; else clientH *= 0.95;
   clientW *= 0.95;
   clientH *= 0.95;
@@ -392,8 +394,8 @@ resizeCanvas();//まず一回サイズを合わせておく
 
 function drawDebug(ctx, canvas) {
   const rect = canvas.getBoundingClientRect();
-  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
-  let clientH = document.documentElement.clientHeight - 1;
+  let clientW = document.documentElement.clientWidth;//スクロールバーを含まない画面幅、SCC系
+  let clientH = document.documentElement.clientHeight;
 
   ctx.save();
 
@@ -412,7 +414,10 @@ function drawDebug(ctx, canvas) {
   ctx.fillText("clientWidth  : " + clientW, 10,90);
   ctx.fillText("clientHeight : " + clientH, 10,105);
 
-  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,125);
+  ctx.fillText("ViewportWidth  : " + window.visualViewport.width, 10,125);
+  ctx.fillText("ViewportHeight : " + window.visualViewport.height, 10,140);
+
+  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,160);
 
 //  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,110);
 
