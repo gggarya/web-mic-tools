@@ -367,8 +367,9 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 
   let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
   let clientH = document.documentElement.clientHeight - 1;
-  if (clientW > clientH) clientW *= 0.95; else clientH *= 0.95;
-
+//  if (clientW > clientH) clientW *= 0.95; else clientH *= 0.95;
+  clientW *= 0.95;
+  clientH *= 0.95;
   const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
   const w = Math.round(clientW * dpr);//物理サイズ？
   const h = Math.round(clientH * dpr);
@@ -391,6 +392,8 @@ resizeCanvas();//まず一回サイズを合わせておく
 
 function drawDebug(ctx, canvas) {
   const rect = canvas.getBoundingClientRect();
+  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
+  let clientH = document.documentElement.clientHeight - 1;
 
   ctx.save();
 
@@ -403,12 +406,15 @@ function drawDebug(ctx, canvas) {
   ctx.fillText("canvas.width  : " + canvas.width, 10,20);
   ctx.fillText("canvas.height : " + canvas.height, 10,35);
 
-  ctx.fillText("CSS width  : " + rect.width, 10,55);
-  ctx.fillText("CSS height : " + rect.height, 10,70);
+  ctx.fillText("CSS width   : " + rect.width, 10,55);
+  ctx.fillText("CSS height  : " + rect.height, 10,70);
 
-  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,90);
+  ctx.fillText("clientWidth  : " + clientW, 10,90);
+  ctx.fillText("clientHeight : " + clientH, 10,105);
 
-  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,110);
+  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,125);
+
+//  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,110);
 
   ctx.restore();
 }
