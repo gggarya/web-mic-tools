@@ -353,8 +353,10 @@ const bgColorRed = "#600";//赤部分の背景色
 function resizeCanvas() {//キャンバスサイズの変更関数
   const dpr = window.devicePixelRatio || 1;
   const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
-  const w = Math.round(rect.width * dpr);
-  const h = Math.round(rect.height * dpr);
+//  const w = Math.round(rect.width * dpr);
+//  const h = Math.round(rect.height * dpr);
+  const w = Math.round(rect.width * 1);
+  const h = Math.round(rect.height * 1);
   fftCanvas.width = w;
   fftCanvas.height = h;
   ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -388,7 +390,7 @@ function drawDebug(ctx, canvas) {
 
   ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,90);
 
-  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,90);
+  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,110);
 
   ctx.restore();
 }
