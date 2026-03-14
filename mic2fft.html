@@ -70,14 +70,14 @@
   }
   #overlayLock {
     position: absolute;
-    right: 0px;
+    right: 35px;
     bottom: 0px;
     display: flex;
     justify-content: center;
     align-items: center;
     width: 26px;
     height: 26px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20%;
     background: rgba(0, 0, 0, 0.0);
     color: rgba(255, 255, 255, 0.65);
@@ -94,11 +94,11 @@
     content: "🔒";
   }  
   #overlayLock.locked::after{
-    color: rgba(0, 255, 0, 0.65);
+    color: rgba(0, 255, 0, 0.6);
     content: "✔";
     position: absolute;
     top: -0.0em;
-    right: -0.1em;
+    right: -0.0em;
     font-size: 1.5em;
     line-height: 1;
   }
@@ -161,6 +161,7 @@
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 
 <div id="popupMenu" class="menu hidden">
+  <div data-action="secLine">１秒線</div>
   <div data-action="unit">横軸の設定</div>
   <div data-action="tilt">傾き補正など</div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
@@ -447,6 +448,15 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
 resizeCanvas();//まず一回サイズを合わせておく
+
+function drawError(ctx, canvas, messeageTxt) {//エラー表示
+  ctx.save();
+
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillRect(0,0,220,50);
+  ctx.fillText("error  : " + messeageTxt, 10,20);
+  ctx.restore();
+}
 
 function drawDebug(ctx, canvas) {//チェック用
   const rect = canvas.getBoundingClientRect();
@@ -884,12 +894,17 @@ function showMenu(x, y) {//ポップアップ表示
     menu.style.left = `${x}px`;
     menu.style.top  = `${y}px`;
     menu.querySelectorAll('div').forEach(item => {
+      item.classList.remove('hidden');
 
       if (item.dataset.action === "peakLabel" && y <= spectrumHistoryH) item.classList.add('hidden');//ピークラベルは下段のみ
       else if (item.dataset.action === "fftSize" && y <= waveWindowH) item.classList.add('hidden');//FFTサイズ
+      else if (item.dataset.action === "secLine") {//ヒストリーの秒区切り線
+        if (y < waveWindowH || y > spectrumHistoryH) item.classList.add('hidden');//ヒストリー外ならhide
+        else if (historySecVisible) item.classList.add('checked');//✔をつける
+        else item.classList.remove('checked');//✔を外す
+      }
       else if (item.dataset.action === "fftSmoothing" && y <= waveWindowH) item.classList.add('hidden');//FFTスムーズ
       else if (item.dataset.action === "unit" && y <= waveWindowH) item.classList.add('hidden');//単位
-      else item.classList.remove('hidden');
     });
     fitMenuInViewportAndRemoveHide(menu);
   }
@@ -1081,6 +1096,12 @@ menu.addEventListener('click', async (e) => {//ポップアップメニューク
 //      }
 //      hideMenu();
 //      break;
+
+
+    case 'secLine':
+      historySecVisible = !historySecVisible;
+      hideMenu();
+      break;
     case 'tilt':
       showTiltMenu(subMenuX, e.clientY);
       break;
@@ -1353,6 +1374,8 @@ async function start() {
   } catch (e) {
     if (e.message === "NO_MIC") {
       alert("マイクが接続されていません");
+    } else if (e.message === "GET_USER_MEDIA_FAILED") {
+      alert("GET_USER_MEDIA_FAILED");
     } else {
       alert("マイクを使用できません");
     }
@@ -2473,14 +2496,14 @@ function drawSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
     historyCtx.fillStyle = `rgb(${0}, ${v}, ${0})`;
     historyCtx.fillRect(tmpNowX, y , 1, 1);
   }
-  if (now > secDivTime) {//一秒ごとの横線
+  if (now > secDivTime && historySecVisible) {//一秒ごとの横線
     while (now > secDivTime) secDivTime += 1000;//１秒あとに送る
     historyCtx.save();
     historyCtx.globalCompositeOperation = "lighter";//加算モード
     historyCtx.fillStyle = "#777";
     historyCtx.fillRect(0, y , historyCanvas.width, 1);
     historyCtx.restore();
-  }
+  } else if (!historySecVisible) secDivTime = now;
 }
 
 function searchZeroCross (stIndex, previousValue, waveletPitch) {//ゼロクロスを探す
@@ -2764,7 +2787,7 @@ function draw(now) {
   ctxFft.restore();
 
 
-drawDebug(ctxFft, fftCanvas);
+//drawDebug(ctxFft, fftCanvas);
 //console.log(splineEndIndex, viewMaxBinIndex);
 }
 
