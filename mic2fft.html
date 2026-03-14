@@ -87,6 +87,21 @@
     letter-spacing: 2px;
     overflow: visible;
   }
+  #overlayLock::before{
+    content: "🔓";
+  }
+  #overlayLock.locked::before{
+    content: "🔒";
+  }  
+  #overlayLock.locked::after{
+    color: rgba(0, 255, 0, 0.65);
+    content: "✔";
+    position: absolute;
+    top: -0.0em;
+    right: -0.1em;
+    font-size: 1.5em;
+    line-height: 1;
+  }
   #micSelect {
     display: block;
     margin: 10px auto;        /* 水平方向中央 */
@@ -141,7 +156,7 @@
 <div id="canvasWrapper">
 <canvas id="fftWindow"></canvas>
   <div id="overlayPlay" class="nudge">▶</div>
-  <div id="overlayLock">🔓</div>
+  <div id="overlayLock"></div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 
@@ -258,6 +273,7 @@ const ctxFft = fftCanvas.getContext("2d");//描画コンテキスト
 const historyCanvas = document.createElement("canvas");//ヒストリー用
 const historyCtx = historyCanvas.getContext("2d");
 const overlayPlay = document.getElementById("overlayPlay");
+const overlayLock = document.getElementById("overlayLock");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
 const tiltMenu = document.getElementById('popupTiltMenu');
@@ -304,6 +320,7 @@ let fftAveVisible = false;//平均線を表示するか
 let fftBottomVisible = false;//bottom線を表示するか
 let historySecVisible = true;//ヒストリーに秒の横線を表示するか
 let historyFreqVisible = true;//ヒストリーに縦線を表示するか
+let panZoomLockIs = false;//画面のパンとズームをロックする
 
 let xUnit = 0;//0:Hz,1:rpm,2:note
 const inv60 = 1 / 60;//rpm計算用
@@ -1015,6 +1032,22 @@ overlayPlay.addEventListener("pointerdown", async () => {//再生ボタン
   }
 }//, { once: true, capture: true }
 );
+overlayPlay.addEventListener('contextmenu', (e) => {//再生ボタン右クリック
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+});
+overlayLock.addEventListener("pointerdown", async () => {//ロックボタン
+  if (panZoomLockIs) {
+    overlayLock.classList.remove('locked');
+  } else {
+    overlayLock.classList.add('locked');
+  }
+  panZoomLockIs = !panZoomLockIs;
+}//, { once: true, capture: true }
+);
+overlayLock.addEventListener('contextmenu', (e) => {//ロックボタン右クリック
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+});
+
 document.addEventListener('pointerdown', (e) => {// 外をクリックしたら閉じる
   if (!menu.contains(e.target)) { hideMenu(); }
   if (!micMenu.contains(e.target)) { hideMicMenu(); }
