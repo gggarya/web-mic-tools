@@ -276,9 +276,9 @@
   <div data-action="NOTE">Note</div>
 </div>
 <div id="popupColorMapMenu" class="menu hidden" style="text-align: left;">
-  <div data-action="viridisStops">青葉</div>
-  <div data-action="magmaStops">マグマ</div>
+  <div data-action="viridisStops">緑・若草色</div>
   <div data-action="infernoStops">インフェルノ</div>
+  <div data-action="magmaStops">マグマ</div>
   <div data-action="plasmaStops">プラズマ</div>
   <div data-action="classic1stops">クラシック１</div>
   <div data-action="classic2stops">クラシック２</div>
@@ -294,6 +294,8 @@ const fftCanvas = document.getElementById("fftWindow");//メインウィンド
 const ctxFft = fftCanvas.getContext("2d");//描画コンテキスト
 const historyCanvas = document.createElement("canvas");//ヒストリー用
 const historyCtx = historyCanvas.getContext("2d");
+const colorMapCanvas = document.createElement("canvas");//カラーマップ用
+const colorMapCtx = colorMapCanvas.getContext("2d");
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
 const menu = document.getElementById('popupMenu');
@@ -480,15 +482,27 @@ function makeColorMap () {//カラーマップ作製
     let norm = i * invMapLength;
     norm = Math.pow(norm, spectrumContrast);   // コントラスト付け
     const [r,g,b] = interpolateStops(nowStops,norm);
-//    const v = Math.round(Math.floor(norm * 255));
     const ii = i * 4;
-    colorMapUnit8[ii] = r;//R
-    colorMapUnit8[ii + 1] = g;//G
-    colorMapUnit8[ii + 2] = b;//B
+    colorMapUnit8[ii] = Math.round(r);//R
+    colorMapUnit8[ii + 1] = Math.round(g);//G
+    colorMapUnit8[ii + 2] = Math.round(b);//B
     colorMapUnit8[ii + 3] = 255;//A
   }
 }
 makeColorMap();
+colorMapCanvas.width = 30;
+colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+function makeColorMapCanvas () {//カラーマップのスケール作成
+  const invCanvasHeight = 1 / (colorMapCanvas.height - 1);
+  for (let i = 0; i < colorMapCanvas.height; i++) {
+    let norm = i * invCanvasHeight;
+    norm = Math.pow(norm, spectrumContrast);   // コントラスト付け
+    const [r,g,b] = interpolateStops(nowStops, norm);
+    colorMapCtx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+    colorMapCtx.fillRect(0, colorMapCanvas.height - i - 1, colorMapCanvas.width, 1);
+  }
+}
+
 
 let nyquistFreq = ctxSampleRate * 0.5;
 let nyquistX = freqToX(nyquistFreq);
@@ -558,6 +572,8 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   updateViewParams();
   historyCanvas.width = w;
   historyCanvas.height = spectrumHistoryH - waveWindowH;
+  colorMapCanvas.height = h - spectrumHistoryH - 1;
+  makeColorMapCanvas();
 
   if (spectro1LineBuffer.length !== w) {//スペクトロぐらむ用の１ラインバッファ
     spectro1LineBuffer = null;
@@ -1405,6 +1421,8 @@ spectroMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   historyCanvas.height = spectrumHistoryH - waveWindowH;
   historyCtx.fillStyle = "#000";
   historyCtx.fillRect(0, 0 , historyCanvas.width, historyCanvas.height);
+  colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+  makeColorMapCanvas();
   draw();
   hideSpectroMenu();
   hideMenu();
@@ -1511,8 +1529,10 @@ colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニ�
       break;
   }
   makeColorMap();
+  makeColorMapCanvas();
   hideColorMapMenu();
   hideMenu();
+  draw();
 });
 
 async function start() {
@@ -2979,30 +2999,40 @@ function draw(now) {
       ctxFft.drawImage(
         historyCanvas,
         0,0,
-        historyCanvas.width - 1, historyCanvas.height - 1,
+        historyCanvas.width, historyCanvas.height,
         0, waveWindowH,
-        historyCanvas.width - 1, historyCanvas.height - 1,
+        historyCanvas.width, historyCanvas.height
       );
     } else {
       ctxFft.drawImage(
         historyCanvas,
         0, HistoryWriteLine + 1,//最下段の時は別に処理されるので繰り上がりは気にしない
-        historyCanvas.width - 1, historyCanvas.height - HistoryWriteLine,
+        historyCanvas.width, historyCanvas.height - HistoryWriteLine,
         0, waveWindowH,
-        historyCanvas.width - 1, historyCanvas.height - HistoryWriteLine,
+        historyCanvas.width, historyCanvas.height - HistoryWriteLine
       );
       ctxFft.drawImage(
         historyCanvas,
         0, 0,
-        historyCanvas.width - 1, HistoryWriteLine + 1,
+        historyCanvas.width, HistoryWriteLine + 1,
         0, waveWindowH + historyCanvas.height - HistoryWriteLine,
-        historyCanvas.width - 1, HistoryWriteLine + 1,
+        historyCanvas.width, HistoryWriteLine + 1
       );
     }
-
-
-
   }
+
+  if (true) {//カラーマップのスケール表示
+    ctxFft.globalCompositeOperation = "source-over";//上書き
+    ctxFft.drawImage(
+      colorMapCanvas,
+      0,0,
+      colorMapCanvas.width, colorMapCanvas.height,
+      fftCanvas.width - colorMapCanvas.width, fftViewZeroY,
+      colorMapCanvas.width, colorMapCanvas.height
+    );
+  }
+//colorMapCanvas
+
 
   //波形表示
   if (waveWindowH !== 0) {
