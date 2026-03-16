@@ -70,7 +70,7 @@
   }
   #overlayLock {
     position: absolute;
-    right: 35px;
+    right: 28px;
     bottom: 10px;
     display: flex;
     justify-content: center;
@@ -101,6 +101,25 @@
     right: -0.0em;
     font-size: 1.5em;
     line-height: 1;
+  }
+  #overlayHelp {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20%;
+    background: rgba(0, 0, 0, 0.0);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    font-family: sans-serif;
+    cursor: pointer;
+    letter-spacing: 2px;
+    overflow: visible;
   }
   #micSelect {
     display: block;
@@ -157,8 +176,9 @@
 
 <div id="canvasWrapper">
 <canvas id="fftWindow"></canvas>
-  <div id="overlayPlay" class="nudge">▶</div>
-  <div id="overlayLock"></div>
+<div id="overlayPlay" class="nudge">▶</div>
+<div id="overlayLock"></div>
+<div id="overlayHelp">?</div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 
@@ -284,6 +304,23 @@
   <div data-action="classic2stops">クラシック２</div>
   <div data-action="whiteStops">黒～白</div>
   <div data-action="greenStops">黒～緑</div>
+  <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
+  <div data-action="colorMapVisible">スケール表示</div>
+</div>
+<div id="popupHelp" class="menu hidden" style="text-align: left;">
+  <div data-action="text"><pre  style="white-space: pre-wrap; line-height: 1.3;">
+開始と停止 → 左下の[▶]
+設定など → 右クリックか長押し
+・上段、中段、下段で変わる。
+・境い目は位置変更メニュー。
+・カラーマップは種類選択。
+・下端は横軸の単位変更。
+移動 → ドラッグ
+拡大縮小 → ホイールかピンチ
+移動などロック → 右下の[🔒]
+メニューを閉じる → 外を選択</pre></div>
+  <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
+  <div data-action="hideInfoButton">[？]を表示しない</div>
 </div>
 
 <!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
@@ -298,6 +335,7 @@ const colorMapCanvas = document.createElement("canvas");//カラーマップ用
 const colorMapCtx = colorMapCanvas.getContext("2d");
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
+const overlayHelp = document.getElementById("overlayHelp");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
 const tiltMenu = document.getElementById('popupTiltMenu');
@@ -313,6 +351,7 @@ const labelUnitMenu = document.getElementById('popupLabelUnitMenu');
 const peakMenu = document.getElementById('popUpPeakMenu');
 const refLineMenu = document.getElementById('popupReferenceMenu');
 const colorMapMenu = document.getElementById('popupColorMapMenu');
+const helpInfoMenu = document.getElementById('popupHelp');
 
 //画面設定
 let dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
@@ -349,6 +388,8 @@ let historySecVisible = true;//ヒストリーに秒の横線を表示するか
 let historyFreqVisible = true;//ヒストリーに縦線を表示するか
 let panZoomLockIs = false;//画面のパンとズームをロックする
 let dBLabelIs = true;//ピークラベルにデシベルを表示するか
+let colorMapVisible = true;//カラーマップを表示
+
 
 let xUnit = 0;//0:Hz,1:rpm,2:note
 let labelUnit = 0;//0:Hz,1:rpm,2:note
@@ -387,8 +428,8 @@ let running = false;
 let secDivTime = 0;
 
 //FFT設定用
-let fftSizeSetting = 2 ** 11;//2**5=32～2**15=32768
-let fftSmoothingTimeConstantSetting = 0.5;  // 0.0〜1.0
+let fftSizeSetting = 2 ** 12;//2**5=32～2**15=32768
+let fftSmoothingTimeConstantSetting = 0.4;  // 0.0〜1.0
 let fftMinDecibelsSetting = -90;
 let fftMaxDecibelsSetting = -20;
 let fftResult =  new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果保存用バッファ
@@ -490,7 +531,7 @@ function makeColorMap () {//カラーマップ作製
   }
 }
 makeColorMap();
-colorMapCanvas.width = 30 * dpr;
+colorMapCanvas.width = 18 * dpr;
 colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
 function makeColorMapCanvas () {//カラーマップのスケール作成
   const invCanvasHeight = 1 / (colorMapCanvas.height - 1);
@@ -501,7 +542,6 @@ function makeColorMapCanvas () {//カラーマップのスケール作成
     colorMapCtx.fillRect(0, colorMapCanvas.height - i - 1, colorMapCanvas.width, 1);
   }
 }
-
 
 let nyquistFreq = ctxSampleRate * 0.5;
 let nyquistX = freqToX(nyquistFreq);
@@ -825,8 +865,6 @@ function makeBitRevTable(n) {
   return rev;
 }
 
-
-
 fftCanvas.style.touchAction = 'none';
 fftCanvas.addEventListener('pointerdown', onDown);
 fftCanvas.addEventListener('pointermove', onMove);
@@ -883,23 +921,6 @@ function onMove(e) {
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (gesture.mode === 'pan') pan();//一つ指
   if (gesture.mode === 'pinch') pinch();//二つ指
-
-  ctxFft.fillStyle = "#00ff00";
-  ctxFft.font = "12px monospace";
-  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
-  if (gesture.mode === 'pinch') {
-    ctxFft.fillText("fMin  : " + gesture.start.fMin, 10,100);
-    ctxFft.fillText("fMax  : " + gesture.start.fMax, 10,115);
-    ctxFft.fillText("dMin  : " + gesture.start.dMin, 10,130);
-    ctxFft.fillText("dMax  : " + gesture.start.dMax, 10,145);
-    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
-    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
-    ctxFft.fillText("esture.start.center.x  : " + gesture.start.center.x, 10,65);
-    ctxFft.fillText("esture.start.center.y  : " + gesture.start.center.y, 10,80);
-
-
-  }
-
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
@@ -915,6 +936,7 @@ function onUp(e) {
   }
 }
 function pan() {//平行移動
+  if (panZoomLockIs) return;//ロック有効なら終了
   const [p] = gesture.pointers.values();
   //横方向移動
   const dx = p.x - gesture.start.pt.x;
@@ -972,6 +994,7 @@ function pinch() {
   }
 }
 function zoomFrequency(x, scale) {
+  if (panZoomLockIs) return;//ロック有効なら終了
   if (scale < 1 && (viewMaxFreq - viewMinFreq) * invFftBinFreq < 2) { return; }//拡大制限
   if (viewIsLogFrequency) {//横軸対数
     const centerLog2 = viewMinFreqLog2 + x * log2PerX;
@@ -1002,6 +1025,7 @@ function zoomFrequency(x, scale) {
   draw();
 }
 function zoomVertical(y, scale) {
+  if (panZoomLockIs) return;//ロック有効なら終了
   if (scale < 1 && (viewMaxDecivel - viewMinDecivel) < 11) return;//拡大制限
   const centerDecivel = viewMaxDecivel - (y - fftViewZeroY) * decivelPerY;
   viewMaxDecivel = centerDecivel + (viewMaxDecivel - centerDecivel) * scale;//上
@@ -1047,6 +1071,7 @@ function snapshotPinch() {//二つ指の初期値
 function fitMenuInViewportAndRemoveHide(menu) {//メニューを渡すと画面内に収めてくれる関数
   menu.style.visibility = "hidden";//まだ隠す
   menu.classList.remove('hidden');
+  menu.offsetHeight; // ←レイアウト確定
   const nowLeft = parseFloat(menu.style.left);
   menu.style.left = `${0}px`;//改行されるのを防ぐために一時的に左に動かす
   const rect = menu.getBoundingClientRect();
@@ -1071,6 +1096,8 @@ function showMenu(x, y) {//ポップアップ表示
     showWaveSizeMenu(x, y);
   } else if (Math.abs(cy - fftCanvas.height) <= HIT_RANGE * 2) {//下端付近をクリｋック
     showUnitMenu(x, y);
+  } else if (cy > spectrumHistoryH && Math.abs(cx - fftCanvas.width) <= HIT_RANGE * 2) {//FFT領域の右端をクリック
+    showColorMapMenu(x, y);
   } else {
     menu.style.left = `${x}px`;
     menu.style.top  = `${y}px`;
@@ -1250,8 +1277,19 @@ function showColorMapMenu(x, y) {//参考線メニュー表示
   colorMapMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
     if (item.dataset.action === nowColorMap) item.classList.add('checked');//有効の時は✔
+    else if (item.dataset.action === "colorMapVisible" && colorMapVisible) item.classList.add('checked');//有効の時は✔
   });
   fitMenuInViewportAndRemoveHide(colorMapMenu);
+}
+function showHelpMenu(x, y) {//ヘルプ表示
+  helpInfoMenu.style.visibility = "hidden";//まだ隠す
+  helpInfoMenu.classList.remove('hidden');
+  helpInfoMenu.offsetHeight; // ←レイアウト確定
+
+  const rect = helpInfoMenu.getBoundingClientRect();
+  helpInfoMenu.style.left = `${x}px`;
+  helpInfoMenu.style.top  = `${Math.max(0, y)}px`;
+  fitMenuInViewportAndRemoveHide(helpInfoMenu);
 }
 
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
@@ -1268,8 +1306,10 @@ function hideLabelUnitMenu() { labelUnitMenu.classList.add('hidden');}//ポッ�
 function hidePeakMenu() { peakMenu.classList.add('hidden');}//ポップアップ消去
 function hideRefLineMenu() { refLineMenu.classList.add('hidden');}//ポップアップ消去
 function hideColorMapMenu() { colorMapMenu.classList.add('hidden');}//ポップアップ消去
+function hideHelpMenu() { helpInfoMenu.classList.add('hidden');}//ポップアップ消去
 
-overlayPlay.addEventListener("pointerdown", async () => {//再生ボタン
+overlayPlay.addEventListener("pointerdown", async (e) => {//再生ボタン
+  e.stopPropagation();  
   overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
   if (!running) {
     start();
@@ -1281,9 +1321,11 @@ overlayPlay.addEventListener("pointerdown", async () => {//再生ボタン
 }//, { once: true, capture: true }
 );
 overlayPlay.addEventListener('contextmenu', (e) => {//再生ボタン右クリック
+  e.stopPropagation();  
   e.preventDefault();   // デフォルトの右クリックメニューなし
 });
-overlayLock.addEventListener("pointerdown", async () => {//ロックボタン
+overlayLock.addEventListener("pointerdown", async (e) => {//ロックボタン
+  e.stopPropagation();  
   if (panZoomLockIs) {
     overlayLock.classList.remove('locked');
   } else {
@@ -1293,6 +1335,16 @@ overlayLock.addEventListener("pointerdown", async () => {//ロックボタン
 }//, { once: true, capture: true }
 );
 overlayLock.addEventListener('contextmenu', (e) => {//ロックボタン右クリック
+  e.stopPropagation();  
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+});
+overlayHelp.addEventListener("pointerdown", (e) => {//ヘルプボタン
+  e.stopPropagation();  
+  showHelpMenu(10, 10);
+}//, { once: true, capture: true }
+);
+overlayHelp.addEventListener('contextmenu', (e) => {//ヘルプボタン右クリック
+  e.stopPropagation();  
   e.preventDefault();   // デフォルトの右クリックメニューなし
 });
 
@@ -1311,6 +1363,7 @@ document.addEventListener('pointerdown', (e) => {// 外をクリックしたら�
   if (!refLineMenu.contains(e.target)) { hideRefLineMenu(); }
   if (!labelUnitMenu.contains(e.target)) { hideLabelUnitMenu(); }
   if (!colorMapMenu.contains(e.target)) { hideColorMapMenu(); }
+  if (!helpInfoMenu.contains(e.target)) { hideHelpMenu(); }
 });
 
 fftCanvas.addEventListener('contextmenu', (e) => {//キャンバス右クリック
@@ -1561,6 +1614,9 @@ colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニ�
     case 'greenStops':
       nowColorMap = "greenStops";
       nowStops = greenStops;
+      break;
+    case 'colorMapVisible':
+      colorMapVisible = !colorMapVisible;
       break;
   }
   makeColorMap();
@@ -3003,8 +3059,10 @@ function draw(now) {
       if (y >= 0 && y <= fftViewH) {
         ctxFft.textAlign = "left";
         ctxFft.fillText(`${i}dB`, 2, fftViewZeroY + y + 2);
-        ctxFft.textAlign = "right";
-        ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
+        if (!colorMapVisible) {
+          ctxFft.textAlign = "right";
+          ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
+        }
       }
     }
   } else {//10dBごと
@@ -3013,8 +3071,10 @@ function draw(now) {
       if (y >= 0 && y <= fftViewH) {
         ctxFft.textAlign = "left";
         ctxFft.fillText(`${i}dB`, 2, fftViewZeroY + y + 2);
-        ctxFft.textAlign = "right";
-        ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
+        if (!colorMapVisible) {
+          ctxFft.textAlign = "right";
+          ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
+        }
       }
     }
   }
@@ -3055,7 +3115,7 @@ function draw(now) {
     }
   }
 
-  if (true) {//カラーマップのスケール表示
+  if (colorMapVisible) {//カラーマップのスケール表示
     ctxFft.globalCompositeOperation = "source-over";//上書き
     ctxFft.drawImage(
       colorMapCanvas,
@@ -3065,8 +3125,6 @@ function draw(now) {
       colorMapCanvas.width, colorMapCanvas.height
     );
   }
-//colorMapCanvas
-
 
   //波形表示
   if (waveWindowH !== 0) {
