@@ -1029,11 +1029,11 @@ function snapshotPinch() {//二つ指の初期値
   const dx = pts[0].x;// - pts[1].x;
   const dy = pts[0].y;// - pts[1].y;
   const axisIsFreq = true;//Math.abs(dx) >= Math.abs(dy);
-  const distance = 0;//axisIsFreq ? abs(dx) : abs(dy);
+  const distance = 5;//axisIsFreq ? abs(dx) : abs(dy);
 
   return {
-//    center: {x:(pts[0].x + pts[1].x) * 0.5, y:(pts[0].y + pts[1].y) * 0.5},
-    center: {x: 0.5, y: 0.5},
+    center: {x:(pts[0].x + pts[1].x) * 0.5, y:(pts[0].y + pts[1].y) * 0.5},
+//    center: {x: 0.5, y: 0.5},
     distance: distance,
     axisIsFreq: axisIsFreq,//どっちの軸の操作かはじめに決める
     fMin: viewMinFreq,
