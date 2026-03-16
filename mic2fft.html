@@ -2794,9 +2794,10 @@ function drawBottom () {
 function drawPeakText (tmpSpline) {
   if (fftPeakHeight[fftPeakHeight.length - 1]) {//ピーク表示
     ctxFft.save();
-    const peakFontSize = 18;
+    const peakFontSize = 18 * dpr;
     const txtGapY = peakFontSize * 1.5 | 0;
-    const txtGapX = peakFontSize * 11;
+    const txtGapX = peakFontSize * 11 | 0;
+    const txtSlideX = peakFontSize * 2.8 | 0;
     const txtSnapX = peakFontSize * 12 | 0;
     const txtSnapY = fftViewH * 1.0 | 0;
     ctxFft.font = `${peakFontSize}px JetBrains Mono, Fira Code, monospace`;
@@ -2838,8 +2839,9 @@ function drawPeakText (tmpSpline) {
 
       let textX = Math.max(36, Math.round(peakX / txtSnapX) * txtSnapX) | 0;
       let textY = Math.max(0, peakY - 100 - (peakY - 100 - fftViewZeroY) % txtSnapY, fftViewZeroY + peakFontSize * 2) | 0;
-      if (textX + previousTextWidth > fftCanvas.width - 30) textX = fftCanvas.width - 30 - previousTextWidth;//右端にはみ出さない処理
-      if (textX < previousX + 50) textX = previousX + 50;
+      if (textX + previousTextWidth > fftCanvas.width - colorMapCanvas.width - 2)
+        textX = fftCanvas.width - colorMapCanvas.width - 2 - previousTextWidth;//右端にはみ出さない処理
+      if (textX < previousX + txtSlideX) textX = previousX + txtSlideX;
       if (textX < previousX + txtGapX && textY < previousY + txtGapY) textY = previousY + txtGapY;
 
       let labelText = `[${Math.round(peakFreq)}Hz`;
@@ -2862,7 +2864,8 @@ function drawPeakText (tmpSpline) {
       else labelText += `]`;
       const labelTextWidth = labelText.length * peakFontSize * 0.5;
       previousTextWidth = labelTextWidth;
-      if (textX + labelTextWidth > fftCanvas.width - 30) textX = fftCanvas.width - 30 - labelTextWidth;//右端にはみ出さない処理
+      if (textX + labelTextWidth > fftCanvas.width - colorMapCanvas.width - 2)
+        textX = fftCanvas.width - colorMapCanvas.width - 2 - labelTextWidth;//右端にはみ出さない処理
       ctxFft.save();
       ctxFft.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
       ctxFft.fillRect( textX, textY - peakFontSize * 0.5, labelTextWidth, peakFontSize);
@@ -3134,6 +3137,7 @@ function draw(now) {
     ctxFft.fillStyle = "#aaa";
     ctxFft.fillRect(0, waveY0, fftCanvas.width, 1);//中心線
 
+    targetFreq = 200;
     const averageSampleNum = ctxSampleRate / targetFreq / 8 | 0;//事前にするフィルタ
     const averageSampleOffset = averageSampleNum * 0.5 | 0;//事前にするフィルタ中心
     let tmpSum = 0;
