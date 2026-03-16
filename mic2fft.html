@@ -884,6 +884,21 @@ function onMove(e) {
   if (gesture.mode === 'pan') pan();//一つ指
   if (gesture.mode === 'pinch') pinch();//二つ指
 
+  ctxFft.fillStyle = "#00ff00";
+  ctxFft.font = "12px monospace";
+  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
+  if (gesture.mode === 'pinch') {
+    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
+    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
+    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
+    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
+    ctxFft.fillText("fMin  : " + esture.start.fMin, 10,100);
+    ctxFft.fillText("fMax  : " + esture.start.fMax, 10,115);
+    ctxFft.fillText("dMin  : " + esture.start.dMin, 10,130);
+    ctxFft.fillText("dMax  : " + esture.start.dMax, 10,145);
+
+
+  }
 
 }
 function onUp(e) {
@@ -1015,24 +1030,6 @@ function snapshotPinch() {//二つ指の初期値
   const dy = pts[0].y - pts[1].y;
   const axisIsFreq = Math.abs(dx) >= Math.abs(dy);
   const distance = axisIsFreq ? abs(dx) : abs(dy);
-
-  ctxFft.fillStyle = "#00ff00";
-  ctxFft.font = "12px monospace";
-  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
-  if (gesture.mode === 'pinch') {
-//    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
-//    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
-//    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
-//    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
-    ctxFft.fillText("axisIsFreq  : " + axisIsFreq, 10,40);
-    ctxFft.fillText("distance  : " + distance, 10,55);
-    ctxFft.fillText("center.x  : " + (pts[0].x + pts[1].x) * 0.5, 10,65);
-    ctxFft.fillText("center.y  : " + (pts[0].y + pts[1].y) * 0.5, 10,80);
-
-
-  }
-
-
 
   return {
     center: {x:(pts[0].x + pts[1].x) * 0.5, y:(pts[0].y + pts[1].y) * 0.5},
