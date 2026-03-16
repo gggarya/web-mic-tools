@@ -1625,6 +1625,16 @@ colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   hideMenu();
   draw();
 });
+helpInfoMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
+  const action = e.target.dataset.action;
+  if (!action) return;
+  switch (action) {
+    case 'hideInfoButton':
+      overlayHelp.style.visibility = "hidden";//まだ隠す
+      break;
+  }
+  hideHelpMenu();
+});
 
 async function start() {
   try {
@@ -2794,7 +2804,7 @@ function drawBottom () {
 function drawPeakText (tmpSpline) {
   if (fftPeakHeight[fftPeakHeight.length - 1]) {//ピーク表示
     ctxFft.save();
-    const peakFontSize = 18 * dpr;
+    const peakFontSize = 18 * Math.pow(dpr, 0.3);
     const txtGapY = peakFontSize * 1.5 | 0;
     const txtGapX = peakFontSize * 11 | 0;
     const txtSlideX = peakFontSize * 2.8 | 0;
