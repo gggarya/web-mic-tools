@@ -826,11 +826,6 @@ function makeBitRevTable(n) {
 }
 
 
-let gesture = {//ポインタ動作用構造体
-  pointers: new Map(),
-  mode: null, // 'pan' | 'pinch'
-  start: null,
-};
 
 fftCanvas.style.touchAction = 'none';
 fftCanvas.addEventListener('pointerdown', onDown);
@@ -850,6 +845,12 @@ fftCanvas.addEventListener("wheel", e => {
     zoomFrequency(e.offsetX, scale);
   }
 }, { passive:false });
+
+let gesture = {//ポインタ動作用構造体
+  pointers: new Map(),
+  mode: null, // 'pan' | 'pinch'
+  start: null,
+};
 
 function onDown(e) {
   fftCanvas.setPointerCapture(e.pointerId);//範囲外に出てもこのキャンバスのイベントにする
@@ -883,17 +884,6 @@ function onMove(e) {
   if (gesture.mode === 'pan') pan();//一つ指
   if (gesture.mode === 'pinch') pinch();//二つ指
 
-  ctxFft.fillStyle = "#00ff00";
-  ctxFft.font = "12px monospace";
-  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
-  if (gesture.mode === 'pinch') {
-    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
-    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
-    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
-    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
-
-
-  }
 
 }
 function onUp(e) {
@@ -1025,6 +1015,25 @@ function snapshotPinch() {//二つ指の初期値
   const dy = pts[0].y - pts[1].y;
   const axisIsFreq = Math.abs(dx) >= Math.abs(dy);
   const distance = axisIsFreq ? abs(dx) : abs(dy);
+
+  ctxFft.fillStyle = "#00ff00";
+  ctxFft.font = "12px monospace";
+  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
+  if (gesture.mode === 'pinch') {
+//    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
+//    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
+//    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
+//    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
+    ctxFft.fillText("axisIsFreq  : " + axisIsFreq, 10,40);
+    ctxFft.fillText("distance  : " + distance, 10,55);
+    ctxFft.fillText("center.x  : " + (pts[0].x + pts[1].x) * 0.5, 10,65);
+    ctxFft.fillText("center.y  : " + (pts[0].y + pts[1].y) * 0.5, 10,80);
+
+
+  }
+
+
+
   return {
     center: {x:(pts[0].x + pts[1].x) * 0.5, y:(pts[0].y + pts[1].y) * 0.5},
     distance: distance,
