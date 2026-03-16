@@ -961,12 +961,12 @@ function pinch() {
   const pts = [...gesture.pointers.values()];
   if (gesture.start.axisIsFreq) {//横方向のピンチ
     const d1 = Math.abs(pts[0].x - pts[1].x);
-    const scale = gesture.start.distance / d1;
+    const scale = Math.pow(gesture.start.distance / d1, 0.5);
     zoomFrequency(gesture.start.center.x, scale);
   } else {//縦方向のピンチ
     const d1 = Math.abs(pts[0].y - pts[1].y);
-    const scale = gesture.start.distance / d1;
-    zoomVertical(scale);
+    const scale = Math.pow(gesture.start.distance / d1, 0.5);
+    zoomVertical(gesture.start.center.y, scale);
   }
 }
 function zoomFrequency(x, scale) {
