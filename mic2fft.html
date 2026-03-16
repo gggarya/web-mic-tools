@@ -1026,8 +1026,8 @@ function snapshotView() {//一つ指の初期値
 }
 function snapshotPinch() {//二つ指の初期値
   const pts = [...gesture.pointers.values()];
-  const dx = pts[0].x - pts[1].x;
-  const dy = pts[0].y - pts[1].y;
+  const dx = pts[0].x;// - pts[1].x;
+  const dy = pts[0].y;// - pts[1].y;
   const axisIsFreq = Math.abs(dx) >= Math.abs(dy);
   const distance = axisIsFreq ? abs(dx) : abs(dy);
 
