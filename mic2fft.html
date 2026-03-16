@@ -883,6 +883,12 @@ function onMove(e) {
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (gesture.mode === 'pan') pan();//一つ指
   if (gesture.mode === 'pinch') pinch();//二つ指
+
+  ctxFft.fillStyle = "#00ff00";
+  ctxFft.font = "12px monospace";
+  ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
+
+
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
@@ -940,7 +946,7 @@ function pan() {//平行移動
   draw();
 }
 function pinch() {
-drawDebug(ctxFft, fftCanvas);
+//drawDebug(ctxFft, fftCanvas);
 
   const pts = [...gesture.pointers.values()];
   if (gesture.start.axisIsFreq) {//横方向のピンチ
