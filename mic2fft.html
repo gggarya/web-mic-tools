@@ -888,14 +888,14 @@ function onMove(e) {
   ctxFft.font = "12px monospace";
   ctxFft.fillText("gesture.mode  : " + gesture.mode, 10,20);
   if (gesture.mode === 'pinch') {
-    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
-    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
-    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
-    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
     ctxFft.fillText("fMin  : " + esture.start.fMin, 10,100);
     ctxFft.fillText("fMax  : " + esture.start.fMax, 10,115);
     ctxFft.fillText("dMin  : " + esture.start.dMin, 10,130);
     ctxFft.fillText("dMax  : " + esture.start.dMax, 10,145);
+    ctxFft.fillText("gesture.start.axisIsFreq  : " + gesture.start.axisIsFreq, 10,40);
+    ctxFft.fillText("gesture.start.distance  : " + gesture.start.distance, 10,55);
+    ctxFft.fillText("esture.start.center.x  : " + esture.start.center.x, 10,65);
+    ctxFft.fillText("esture.start.center.y  : " + esture.start.center.y, 10,80);
 
 
   }
