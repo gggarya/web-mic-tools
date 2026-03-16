@@ -603,6 +603,20 @@ function drawDebug(ctx, canvas) {//チェック用
   let clientW = document.documentElement.clientWidth;//スクロールバーを含まない画面幅、SCC系
   let clientH = document.documentElement.clientHeight;
 
+  const pts = [...gesture.pointers.values()];
+  let d1 = Math.abs(pts[0].y - pts[1].y);
+  let scale = gesture.start.distance / d1;
+  if (gesture.start.axisIsFreq) {//横方向のピンチ
+    d1 = Math.abs(pts[0].x - pts[1].x);
+    scale = gesture.start.distance / d1;
+//    zoomFrequency(gesture.start.center.x, scale);
+  } else {//縦方向のピンチ
+    d1 = Math.abs(pts[0].y - pts[1].y);
+    scale = gesture.start.distance / d1;
+//    zoomVertical(scale);
+  }
+
+
   ctx.save();
 
   ctx.fillStyle = "rgba(0,0,0,0.7)";
@@ -611,14 +625,14 @@ function drawDebug(ctx, canvas) {//チェック用
   ctx.fillStyle = "#00ff00";
   ctx.font = "12px monospace";
 
-  ctx.fillText("canvas.width  : " + canvas.width, 10,20);
-  ctx.fillText("canvas.height : " + canvas.height, 10,35);
+  ctx.fillText("gesture.mode  : " + gesture.mode, 10,20);
+  ctx.fillText("gesture.start.axisIsFreq : " + gesture.start.axisIsFreq, 10,35);
 
-  ctx.fillText("CSS width   : " + rect.width, 10,55);
+  ctx.fillText("gesture.start.distance   : " + gesture.start.distance, 10,55);
   ctx.fillText("CSS height  : " + rect.height, 10,70);
 
-  ctx.fillText("clientWidth  : " + clientW, 10,90);
-  ctx.fillText("clientHeight : " + clientH, 10,105);
+  ctx.fillText("d1 : " + d1, 10,90);
+  ctx.fillText("scale : " + scale, 10,105);
 
   ctx.fillText("ViewportWidth  : " + window.visualViewport.width, 10,125);
   ctx.fillText("ViewportHeight : " + window.visualViewport.height, 10,140);
@@ -861,14 +875,14 @@ function onDown(e) {
 function onMove(e) {
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
-  if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//長押しキャンセル
+  if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
     clearTimeout(pressTimer);
     pressTimer = null;
   }
   if (!gesture.pointers.has(e.pointerId)) return;
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (gesture.mode === 'pan') pan();
-  if (gesture.mode === 'pinch') pinch();
+  if (gesture.mode === 'pan') pan();//一つ指
+  if (gesture.mode === 'pinch') pinch();//二つ指
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
@@ -926,6 +940,8 @@ function pan() {//平行移動
   draw();
 }
 function pinch() {
+drawDebug(ctxFft, fftCanvas);
+
   const pts = [...gesture.pointers.values()];
   if (gesture.start.axisIsFreq) {//横方向のピンチ
     const d1 = Math.abs(pts[0].x - pts[1].x);
