@@ -490,7 +490,7 @@ function makeColorMap () {//カラーマップ作製
   }
 }
 makeColorMap();
-colorMapCanvas.width = 30;
+colorMapCanvas.width = 30 * dpr;
 colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
 function makeColorMapCanvas () {//カラーマップのスケール作成
   const invCanvasHeight = 1 / (colorMapCanvas.height - 1);
@@ -963,12 +963,12 @@ function pinch() {
     const d1 = Math.abs(pts[0].x - pts[1].x);
     const scale = Math.pow(gesture.start.distance / d1, 1);
     gesture.start.distance = d1;
-    zoomFrequency(gesture.start.center.x, scale);
+    zoomFrequency(gesture.start.center.x * dpr, scale);
   } else {//縦方向のピンチ
     const d1 = Math.abs(pts[0].y - pts[1].y);
     const scale = Math.pow(gesture.start.distance / d1, 1);
     gesture.start.distance = d1;
-    zoomVertical(gesture.start.center.y, scale);
+    zoomVertical(gesture.start.center.y * dpr, scale);
   }
 }
 function zoomFrequency(x, scale) {
@@ -1035,7 +1035,6 @@ function snapshotPinch() {//二つ指の初期値
 
   return {
     center: {x:(pts[0].x + pts[1].x) * 0.5, y:(pts[0].y + pts[1].y) * 0.5},
-//    center: {x: 0.5, y: 0.5},
     distance: distance,
     axisIsFreq: axisIsFreq,//どっちの軸の操作かはじめに決める
     fMin: viewMinFreq,
