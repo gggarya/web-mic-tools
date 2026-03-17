@@ -2854,7 +2854,7 @@ function drawBottom () {
 function drawPeakText (tmpSpline) {
   if (fftPeakHeight[fftPeakHeight.length - 1]) {//ピーク表示
     ctxFft.save();
-    const peakFontSize = 18;// * Math.pow(dpr, 0.3);
+    const peakFontSize = 18 * Math.pow(dpr, 0.3);
     const txtGapY = peakFontSize * 1.5 | 0;
     const txtGapX = peakFontSize * 11 | 0;
     const txtSlideX = peakFontSize * 2.8 | 0;
@@ -2867,7 +2867,7 @@ function drawPeakText (tmpSpline) {
     ctxFft.fillStyle = `rgb(${80}, ${200}, ${255})`;
     ctxFft.lineWidth = 1;
     let previousX = -50;
-    let previousTextWidth = 5 * peakFontSize * 0.5;
+    let previousTextWidth = ctxFft.measureText("200Hz").width;
     let previousY = fftViewZeroY;
     for (let i = 0; i < fftPeakIndexSortRank.length; i++) {
       const peakRank = fftPeakIndexSortRank.length - fftPeakIndexSortRank[i];//順位。１～
@@ -2925,7 +2925,7 @@ function drawPeakText (tmpSpline) {
       }
       if (dBLabelIs) labelText += `,${showDecibel.toFixed(1)}dB]`;
       else labelText += `]`;
-      const labelTextWidth = labelText.length * peakFontSize * 0.5;
+      const labelTextWidth = ctxFft.measureText(labelText).width;
       previousTextWidth = labelTextWidth;
       if (textX + labelTextWidth > fftCanvas.width - colorMapCanvas.width - 2)
         textX = fftCanvas.width - colorMapCanvas.width - 2 - labelTextWidth;//右端にはみ出さない処理
@@ -2934,10 +2934,6 @@ function drawPeakText (tmpSpline) {
       ctxFft.fillRect( textX, textY - peakFontSize * 0.5, labelTextWidth, peakFontSize);
       ctxFft.restore();
       ctxFft.fillText(labelText, textX, textY);
-      ctxFft.fillText(`${fftCanvas.width}`, textX, textY + peakFontSize * 1);
-      ctxFft.fillText(`${colorMapCanvas.width}`, textX, textY + peakFontSize * 2);
-      ctxFft.fillText(`${labelTextWidth}`, textX, textY + peakFontSize * 3);
-      ctxFft.fillRect(textX, textY, labelTextWidth, 3);
 
       ctxFft.beginPath();
       ctxFft.moveTo(peakX, Math.max(fftViewZeroY, peakY - 4));
