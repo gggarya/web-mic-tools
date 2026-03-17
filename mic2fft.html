@@ -2854,7 +2854,7 @@ function drawBottom () {
 function drawPeakText (tmpSpline) {
   if (fftPeakHeight[fftPeakHeight.length - 1]) {//ピーク表示
     ctxFft.save();
-    const peakFontSize = 18 * Math.pow(dpr, 0.3);
+    const peakFontSize = 18;// * Math.pow(dpr, 0.3);
     const txtGapY = peakFontSize * 1.5 | 0;
     const txtGapX = peakFontSize * 11 | 0;
     const txtSlideX = peakFontSize * 2.8 | 0;
@@ -2927,8 +2927,8 @@ function drawPeakText (tmpSpline) {
       else labelText += `]`;
       const labelTextWidth = labelText.length * peakFontSize * 0.5;
       previousTextWidth = labelTextWidth;
-      if (textX + labelTextWidth > fftCanvas.width - 18 * dpr - 2)
-        textX = fftCanvas.width - 18 * dpr - 2 - labelTextWidth;//右端にはみ出さない処理
+      if (textX + labelTextWidth > fftCanvas.width - colorMapCanvas.width - 2)
+        textX = fftCanvas.width - colorMapCanvas.width - 2 - labelTextWidth;//右端にはみ出さない処理
       ctxFft.save();
       ctxFft.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
       ctxFft.fillRect( textX, textY - peakFontSize * 0.5, labelTextWidth, peakFontSize);
