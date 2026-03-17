@@ -2934,6 +2934,10 @@ function drawPeakText (tmpSpline) {
       ctxFft.fillRect( textX, textY - peakFontSize * 0.5, labelTextWidth, peakFontSize);
       ctxFft.restore();
       ctxFft.fillText(labelText, textX, textY);
+      ctxFft.fillText(`${fftCanvas.width}`, textX, textY + peakFontSize * 1);
+      ctxFft.fillText(`${colorMapCanvas.width}`, textX, textY + peakFontSize * 2);
+      ctxFft.fillText(`${labelTextWidth}`, textX, textY + peakFontSize * 3);
+      ctxFft.fillRect(textX, textY, labelTextWidth, 3);
 
       ctxFft.beginPath();
       ctxFft.moveTo(peakX, Math.max(fftViewZeroY, peakY - 4));
