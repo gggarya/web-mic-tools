@@ -965,7 +965,11 @@ function onMove(e) {
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (gesture.mode === 'pan') {
-    if (gesture.start.pt.y * dpr >= spectrumHistoryH) {//FFT領域
+    if (Math.abs(spectrumHistoryH - gesture.start.pt.y * dpr) <= HIT_RANGE * 3) {//下の区切り線
+      panHistoryVLAlpha();//横はヒストリーの縦線の透明度
+    } else if (Math.abs(waveWindowH - gesture.start.pt.y * dpr) <= HIT_RANGE * 3) {//上の区切り線
+
+    } else if (gesture.start.pt.y * dpr >= spectrumHistoryH) {//FFT領域
       if (colorMapVisible && Math.abs(fftCanvas.width - gesture.start.pt.x * dpr) < colorMapCanvas.width) {//カラースケール
 
       } else if (Math.abs(fftCanvas.height - gesture.start.pt.y * dpr) <= HIT_RANGE * 2) {//下端のスケール部
@@ -974,9 +978,7 @@ function onMove(e) {
         pan();//一つ指
       }
     } else if (gesture.start.pt.y * dpr >= waveWindowH) {//中段
-      if (Math.abs((spectrumHistoryH - HIT_RANGE) - gesture.start.pt.y * dpr) <= HIT_RANGE * 2) {//中段の中の下端
-        panHistoryVLAlpha();//ヒストリーの縦線の透明度
-      } else if (Math.abs(fftCanvas.width - gesture.start.pt.x * dpr) < HIT_RANGE * 2) {//中段の右端
+      if (Math.abs(fftCanvas.width - gesture.start.pt.x * dpr) < HIT_RANGE * 2) {//中段の右端
         panHistoryHLAlpha();//ヒストリーの横線の透明度
       }
     }
