@@ -1336,6 +1336,10 @@ function hideRefLineMenu() { refLineMenu.classList.add('hidden');}//ポップア
 function hideColorMapMenu() { colorMapMenu.classList.add('hidden');}//ポップアップ消去
 function hideHelpMenu() { helpInfoMenu.classList.add('hidden');}//ポップアップ消去
 
+
+overlayPlay.style.touchAction = 'none';
+overlayLock.style.touchAction = 'none';
+overlayHelp.style.touchAction = 'none';
 overlayPlay.addEventListener("pointerdown", async (e) => {//再生ボタン
   e.stopPropagation();  
   overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
@@ -1399,6 +1403,23 @@ fftCanvas.addEventListener('contextmenu', (e) => {//キャンバス右クリッ�
   e.preventDefault();   // デフォルトの右クリックメニューなし
   showMenu(e.clientX, e.clientY);//ポップアップメニュー表示
 });
+
+menu.style.touchAction = 'none';
+micMenu.style.touchAction = 'none';
+tiltMenu.style.touchAction = 'none';
+tiltInput.style.touchAction = 'none';
+sizeMenu.style.touchAction = 'none';
+smoothingMenu.style.touchAction = 'none';
+smoothingInput.style.touchAction = 'none';
+baseHzInput.style.touchAction = 'none';
+waveSizeMenu.style.touchAction = 'none';
+spectroMenu.style.touchAction = 'none';
+unitMenu.style.touchAction = 'none';
+peakMenu.style.touchAction = 'none';
+labelUnitMenu.style.touchAction = 'none';
+refLineMenu.style.touchAction = 'none';
+colorMapMenu.style.touchAction = 'none';
+helpInfoMenu.style.touchAction = 'none';
 
 menu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
