@@ -420,8 +420,8 @@ let baseSlopePerOct = 0;//fft結果の傾き
 let fftBaseVisible = false;//ベースラインを表示するか
 let fftAveVisible = false;//平均線を表示するか
 let fftBottomVisible = false;//bottom線を表示するか
-let historySecVisible = true;//ヒストリーに秒の横線を表示するか
-let historyFreqVisible = true;//ヒストリーに縦線を表示するか
+//let historySecVisible = true;//ヒストリーに秒の横線を表示するか
+//let historyFreqVisible = true;//ヒストリーに縦線を表示するか
 let panZoomLockIs = false;//画面のパンとズームをロックする
 let dBLabelIs = true;//ピークラベルにデシベルを表示するか
 let colorMapVisible = true;//カラーマップを表示
@@ -981,7 +981,7 @@ function pan() {//平行移動
   if (panZoomLockIs) return;//ロック有効なら終了
   const [p] = gesture.pointers.values();
   //横方向移動
-  const dx = p.x - gesture.start.pt.x;
+  const dx = (p.x - gesture.start.pt.x) * dpr;
   if (viewIsLogFrequency) {//横軸対数表示
     const moveRate = 0.5 ** (dx * log2PerX); 
     viewMinFreq = gesture.start.fMin * moveRate;
@@ -1006,7 +1006,7 @@ function pan() {//平行移動
     }
   }
   //縦方向の移動
-  const dy = p.y - gesture.start.pt.y;
+  const dy = (p.y - gesture.start.pt.y) * dpr;
   const moveDistance = dy * decivelPerY; 
   viewMinDecivel = gesture.start.dMin + moveDistance;
   viewMaxDecivel = gesture.start.dMax + moveDistance;
@@ -1157,12 +1157,12 @@ function showMenu(x, y) {//ポップアップ表示
       else if (item.dataset.action === "colorMap" && (cy < waveWindowH || cy > spectrumHistoryH)) item.classList.add('hidden');//カラーマップ
       else if (item.dataset.action === "secLine") {//ヒストリーの秒区切り線
         if (cy < waveWindowH || cy > spectrumHistoryH) item.classList.add('hidden');//ヒストリー外ならhide
-        else if (historySecVisible) item.classList.add('checked');//✔をつける
+//        else if (historySecVisible) item.classList.add('checked');//✔をつける
         else item.classList.remove('checked');//✔を外す
       }
       else if (item.dataset.action === "freqLine") {//ヒストリーの縦切り線
         if (cy < waveWindowH || cy > spectrumHistoryH) item.classList.add('hidden');//ヒストリー外ならhide
-        else if (historyFreqVisible) item.classList.add('checked');//✔をつける
+//        else if (historyFreqVisible) item.classList.add('checked');//✔をつける
         else item.classList.remove('checked');//✔を外す
       }
     });
@@ -1460,11 +1460,11 @@ menu.addEventListener('click', async (e) => {//ポップアップメニューク
       hideMenu();
       break;
     case 'secLine':
-      historySecVisible = !historySecVisible;
+//      historySecVisible = !historySecVisible;
       hideMenu();
       break;
     case 'freqLine':
-      historyFreqVisible = !historyFreqVisible;
+//      historyFreqVisible = !historyFreqVisible;
       hideMenu();
       break;
     case 'colorMap':
@@ -2999,11 +2999,11 @@ function makeSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
     spectro1LineBuffer[tmpNowX] = colorMap[Math.round(norm * 255)];//１ドット×RGBA
   }
   historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
-  if (now > secDivTime && historySecVisible) {//一秒ごとの横線
+  if (now > secDivTime) {//一秒ごとの横線
     while (now > secDivTime) secDivTime += 1000;//１秒あとに送る
     historyHLCtx.fillStyle = "#fff";
     historyHLCtx.fillRect(0, y , historyCanvas.width, 1);
-  } else if (!historySecVisible) secDivTime = now;
+  }// else if (!historySecVisible) secDivTime = now;
 }
 
 function drawImageSpectrumHistory () {//ヒストリー領域をメイン画面にコピーする
