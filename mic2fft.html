@@ -146,7 +146,10 @@
   font-size: 14px;
   z-index: 1000;
   text-align: left;
-}
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;    
+    }
 .hidden {
   display: none;
 }
@@ -1106,7 +1109,9 @@ function showMenu(x, y) {//ポップアップ表示
   const cx = x * canvasHeight / canvasStyleHeight;
   const cy = y * canvasHeight / canvasStyleHeight;
 
-  if (Math.abs(cy - spectrumHistoryH) <= HIT_RANGE) {//ヒストリーとFFTの境界をクリック
+  if (cy <= HIT_RANGE * 4 && cx <= HIT_RANGE * 4) {//FFT領域の左上をクリック
+    showHelpMenu(x, y);
+  } else if (Math.abs(cy - spectrumHistoryH) <= HIT_RANGE) {//ヒストリーとFFTの境界をクリック
     showSpectroMenu(x, y);
   } else if (Math.abs(cy - waveWindowH) <= HIT_RANGE) {//ヒストリーと波形の境界をクリック
     showWaveSizeMenu(x, y);
@@ -1114,8 +1119,6 @@ function showMenu(x, y) {//ポップアップ表示
     showUnitMenu(x, y);
   } else if (cy > spectrumHistoryH && Math.abs(cx - fftCanvas.width) <= HIT_RANGE * 2) {//FFT領域の右端をクリック
     showColorMapMenu(x, y);
-  } else if (cy <= HIT_RANGE * 2 && cx <= HIT_RANGE * 2) {//FFT領域の左上をクリック
-    showHelpMenu(x, y);
   } else {
     menu.style.left = `${x}px`;
     menu.style.top  = `${y}px`;
