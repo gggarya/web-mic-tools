@@ -245,8 +245,6 @@
   <div data-action="lockFreq">FFT領域-周波数</div>
   <div data-action="lockDecibel">FFT領域-ｄＢ</div>
 </div>
-
-
 <div id="popupMicMenu" class="menu hidden">
   <div data-action="null">未取得</div>
 </div>
@@ -1003,11 +1001,13 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
     return "help";
   } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 4) {//下の区切り線
     if (y < spectrumHistoryHcomp) return "separator2upr";
+    else if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) return "colorMap";
     else return "separator2lwr";
   } else if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 3) {//上の区切り線
     return "separator1";
   } else if (Math.abs(fftCanvas.height - y) <= HIT_RANGE * 3) {//下端の周波数軸
-    return "freqRuler";
+    if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) return "colorMap";
+    else return "freqRuler";
   } else if (y > spectrumHistoryHcomp) {//下段のFFT領域
     if (x < HIT_RANGE * 2) {//下段の左端
     } else if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) {//カラースケール
@@ -1091,6 +1091,8 @@ function onMove(e) {
       case "freqRuler":
         break;
       case "colorMap":
+        panSpectrumContrast();
+        if (!rafId) draw();
         break;
       case "fftR":
         const rectStX = fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2;
@@ -1241,6 +1243,17 @@ function panTilt() {//傾きの変更
   if (baseSlopePerOct > 30) baseSlopePerOct = 30; 
   if (baseSlopePerOct < -30) baseSlopePerOct = -30; 
 }
+function panSpectrumContrast() {//コントラスト変更
+  const [p] = gesture.pointers.values();
+  const dy = (p.y - gesture.start.previousPt.y) * dpr / fftViewH;
+  gesture.start.previousPt.y = p.y;
+  spectrumContrast -= dy * 4;
+  if (spectrumContrast > 5) spectrumContrast = 5; 
+  if (spectrumContrast < -5) spectrumContrast = -5; 
+  makeColorMap();
+  makeColorMapCanvas();
+}
+
 
 function pinch() {
 
