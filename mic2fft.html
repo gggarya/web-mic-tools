@@ -148,6 +148,28 @@
 /*    margin: 0 auto;*/
     padding: 0;
   }
+  #dragRect {
+    position: absolute;
+    pointer-events: none; /* 操作の邪魔しない */
+    background: rgba(80, 200, 255, 0.2);
+    border: 1px solid rgba(80, 200, 255, 0.3);
+
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;      
+  }
+  #dragRect.active {
+    opacity: 1;
+    transition: none; /* ドラッグ中は即表示 */
+  }
+  #dragRect.fadeout {
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+  }
+
 
 .menu {
   position: fixed;
@@ -191,10 +213,11 @@
 <!--■□■□■□■□■□■ここが画面に配置するところ■□■□■□■□■□■-->
 
 <div id="canvasWrapper">
-<canvas id="fftWindow"></canvas>
-<div id="overlayPlay" class="nudge">▶</div>
-<div id="overlayLock"></div>
-<div id="overlayHelp">?</div>
+  <canvas id="fftWindow"></canvas>
+  <div id="overlayPlay" class="nudge">▶</div>
+  <div id="overlayLock"></div>
+  <div id="overlayHelp">?</div>
+  <div id="dragRect"></div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 
@@ -213,7 +236,7 @@
   <div data-action="oneTime">１回のみトリガ</div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="fftSize">ＦＦＴサイズ<span>›</span></div>
-  <div data-action="fftSmoothing">スムージング設定　<span>›</span></div>
+  <div data-action="fftSmoothing">連続時スムージング設定　<span>›</span></div>
   <div data-action="fftSmoothing">平均回数<span>›</span></div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="input">入力デバイス選択　<span>›</span></div>
@@ -405,6 +428,7 @@ const colorMapMenu = document.getElementById('popupColorMapMenu');
 const helpInfoMenu = document.getElementById('popupHelp');
 const popupPlayMenu = document.getElementById('popupPlayMenu');
 const popupLockMenu = document.getElementById('popupLockMenu');
+const dragRect = document.getElementById("dragRect");
 
 //画面設定
 let dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
@@ -444,6 +468,8 @@ let historyHLAlpha = 0.5;
 let historyVLAlpha = 1.0;
 let fftVLAlpha = 1.0;
 let panZoomLockIs = false;//画面のパンとズームをロックする
+let panZoomLockFreqIs = true;//周波数方向
+let panZoomLockDecibelIs = true;//デシベル方向
 let dBLabelIs = true;//ピークラベルにデシベルを表示するか
 let colorMapVisible = true;//カラーマップを表示
 let baseFreq = 200;//横軸の基準とトリガー基準
@@ -467,7 +493,7 @@ const xUnitMap = {
 
 const viewMinFreqLimit = 10;
 const viewMaxFreqLimit = 30000;
-let viewMinFreq = 70;
+let viewMinFreq = 40;
 let viewMaxFreq = 20000;
 let viewFreqRange = viewMaxFreq - viewMinFreq;
 let XPerFreq_Linear = fftCanvas.width / viewFreqRange;
@@ -490,7 +516,7 @@ let running = false;
 let secDivTime = 0;
 
 //FFT設定用
-let fftSizeSetting = 2 ** 12;//2**5=32～2**15=32768
+let fftSizeSetting = 2 ** 13;//2**5=32～2**15=32768
 let fftSmoothingTimeConstantSetting = 0.4;  // 0.0〜1.0
 let fftMinDecibelsSetting = -90;
 let fftMaxDecibelsSetting = -20;
@@ -937,6 +963,16 @@ function makeBitRevTable(n) {
   return rev;
 }
 
+function updateDragRect(x, y, w, h) {//半透明で消える四角の設定
+  dragRect.style.left = x * invDpr + "px";
+  dragRect.style.top = y * invDpr + "px";
+  dragRect.style.width = w * invDpr + "px";
+  dragRect.style.height = h * invDpr + "px";
+  dragRect.classList.remove("fadeout");
+  dragRect.classList.add("active");  
+}
+
+
 fftCanvas.style.touchAction = 'none';
 fftCanvas.addEventListener('pointerdown', onDown);
 fftCanvas.addEventListener('pointermove', onMove);
@@ -960,8 +996,9 @@ let gesture = {//ポインタ動作用構造体
   pointers: new Map(),
   mode: null, // 'pan' | 'pinch'
   start: null,
+  axis: null,
 };
-function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上のエリアの名前を返す
+function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上のエリアの名前を返す。座標はdprをかけたあとのもの
   if (x * dpr <= HIT_RANGE * 4 && y <= HIT_RANGE * 6) {//画面の左上
     return "help";
   } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 3) {//下の区切り線
@@ -975,6 +1012,8 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
     if (x < HIT_RANGE * 2) {//下段の左端
     } else if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) {//カラースケール
       return "colorMap";
+    } else if (Math.abs(fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - x ) < HIT_RANGE * 2) {//下段の右端
+      return "fftR";
     } else {
       return "fft";
     }
@@ -1005,11 +1044,11 @@ function onDown(e) {
     gesture.start = snapshotView();//初めのタップ位置
     startX = e.clientX;
     startY = e.clientY;
-
     pressTimer = setTimeout(() => {
       showMenu(e.clientX, e.clientY);
       pressTimer = null;
     }, LONGPRESS_TIME);
+    gesture.axis = null;
 
   } else if (gesture.pointers.size === 2) {
     gesture.mode = 'pinch';
@@ -1019,9 +1058,11 @@ function onDown(e) {
 function onMove(e) {
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
+  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
   if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
     clearTimeout(pressTimer);
     pressTimer = null;
+    if (!gesture.axis) {if (dx > dy) gesture.axis = "x"; else gesture.axis = "y"};
   }
   if (!gesture.pointers.has(e.pointerId)) return;
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1031,18 +1072,31 @@ function onMove(e) {
       case "help":
         break;
       case "separator1":
+        panSeparator1();
         break;
       case "separator2upr":
-        panHistoryVLAlpha();//横はヒストリーの縦線の透明度
-        if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        if (gesture.axis === "x") {
+          updateDragRect(0, spectrumHistoryH - HIT_RANGE * 1.5, fftCanvas.width, HIT_RANGE * 1.5);//操作エリアの表示
+          panHistoryVLAlpha();//横はヒストリーの縦線の透明度
+          if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
         break;
       case "separator2lwr":
-        panFftVLAlpha();//FFTの線の透明度
-        if (!rafId) draw();
+        if (gesture.axis === "x") {
+          updateDragRect(0, spectrumHistoryH, fftCanvas.width, HIT_RANGE * 1.5);//操作エリアの表示
+          panFftVLAlpha();//FFTの線の透明度
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
         break;
       case "freqRuler":
         break;
       case "colorMap":
+        break;
+      case "fftR":
+        const rectStX = fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2;
+        updateDragRect(rectStX, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
+        panTilt();
+        if (!rafId) draw();
         break;
       case "fft":
         panFft();//FFT領域の移動
@@ -1051,10 +1105,12 @@ function onMove(e) {
       case "history":
         break;
       case "historyR":
+        updateDragRect(fftCanvas.width - HIT_RANGE * 2, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
         panHistoryHLAlpha();//ヒストリーの横線の透明度
         if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         break;
       case "historyL":
+        updateDragRect(0, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
         panHistoryHLAlpha();//ヒストリーの横線の透明度
         if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         break;
@@ -1071,15 +1127,21 @@ function onUp(e) {
   if (gesture.pointers.size === 0) {//指がゼロならクリア
     gesture.mode = null;
     gesture.start = null;
+    gesture.axis = null;
+    dragRect.classList.remove("active");
+    dragRect.classList.add("fadeout");
   } else if (gesture.pointers.size === 1) {//一本になったらパンモード
     gesture.mode = 'pan';
     gesture.start = snapshotView();//初めのタップ位置
   }
 }
 function panFft() {//平行移動
-  if (panZoomLockIs) return;//ロック有効なら終了
+  if (!panZoomLockFreqIs || !panZoomLockIs) panFftFreq();//横方向
+  if (!panZoomLockDecibelIs || !panZoomLockIs) panFftDecibel();//縦方向
+  if (!panZoomLockFreqIs || !panZoomLockDecibelIs || !panZoomLockIs) updateViewParams();//画面更新
+}
+function panFftFreq() {//平行移動,横方向
   const [p] = gesture.pointers.values();
-  //横方向移動
   const dx = (p.x - gesture.start.pt.x) * dpr;
   if (viewIsLogFrequency) {//横軸対数表示
     const moveRate = 0.5 ** (dx * log2PerX); 
@@ -1104,6 +1166,9 @@ function panFft() {//平行移動
       viewMinFreq = viewMaxFreqLimit - (gesture.start.fMax - gesture.start.fMin);
     }
   }
+}
+function panFftDecibel() {//平行移動,横方向
+  const [p] = gesture.pointers.values();
   //縦方向の移動
   const dy = (p.y - gesture.start.pt.y) * dpr;
   const moveDistance = dy * decivelPerY; 
@@ -1116,13 +1181,12 @@ function panFft() {//平行移動
     viewMaxDecivel = viewMaxDecivelLimit;
     viewMinDecivel = viewMaxDecivelLimit - (gesture.start.dMax - gesture.start.dMin);
   }
-  updateViewParams();
 }
 function panHistoryVLAlpha() {//ヒストリーの縦線の透明度を変える
   const [p] = gesture.pointers.values();
   const dx = (p.x - gesture.start.previousPt.x) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
   gesture.start.previousPt.x = p.x;
-  historyVLAlpha += dx;
+  historyVLAlpha += dx * 1.5;
   if (historyVLAlpha > 1) historyVLAlpha = 1;
   if (historyVLAlpha < 0) historyVLAlpha = 0;
 }
@@ -1130,7 +1194,7 @@ function panHistoryHLAlpha() {//ヒストリーの縦線の透明度を変える
   const [p] = gesture.pointers.values();
   const dy = (p.y - gesture.start.previousPt.y) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
   gesture.start.previousPt.y = p.y;
-  historyHLAlpha -= dy;
+  historyHLAlpha -= dy * 1.5;
   if (historyHLAlpha > 1) historyHLAlpha = 1;
   if (historyHLAlpha < 0) historyHLAlpha = 0;
 }
@@ -1138,11 +1202,44 @@ function panFftVLAlpha() {//FFTの縦線の透明度を変える
   const [p] = gesture.pointers.values();
   const dx = (p.x - gesture.start.previousPt.x) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
   gesture.start.previousPt.x = p.x;
-  fftVLAlpha += dx;
+  fftVLAlpha += dx * 1.5;
   if (fftVLAlpha > 1) fftVLAlpha = 1;
   if (fftVLAlpha < 0) fftVLAlpha = 0;
 }
+function panSeparator1() {//下側の区切り線の移動
+  const [p] = gesture.pointers.values();
+  waveWindowRate = p.y * dpr / fftCanvas.height;
+  if (waveWindowRate < 0) waveWindowRate = 0;
+  if (spectrumHistoryRate < waveWindowRate) waveWindowRate = spectrumHistoryRate;
+  if (waveWindowRate > 0.9) waveWindowRate = 0.9;
+  updateViewParams();
+  draw();
+}
+function panSeparator2() {//下側の区切り線の移動
+  const [p] = gesture.pointers.values();
+  spectrumHistoryRate = p.y * dpr / fftCanvas.height;
+  if (spectrumHistoryRate < 0) spectrumHistoryRate = 0;
+  if (spectrumHistoryRate < waveWindowRate) spectrumHistoryRate = waveWindowRate;
+  if (spectrumHistoryRate > 0.9) spectrumHistoryRate = 0.9;
+  updateViewParams();
+  colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+  levelCanvas.height = colorMapCanvas.height;
+  makeColorMapCanvas();
+  draw();
+}
+function panTilt() {//傾きの変更
+  if (baseSlopePerOct > 30) return;//単純なチルトじゃなかったら無効 
+  const [p] = gesture.pointers.values();
+  const dy = (p.y - gesture.start.previousPt.y) * dpr / fftViewH;
+  const gestureDecibel = (viewMaxDecivel - viewMinDecivel) * dy;
+  const gestureFreq = xToFreq(gesture.start.previousPt.x * dpr);//タップしているところの周波数
+  gesture.start.previousPt.y = p.y;
 
+  baseSlopePerOct -= gestureDecibel / Math.log2(gestureFreq / 1000);//1000Hz基準
+
+  if (baseSlopePerOct > 30) baseSlopePerOct = 30; 
+  if (baseSlopePerOct < -30) baseSlopePerOct = -30; 
+}
 
 function pinch() {
 
@@ -1284,6 +1381,8 @@ function showMenu(x, y) {//ポップアップ表示
       case "historyR":
         break;
       case "historyL":
+        break;
+      case "fftR":
         break;
 //      case "fft":
 //        break;
@@ -1504,8 +1603,8 @@ function showPopupLockMenu(x, y) {//プレイメニュー表示
   popupLockMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   popupLockMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
-    if (item.dataset.action === nowColorMap) item.classList.add('checked');//有効の時は✔
-    else if (item.dataset.action === "colorMapVisible" && colorMapVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "lockFreq" && panZoomLockFreqIs) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "lockDecibel" && panZoomLockDecibelIs) item.classList.add('checked');//有効の時は✔
   });
   fitMenuInViewportAndRemoveHide(popupLockMenu);
 }
@@ -1642,22 +1741,8 @@ fftCanvas.addEventListener('contextmenu', (e) => {//キャンバス右クリッ�
   showMenu(e.clientX, e.clientY);//ポップアップメニュー表示
 });
 
-menu.style.touchAction = 'none';
-micMenu.style.touchAction = 'none';
-tiltMenu.style.touchAction = 'none';
-tiltInput.style.touchAction = 'none';
-sizeMenu.style.touchAction = 'none';
-smoothingMenu.style.touchAction = 'none';
-smoothingInput.style.touchAction = 'none';
-baseHzInput.style.touchAction = 'none';
-waveSizeMenu.style.touchAction = 'none';
-spectroMenu.style.touchAction = 'none';
-unitMenu.style.touchAction = 'none';
-peakMenu.style.touchAction = 'none';
-labelUnitMenu.style.touchAction = 'none';
-refLineMenu.style.touchAction = 'none';
-colorMapMenu.style.touchAction = 'none';
-helpInfoMenu.style.touchAction = 'none';
+//menu.style.touchAction = 'none';
+
 
 menu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -1799,6 +1884,7 @@ spectroMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   spectrumHistoryRate = Number(action);
   updateViewParams();
   colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+  levelCanvas.height = colorMapCanvas.height;
   makeColorMapCanvas();
   draw();
   hideSpectroMenu();
@@ -1953,6 +2039,22 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       break;
   }
 
+});
+popupLockMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
+  const action = e.target.dataset.action;
+  if (!action) return;
+  const menuRect = popupPlayMenu.getBoundingClientRect();
+  const subMenuX = menuRect.right - 1; 
+  switch (action) {
+    case 'lockFreq':
+      panZoomLockFreqIs = !panZoomLockFreqIs;
+      hidePopupLockMenu();
+      break;
+    case 'lockDecibel':
+      panZoomLockDecibelIs = !panZoomLockDecibelIs;
+      hidePopupLockMenu();
+      break;
+  }
 });
 
 
@@ -3572,10 +3674,6 @@ function draw(now) {
     );
     ctxFft.restore();
   }
-
-
-
- 
 
   //波形表示
   if (waveWindowH !== 0) {
