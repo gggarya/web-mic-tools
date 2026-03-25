@@ -1001,7 +1001,7 @@ let gesture = {//ポインタ動作用構造体
 function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上のエリアの名前を返す。座標はdprをかけたあとのもの
   if (x * dpr <= HIT_RANGE * 4 && y <= HIT_RANGE * 6) {//画面の左上
     return "help";
-  } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 3) {//下の区切り線
+  } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 4) {//下の区切り線
     if (y < spectrumHistoryHcomp) return "separator2upr";
     else return "separator2lwr";
   } else if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 3) {//上の区切り線
@@ -1058,11 +1058,11 @@ function onDown(e) {
 function onMove(e) {
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
-  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
+//  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
   if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
     clearTimeout(pressTimer);
     pressTimer = null;
-    if (!gesture.axis) {if (dx > dy) gesture.axis = "x"; else gesture.axis = "y"};
+    if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
   }
   if (!gesture.pointers.has(e.pointerId)) return;
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1076,14 +1076,14 @@ function onMove(e) {
         break;
       case "separator2upr":
         if (gesture.axis === "x") {
-          updateDragRect(0, spectrumHistoryH - HIT_RANGE * 1.5, fftCanvas.width, HIT_RANGE * 1.5);//操作エリアの表示
+          updateDragRect(0, spectrumHistoryH - HIT_RANGE * 2, fftCanvas.width, HIT_RANGE * 2);//操作エリアの表示
           panHistoryVLAlpha();//横はヒストリーの縦線の透明度
           if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
         break;
       case "separator2lwr":
         if (gesture.axis === "x") {
-          updateDragRect(0, spectrumHistoryH, fftCanvas.width, HIT_RANGE * 1.5);//操作エリアの表示
+          updateDragRect(0, spectrumHistoryH, fftCanvas.width, HIT_RANGE * 2);//操作エリアの表示
           panFftVLAlpha();//FFTの線の透明度
           if (!rafId) draw();
         } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
@@ -1225,6 +1225,7 @@ function panSeparator2() {//下側の区切り線の移動
   colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
   levelCanvas.height = colorMapCanvas.height;
   makeColorMapCanvas();
+  if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
   draw();
 }
 function panTilt() {//傾きの変更
