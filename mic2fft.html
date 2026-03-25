@@ -1841,6 +1841,20 @@ tiltInput.addEventListener("keydown", (e) => {//傾きのキー入力
     tiltInputDiv.classList.add("hidden");
   }
 });
+contrastInput.addEventListener("keydown", (e) => {//傾きのキー入力
+  if (e.key === "Enter") {
+    const tmpValue = contrastInput.valueAsNumber;
+    if (!Number.isNaN(tmpValue)) {
+      spectrumContrast = tmpValue;
+      if (spectrumContrast > 5) spectrumContrast = 5; 
+      if (spectrumContrast < -5) spectrumContrast = -5; 
+      makeColorMap();
+      makeColorMapCanvas();
+      if (!rafId) draw();
+    }
+    contrastInputDiv.classList.add("hidden");
+  }
+});
 sizeMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
   if (!action) return;
