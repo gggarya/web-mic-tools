@@ -1702,6 +1702,10 @@ function showPopupLockMenu(x, y) {//プレイメニュー表示
   popupLockMenu.style.left = `${x}px`;
   popupLockMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   popupLockMenu.querySelectorAll('div').forEach(item => {
+    item.classList.add('checked');//一度全部付ける
+  });
+  fitMenuInViewportAndRemoveHide(popupLockMenu);//✔した状態でフィット
+  popupLockMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
     if (item.dataset.action === "lockFreq" && panZoomLockFreqIs) item.classList.add('checked');//有効の時は✔
     if (item.dataset.action === "lockDecibel" && panZoomLockDecibelIs) item.classList.add('checked');//有効の時は✔
@@ -1709,19 +1713,7 @@ function showPopupLockMenu(x, y) {//プレイメニュー表示
     if (item.dataset.action === "lockColor" && colorLockIs) item.classList.add('checked');//有効の時は✔
     if (item.dataset.action === "lockSeparator1" && Separator1LockIs) item.classList.add('checked');//有効の時は✔
     if (item.dataset.action === "lockSeparator2" && Separator2LockIs) item.classList.add('checked');//有効の時は✔
-
-//  <div data-action="lockTilt">傾き補正</div>
-//  <div data-action="lockColor">カラーマップ</div>
-//  <div data-action="lockSeparator1">区切り(上)</div>
-//  <div data-action="lockSeparator2">区切り(下)</div>
-
-//let tiltLockIs = true;//傾き補正
-//let colorLockIs = true;//カラーマップ
-//let Separator1LockIs = true;//区切り上
-//let Separator2LockIs = true;//区切り下
-
   });
-  fitMenuInViewportAndRemoveHide(popupLockMenu);
 }
 
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
@@ -2181,27 +2173,33 @@ popupLockMenu.addEventListener('click', async (e) => {//ポップアップメニ
   switch (action) {
     case 'lockFreq':
       panZoomLockFreqIs = !panZoomLockFreqIs;
-      hidePopupLockMenu();
+      if (panZoomLockFreqIs) popupLockMenu.querySelector('[data-action="lockFreq"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockFreq"]').classList.remove('checked');
       break;
     case 'lockDecibel':
       panZoomLockDecibelIs = !panZoomLockDecibelIs;
-      hidePopupLockMenu();
+      if (panZoomLockDecibelIs) popupLockMenu.querySelector('[data-action="lockDecibel"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockDecibel"]').classList.remove('checked');
       break;
     case 'lockTilt':
       tiltLockIs = !tiltLockIs;
-      hidePopupLockMenu();
+      if (tiltLockIs) popupLockMenu.querySelector('[data-action="lockTilt"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockTilt"]').classList.remove('checked');
       break;
     case 'lockColor':
       colorLockIs = !colorLockIs;
-      hidePopupLockMenu();
+      if (colorLockIs) popupLockMenu.querySelector('[data-action="lockColor"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockColor"]').classList.remove('checked');
       break;
     case 'lockSeparator1':
       Separator1LockIs = !Separator1LockIs;
-      hidePopupLockMenu();
+      if (Separator1LockIs) popupLockMenu.querySelector('[data-action="lockSeparator1"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockSeparator1"]').classList.remove('checked');
       break;
     case 'lockSeparator2':
       Separator2LockIs = !Separator2LockIs;
-      hidePopupLockMenu();
+      if (Separator2LockIs) popupLockMenu.querySelector('[data-action="lockSeparator2"]').classList.add('checked');
+      else popupLockMenu.querySelector('[data-action="lockSeparator2"]').classList.remove('checked');
       break;
   }
 });
