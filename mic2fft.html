@@ -359,7 +359,7 @@
   <div data-action="BASE">モニタ周波数比</div>
 </div>
 <div id="popupColorMapMenu" class="menu hidden" style="text-align: left;">
-  <div data-action="viridisStops">緑・若草色</div>
+  <div data-action="viridisStops">若草・新緑系</div>
   <div data-action="infernoStops">インフェルノ</div>
   <div data-action="magmaStops">マグマ</div>
   <div data-action="plasmaStops">プラズマ</div>
@@ -1162,6 +1162,7 @@ function onMove(e) {
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
+  if (e.button === 2) return;//右クリックはcontextmenuでとるのでキャンセル
 //  clearTimeout(pressTimer);//長押しキャンセル
 //  pressTimer = null;
   const pts = [...gesture.pointers.values()];//消す前に確保
