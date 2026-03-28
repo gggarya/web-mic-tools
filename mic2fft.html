@@ -184,7 +184,7 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;    
-    }
+}
 .hidden {
   display: none;
 }
@@ -207,6 +207,103 @@
   display: none;
 }
 
+.inputBox {
+  position: fixed;
+  background: #222;
+  color: #eee;
+  border: 2px solid #666;
+  border-bottom: 1px solid #585858;
+  border-right: 1px solid #585858;
+  border-radius: 5px;
+  box-shadow: 5px 5px 10px rgba(0,0,0,0.8);
+  padding: 4px;
+  font-size: 14px;
+  z-index: 1000;
+  text-align: left;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;    
+}
+.inputButton {
+  display: inline-flex;
+  background: #333;
+  border: 1px solid #777;
+  border-bottom: 1px solid #555;
+  border-right: 1px solid #666;
+  border-radius: 15%;
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  margin: 3px 2px;
+  padding: 3px 5px;
+  width: 2ch;
+}
+.inputButton span {
+  pointer-events: none;
+}
+
+.inputButton.selected {
+  color: #999;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.inputButton.hidden {
+  color: #777;
+  opacity: 0.6;
+  pointer-events: none;
+  background:
+    linear-gradient(45deg, transparent 48%, #777 49%, #777 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, #777 49%, #777 51%, transparent 52%);
+}
+
+#inputDisplay {
+  display: inline-block;
+  background: #000;
+  border: 1px solid #444;
+  border-top: 1px solid #111;
+  border-left: 1px solid #111;
+  padding-right: 3px;
+  padding-top: 0px;
+  padding-bottom: 2px;
+  text-align: right;
+  font-size: 20px;
+  margin-top: 0px;
+  margin-left: 5px;
+  margin-right: 5px;
+  width: 8ch;
+  height: 2.6ch;
+  appearance: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;    
+}
+#inputTitle {
+  display: block;
+  border: 1px solid #333;
+  border-bottom: 1px solid #111;
+  border-right: 1px solid #222;
+  margin: 0px;
+  padding: 0px;
+  border-radius: 10%;
+  padding-bottom: 2px;
+  font-size: 14px;
+  background: #333;
+  width: 100%;
+  text-align: center;
+  appearance: none;
+}
+#inputSubTitle {
+  display: inline-block;
+  padding: 0px;
+  font-size: 10px;
+  margin: 0px;
+  margin-bottom: 2px;
+  width: 100%;
+  text-align: center;
+  appearance: none;
+}
 </style>
 </head>
 <body>
@@ -231,7 +328,7 @@
   <div data-action="refLine">参考線の表示<span>›</span></div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
 </div>
-<div id="popupPlayMenu" class="menu hidden">
+<div id="popupPlayMenu" class="menu hidden"><!--▶-->
   <div data-action="endless">連続</div>
   <div data-action="average">ｎ回平均</div>
   <div data-action="oneTime">１回のみトリガ</div>
@@ -242,7 +339,7 @@
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="input">入力デバイス選択　<span>›</span></div>
 </div>
-<div id="popupLockMenu" class="menu hidden">
+<div id="popupLockMenu" class="menu hidden"><!--🔒-->
   <div data-action="lockFreq">FFT領域-周波数</div>
   <div data-action="lockDecibel">FFT領域-ｄＢ</div>
   <div data-action="lockTilt">傾き補正</div>
@@ -250,7 +347,7 @@
   <div data-action="lockSeparator1">区切り(上)</div>
   <div data-action="lockSeparator2">区切り(下)</div>
 </div>
-<div id="popupMicMenu" class="menu hidden">
+<div id="popupMicMenu" class="menu hidden"><!--入力デバイス-->
   <div data-action="null">未取得</div>
 </div>
 <div id="popupTiltMenu" class="menu hidden" style="text-align: center;">
@@ -337,12 +434,78 @@
     <input type="number" id="popupTiltInput" style="font-size: 20px; width: 5ch;">
   </label>
 </div>
-<div id="popupContrastInputDiv" class="menu hidden">
+<div id="popupContrastInputDiv" class="inputBox hidden">
   <label for="popupContrastInput" style="display:flex; flex-direction:column; align-items: center;">
-    norm = norm ^ (2 ^ Contrast)
-    <hr style="border: none; border-top: 0px; margin: 2px 0px;">
-    <input type="number" id="popupContrastInput" style="font-size: 20px; width: 5ch;">
+    Contrast
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="1" class="inputButton" style="justify-content: center;"><span>-</span></div>
+      <input type="number" id="popupContrastInput" style="font-size: 20px; width: 5ch; margin-top: 3px;text-align: right; padding-right: 0; appearance: none;" readonly>
+    </div>
+    <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
+      <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
+      <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
+      <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
+      <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
+      <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
+      <div data-action="home" class="inputButton" style="justify-content: center;"><span>⌂</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
+      <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
+      <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>↺</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0;">
+      <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
+      <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
+      <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
+      <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
+<!--      <div data-action="1" class="inputButton" style="justify-content: center;"><span>&#x21B5;</span></div>-->
+    </div>
+
+
+
   </label>
+</div>
+<div id="popupInputDiv" class="inputBox hidden">
+    <div id="inputTitle"></div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0px; align-items: center; justify-content: center;">
+      <div id="inputSubTitle"></div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: right; border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="-" class="inputButton" style="justify-content: center;"><span>+/-</span></div>
+      <div id="inputDisplay">0</div>
+    </div>
+    <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
+      <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
+      <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
+      <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
+      <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
+      <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
+      <div data-action="home" class="inputButton" style="justify-content: center;"><span>⌂</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
+      <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
+      <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>↺</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0;">
+      <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
+      <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
+      <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
+      <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
+    </div>
 </div>
 <input type="number" id="popupSmoothingInput" class="menu hidden" style="font-size: 20px; width: 10ch;">
 <input type="number" id="popupBaseHzInput" class="menu hidden" style="font-size: 20px; width: 10ch;">
@@ -434,6 +597,11 @@ const helpInfoMenu = document.getElementById('popupHelp');
 const popupPlayMenu = document.getElementById('popupPlayMenu');
 const popupLockMenu = document.getElementById('popupLockMenu');
 const dragRect = document.getElementById("dragRect");
+
+const popupInputDiv = document.getElementById('popupInputDiv');
+const popupInputDisplay = document.getElementById('inputDisplay');
+const popupInputTitle = document.getElementById('inputTitle');
+const popupInputSubTitle = document.getElementById('inputSubTitle');
 
 //画面設定
 let dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
@@ -527,6 +695,7 @@ let secDivTime = 0;
 
 //FFT設定用
 let fftSizeSetting = 2 ** 13;//2**5=32～2**15=32768
+let fftSmoothingTimeConstantSettingDefault = 0.4;  // 0.0〜1.0
 let fftSmoothingTimeConstantSetting = 0.4;  // 0.0〜1.0
 let fftMinDecibelsSetting = -90;
 let fftMaxDecibelsSetting = -20;
@@ -1171,7 +1340,7 @@ function onUp(e) {
     gesture.mode = null;
     gesture.start = null;
     gesture.axis = null;
-    gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
+    if(pts.length) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
     dragRect.classList.remove("active");
     dragRect.classList.add("fadeout");
   } else if (gesture.pointers.size === 1) {//一本になったらパンモード
@@ -1716,6 +1885,48 @@ function showPopupLockMenu(x, y) {//プレイメニュー表示
   });
 }
 
+let keyInputDivSetting = {//キー入力用変数
+  nowValue: 0,
+  undoValue: 0,
+  homeValue: 0,
+  uprLimit: 0,
+  lwrLimit: 0,
+  digit: 0,//小数点以下の有効桁
+  labelTxt: null,
+  labelSubTxt: null,
+  onConfirm: null
+};
+function showPopupInputDiv(x, y) {
+  popupInputDiv.style.visibility = "hidden";//まだ隠す
+  popupInputDiv.classList.remove('hidden');
+  const rect = popupInputDiv.getBoundingClientRect();
+  popupInputDiv.style.left = `${x}px`;
+  popupInputDiv.style.top  = `${Math.max(0, y - rect.height * 0.5)}px`;
+  keyInputDivSetting.nowValue = Math.round(keyInputDivSetting.nowValue
+                               * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);
+  popupInputDisplay.textContent = keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit);//現在値を表示
+  popupInputTitle.textContent = keyInputDivSetting.labelTxt;//タイトルを表示
+  popupInputSubTitle.textContent = keyInputDivSetting.labelSubTxt //タイトルを表示
+                                  + ` (${keyInputDivSetting.lwrLimit}≦n≦${keyInputDivSetting.uprLimit})`;//範囲を表示
+  checkPopupInputDiv();
+  fitMenuInViewportAndRemoveHide(popupInputDiv);//表示
+}
+function checkPopupInputDiv() {
+  if (keyInputDivSetting.lwrLimit * keyInputDivSetting.uprLimit >= 0) //プラスかマイナスどっちかだったら
+    popupInputDiv.querySelector('[data-action="-"]').classList.add('hidden');//符号ボタンを無効にする
+  else popupInputDiv.querySelector('[data-action="-"]').classList.remove('hidden');
+  if (keyInputDivSetting.digit <= 0 || popupInputDisplay.textContent.includes(".")) //小数点以下の有効桁がないか、すでに小数点がある
+    popupInputDiv.querySelector('[data-action="."]').classList.add('hidden');//小数点ボタンを無効にする
+  else popupInputDiv.querySelector('[data-action="."]').classList.remove('hidden');
+  keyInputDivSetting.nowValue = Math.round(parseFloat(popupInputDisplay.textContent)
+                               * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);//桁を丸める
+  keyInputDivSetting.nowValue = parseFloat(keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit));
+  if (keyInputDivSetting.nowValue > keyInputDivSetting.uprLimit || keyInputDivSetting.nowValue < keyInputDivSetting.lwrLimit)//範囲外だったら
+    popupInputDiv.querySelector('[data-action="enter"]').classList.add('hidden');//enterを無効にする
+  else popupInputDiv.querySelector('[data-action="enter"]').classList.remove('hidden');
+  console.log(keyInputDivSetting.nowValue, keyInputDivSetting.uprLimit);
+}
+
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
 function hideMicMenu() { micMenu.classList.add('hidden');}//ポップアップ消去
 function hideTiltMenu() { tiltMenu.classList.add('hidden');}//ポップアップ消去
@@ -1735,7 +1946,7 @@ function hideColorMapMenu() { colorMapMenu.classList.add('hidden');}//ポップ�
 function hideHelpMenu() { helpInfoMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupPlayMenu() { popupPlayMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupLockMenu() { popupLockMenu.classList.add('hidden');}//ポップアップ消去
-
+function hidePopupInputDiv() { popupInputDiv.classList.add('hidden'); keyInputDivSetting.onConfirm = null;}//ポップアップ消去
 
 overlayPlay.style.touchAction = 'none';
 overlayLock.style.touchAction = 'none';
@@ -1843,6 +2054,7 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!helpInfoMenu.contains(e.target)) { hideHelpMenu(); }
   if (!popupPlayMenu.contains(e.target)) { hidePopupPlayMenu(); }
   if (!popupLockMenu.contains(e.target)) { hidePopupLockMenu(); }
+  if (!popupInputDiv.contains(e.target)) { hidePopupInputDiv();}
 }
 
 fftCanvas.addEventListener('contextmenu', (e) => {//キャンバス右クリック
@@ -1907,9 +2119,25 @@ tiltMenu.addEventListener('click', (e) => {//ポップアップメニューク�
   if (!action) return;
 
   if (action === "999") {
-    tiltInput.value = baseSlopePerOct;
-    showTiltInput(fftCanvas.width * 0.5 * invDpr, fftCanvas.height * 0.5 * invDpr);
-    requestAnimationFrame(() => { tiltInput.focus(); tiltInput.select();});    
+    keyInputDivSetting.labelTxt = "傾き補正";
+    keyInputDivSetting.labelSubTxt = "dB/Oct";
+    keyInputDivSetting.nowValue = baseSlopePerOct;
+    keyInputDivSetting.undoValue = baseSlopePerOct;
+    keyInputDivSetting.homeValue = 0;
+    keyInputDivSetting.uprLimit = 30;
+    keyInputDivSetting.lwrLimit = -30;
+    keyInputDivSetting.digit = 2;
+    keyInputDivSetting.onConfirm = (value) => {
+      baseSlopePerOct = value;//値セット
+      if (baseSlopePerOct !== 0) fftBaseVisible = true;//ゼロじゃなかったら参考線を表示しちゃう
+      else fftBaseVisible = false;
+      if (!rafId) draw();
+    };
+    showPopupInputDiv(e.clientX, e.clientY)
+
+//    tiltInput.value = baseSlopePerOct;
+//    showTiltInput(fftCanvas.width * 0.5 * invDpr, fftCanvas.height * 0.5 * invDpr);
+//    requestAnimationFrame(() => { tiltInput.focus(); tiltInput.select();});    
   } else {
     baseSlopePerOct = Number(action);
   }
@@ -1957,9 +2185,22 @@ smoothingMenu.addEventListener('click', async (e) => {//ポップアップメニ
   if (!action) return;
 
   if (action === "999") {
-    smoothingInput.value = fftSmoothingTimeConstantSetting;
-    showSmoothingInput(fftCanvas.width * 0.5 * invDpr, fftCanvas.height * 0.5 * invDpr);
-    requestAnimationFrame(() => { smoothingInput.focus();  smoothingInput.select();});    
+    keyInputDivSetting.labelTxt = "スムージング";
+    keyInputDivSetting.labelSubTxt = "y=sy+(1-s)x";
+    keyInputDivSetting.nowValue = fftSmoothingTimeConstantSetting;
+    keyInputDivSetting.undoValue = fftSmoothingTimeConstantSetting;
+    keyInputDivSetting.homeValue = fftSmoothingTimeConstantSettingDefault;
+    keyInputDivSetting.uprLimit = 0.999;
+    keyInputDivSetting.lwrLimit = 0;
+    keyInputDivSetting.digit = 3;
+    keyInputDivSetting.onConfirm = (value) => {
+      fftSmoothingTimeConstantSetting = value;//値セット
+      if (running) {
+        stop();
+        start();
+      }
+    };
+    showPopupInputDiv(e.clientX, e.clientY)
   } else {
     fftSmoothingTimeConstantSetting = Number(action);
     if (running) {
@@ -2202,6 +2443,53 @@ popupLockMenu.addEventListener('click', async (e) => {//ポップアップメニ
       else popupLockMenu.querySelector('[data-action="lockSeparator2"]').classList.remove('checked');
       break;
   }
+});
+popupInputDiv.addEventListener('pointerdown', async (e) => {//ポップアップメニュークリック
+  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  hideByOuterDown (e);//他のメニューが開いていたら閉じる
+  const action = e.target.dataset.action;
+  if (!action) return;
+  switch (action) {
+    case 'AC'://All Clear
+      popupInputDisplay.textContent = "";//現在値を表示
+      break;
+    case 'home'://default値
+      keyInputDivSetting.nowValue = Math.round(keyInputDivSetting.homeValue
+                               * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);
+      popupInputDisplay.textContent = keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit);//現在値を表示
+      break;
+    case 'undo'://変更前
+      keyInputDivSetting.nowValue = Math.round(keyInputDivSetting.undoValue
+                               * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);
+      popupInputDisplay.textContent = keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit);//現在値を表示
+      break;
+    case 'bs'://backSpase
+      popupInputDisplay.textContent = popupInputDisplay.textContent.slice(0, -1);
+      break;
+    case '-'://符号反転
+      if (popupInputDisplay.textContent.includes("-"))
+        popupInputDisplay.textContent = popupInputDisplay.textContent.slice(1, popupInputDisplay.textContent.length);
+      else popupInputDisplay.textContent = "-" + popupInputDisplay.textContent;
+      break;
+    case '.'://小数点
+      if (popupInputDisplay.textContent === "") {popupInputDisplay.textContent = "0."; break;}
+      if (popupInputDisplay.textContent === "-") {popupInputDisplay.textContent = "-0."; break;}
+      popupInputDisplay.textContent = parseFloat(popupInputDisplay.textContent).toFixed(0) + ".";
+      break;
+    case 'enter'://確定。範囲外ならそもそも押せないはず
+      if (popupInputDisplay.textContent.length === 0) {hidePopupInputDiv(); break;}//空ならテンキーを閉じる
+      keyInputDivSetting.nowValue = Math.round(parseFloat(popupInputDisplay.textContent)
+                               * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);//桁を丸める
+      keyInputDivSetting.nowValue = parseFloat(keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit));
+      if (keyInputDivSetting.nowValue !== NaN) keyInputDivSetting.onConfirm(keyInputDivSetting.nowValue);//値をセットする
+      hidePopupInputDiv();//テンキーを閉じる
+      break;
+    default://数値の処理
+    const keyNum = Number(action);
+    if (keyNum !== NaN) popupInputDisplay.textContent = popupInputDisplay.textContent + action;
+  }
+  checkPopupInputDiv();
 });
 
 async function start() {
