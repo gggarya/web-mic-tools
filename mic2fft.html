@@ -351,7 +351,7 @@
   <div data-action="null">未取得</div>
 </div>
 <div id="popupTiltMenu" class="menu hidden" style="text-align: center;">
-  <div data-action="999">Key入力　<span>›</span></div>
+  <div data-action="999">数値入力<span>🔢</span></div>
   <hr style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="9">+9 dB/Oct</div>
   <div data-action="6">+6 dB/Oct</div>
@@ -384,7 +384,7 @@
   <div data-action="0.9">0.9</div>
   <div data-action="0.999">0.999</div>
   <hr style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
-  <div data-action="999">Key Input　›</div>
+  <div data-action="999">数値入力<span>🔢</span></div>
 </div>
 <div id="popupWaveSizeMenu" class="menu hidden" style="text-align: left;">
   <div data-action="0.0">0.0</div>
@@ -426,13 +426,6 @@
   <div data-action="splinePeak">点の間も有効</div>
   <div data-action="dBLabel">dBも表示</div>
   <div data-action="labelUnit">単位設定　<span>›</span></div>
-</div>
-<div id="popupTiltInputDiv" class="menu hidden">
-  <label for="popupTiltInput" style="display:flex; flex-direction:column; align-items: center;">
-    30～-30[dB/Oct]
-    <hr style="border: none; border-top: 0px; margin: 2px 0px;">
-    <input type="number" id="popupTiltInput" style="font-size: 20px; width: 5ch;">
-  </label>
 </div>
 <div id="popupContrastInputDiv" class="inputBox hidden">
   <label for="popupContrastInput" style="display:flex; flex-direction:column; align-items: center;">
@@ -507,7 +500,6 @@
       <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
     </div>
 </div>
-<input type="number" id="popupSmoothingInput" class="menu hidden" style="font-size: 20px; width: 10ch;">
 <input type="number" id="popupBaseHzInput" class="menu hidden" style="font-size: 20px; width: 10ch;">
 <div id="popupReferenceMenu" class="menu hidden" style="text-align: left;">
   <div data-action="showBase">傾き補正を表示</div>
@@ -532,7 +524,7 @@
   <div data-action="greenStops">黒～緑</div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="colorMapVisible">スケール表示</div>
-  <div data-action="contrastInput">コントラスト入力　<span>›</span></div>
+  <div data-action="contrastInput">コントラスト<span>🔢</span></div>
 </div>
 <div id="popupHelp" class="menu hidden" style="text-align: left;">
   <div data-action="text"><pre  style="white-space: pre-wrap; line-height: 1.3;">
@@ -578,11 +570,8 @@ const overlayHelp = document.getElementById("overlayHelp");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
 const tiltMenu = document.getElementById('popupTiltMenu');
-const tiltInput = document.getElementById('popupTiltInput');
-const tiltInputDiv = document.getElementById('popupTiltInputDiv');
 const contrastInput = document.getElementById('popupContrastInput');
 const contrastInputDiv = document.getElementById('popupContrastInputDiv');
-const smoothingInput = document.getElementById('popupSmoothingInput');
 const baseHzInput = document.getElementById('popupBaseHzInput');
 const sizeMenu = document.getElementById('popupSizeMenu');
 const waveSizeMenu = document.getElementById('popupWaveSizeMenu');
@@ -1687,18 +1676,16 @@ function showTiltMenu(x, y) {//チルトメニュー表示
   tiltMenu.style.left = `${x}px`;
   tiltMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   tiltMenu.querySelectorAll('div').forEach(item => {
+    item.classList.add('checked');
+  });
+  fitMenuInViewportAndRemoveHide(tiltMenu);
+  tiltMenu.querySelectorAll('div').forEach(item => {
     if (Number(item.dataset.action) === baseSlopePerOct) item.classList.add('checked');
     else if (item.dataset.action === "998" && fftBaseVisible) item.classList.add('checked');
     else if (item.dataset.action === "997" && fftAveVisible) item.classList.add('checked');
     else if (item.dataset.action === "996" && fftBottomVisible) item.classList.add('checked');
     else item.classList.remove('checked');
   });
-  fitMenuInViewportAndRemoveHide(tiltMenu);
-}
-function showTiltInput(x, y) {//チルト入力表示
-  tiltInputDiv.style.left = `${x}px`;
-  tiltInputDiv.style.top  = `${y}px`;
-  fitMenuInViewportAndRemoveHide(tiltInputDiv);
 }
 function showContrastInput(x, y) {//チルト入力表示
   contrastInputDiv.style.left = `${x}px`;
@@ -1728,11 +1715,6 @@ function showSmoothingMenu(x, y) {//スムージングメニュー表示
     else item.classList.remove('checked');
   });
   fitMenuInViewportAndRemoveHide(smoothingMenu);
-}
-function showSmoothingInput(x, y) {//スムージング入力表示
-  smoothingInput.style.left = `${x}px`;
-  smoothingInput.style.top  = `${y}px`;
-  fitMenuInViewportAndRemoveHide(smoothingInput);
 }
 function showBaseHzInput(x, y) {//基本周波数入力表示
   baseHzInput.style.left = `${x}px`;
@@ -1930,11 +1912,9 @@ function checkPopupInputDiv() {
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
 function hideMicMenu() { micMenu.classList.add('hidden');}//ポップアップ消去
 function hideTiltMenu() { tiltMenu.classList.add('hidden');}//ポップアップ消去
-function hideTiltInput() { tiltInputDiv.classList.add('hidden');}//ポップアップ消去
 function hideContrastInput() { contrastInputDiv.classList.add('hidden');}//ポップアップ消去
 function hideSizeMenu() { sizeMenu.classList.add('hidden');}//ポップアップ消去
 function hideSmoothingMenu() { smoothingMenu.classList.add('hidden');}//ポップアップ消去
-function hideSmoothingInput() { smoothingInput.classList.add('hidden');}//ポップアップ消去
 function hideBaseHzInput() { baseHzInput.classList.add('hidden');}//ポップアップ消去
 function hideWaveSizeMenu() { waveSizeMenu.classList.add('hidden');}//ポップアップ消去
 function hideSpectroMenu() { spectroMenu.classList.add('hidden');}//ポップアップ消去
@@ -2038,11 +2018,9 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!menu.contains(e.target)) { hideMenu(); }
   if (!micMenu.contains(e.target)) { hideMicMenu(); }
   if (!tiltMenu.contains(e.target)) { hideTiltMenu(); }
-  if (!tiltInput.contains(e.target)) { hideTiltInput(); }
   if (!contrastInput.contains(e.target)) { hideContrastInput(); }
   if (!sizeMenu.contains(e.target)) { hideSizeMenu(); }
   if (!smoothingMenu.contains(e.target)) { hideSmoothingMenu(); }
-  if (!smoothingInput.contains(e.target)) { hideSmoothingInput(); }
   if (!baseHzInput.contains(e.target)) { hideBaseHzInput(); }
   if (!waveSizeMenu.contains(e.target)) { hideWaveSizeMenu(); }
   if (!spectroMenu.contains(e.target)) { hideSpectroMenu(); }
@@ -2134,26 +2112,21 @@ tiltMenu.addEventListener('click', (e) => {//ポップアップメニューク�
       if (!rafId) draw();
     };
     showPopupInputDiv(e.clientX, e.clientY)
-
-//    tiltInput.value = baseSlopePerOct;
-//    showTiltInput(fftCanvas.width * 0.5 * invDpr, fftCanvas.height * 0.5 * invDpr);
-//    requestAnimationFrame(() => { tiltInput.focus(); tiltInput.select();});    
+    hideTiltMenu();
+    hideMenu();
   } else {
     baseSlopePerOct = Number(action);
-  }
-  hideTiltMenu();
-  hideMenu();
-  draw();
-});
-tiltInput.addEventListener("keydown", (e) => {//傾きのキー入力
-  if (e.key === "Enter") {
-    const tmpValue = tiltInput.valueAsNumber;
-    if (!Number.isNaN(tmpValue) && tmpValue > -30 && tmpValue < 30) baseSlopePerOct = tmpValue;
     if (baseSlopePerOct !== 0) fftBaseVisible = true;//ゼロじゃなかったら参考線を表示しちゃう
     else fftBaseVisible = false;
-    if (!rafId) draw();
-    tiltInputDiv.classList.add("hidden");
+    tiltMenu.querySelectorAll('div').forEach(item => {
+      if (Number(item.dataset.action) === baseSlopePerOct) item.classList.add('checked');
+      else if (item.dataset.action === "998" && fftBaseVisible) item.classList.add('checked');
+      else if (item.dataset.action === "997" && fftAveVisible) item.classList.add('checked');
+      else if (item.dataset.action === "996" && fftBottomVisible) item.classList.add('checked');
+      else item.classList.remove('checked');
+    });
   }
+  draw();
 });
 contrastInput.addEventListener("keydown", (e) => {//傾きのキー入力
   if (e.key === "Enter") {
@@ -2173,12 +2146,14 @@ sizeMenu.addEventListener('click', async (e) => {//ポップアップメニュ�
   const action = e.target.dataset.action;
   if (!action) return;
   fftSizeSetting = Number(action);
+  sizeMenu.querySelectorAll('div').forEach(item => {
+    if (Number(item.dataset.action) === fftSizeSetting) item.classList.add('checked');
+    else item.classList.remove('checked');
+  });
   if (running) {
     stop();
     start();
   }
-  hideSizeMenu();
-  hideMenu();
 });
 smoothingMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -2195,14 +2170,20 @@ smoothingMenu.addEventListener('click', async (e) => {//ポップアップメニ
     keyInputDivSetting.digit = 3;
     keyInputDivSetting.onConfirm = (value) => {
       fftSmoothingTimeConstantSetting = value;//値セット
-      if (running) {
+      if (running && value !== keyInputDivSetting.undoValue) {
         stop();
         start();
       }
     };
     showPopupInputDiv(e.clientX, e.clientY)
+    hideSmoothingMenu();
+    hideMenu();
   } else {
     fftSmoothingTimeConstantSetting = Number(action);
+    smoothingMenu.querySelectorAll('div').forEach(item => {
+      if (Number(item.dataset.action) === fftSmoothingTimeConstantSetting) item.classList.add('checked');
+      else item.classList.remove('checked');
+    });
     if (running) {
       stop();
       start();
@@ -2210,21 +2191,6 @@ smoothingMenu.addEventListener('click', async (e) => {//ポップアップメニ
   }
 
 
-  hideSmoothingMenu();
-  hideMenu();
-});
-smoothingInput.addEventListener("keydown", (e) => {//スムージングのキー入力
-  if (e.key === "Enter") {
-    const tmpValue = smoothingInput.valueAsNumber;
-    if (!Number.isNaN(tmpValue) && tmpValue >= 0 && tmpValue < 1) {
-      fftSmoothingTimeConstantSetting = tmpValue;
-      if (running) {
-        stop();
-        start();
-      }
-    } 
-    smoothingInput.classList.add("hidden");
-  }
 });
 baseHzInput.addEventListener("keydown", (e) => {//スムージングのキー入力
   if (e.key === "Enter") {
@@ -2265,42 +2231,47 @@ unitMenu.addEventListener('click', async (e) => {//ポップアップメニュ�
   } else {//log以外は単位なはず
     xUnit = xUnitMap[action];
   }
-    draw();
-    hideUnitMenu();
-    hideMenu();
+  unitMenu.querySelectorAll('div').forEach(item => {
+    if (xUnitMap[item.dataset.action] === xUnit) item.classList.add('checked');//その単位が選択されてたら✔
+    else if (item.dataset.action === "log" && viewIsLogFrequency) item.classList.add('checked');//logの時はログか✔
+    else item.classList.remove('checked');//それ以外は外す
+  });
+  if (!rafId) draw();
 });
 peakMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
   if (!action) return;
   else if (action === "splinePeak") {
     splinePeakIs = !splinePeakIs;
-    hidePeakMenu();
-    hideMenu();
-    draw();
+    if (!rafId) draw();
   } else if (action === "dBLabel") {
     dBLabelIs = !dBLabelIs;
-    hidePeakMenu();
-    hideMenu();
-    draw();
+    if (!rafId) draw();
   } else if (action === "labelUnit") {
     const menuRect = peakMenu.getBoundingClientRect();
     const subMenuX = menuRect.right - 1; 
     showLabelUnitMenu(subMenuX, e.clientY);
   } else {
     peakLabelNum = Number(action);
-    hidePeakMenu();
-    hideMenu();
-    draw();
+    if (!rafId) draw();
   }
+  peakMenu.querySelectorAll('div').forEach(item => {
+    if (Number(item.dataset.action) === peakLabelNum) item.classList.add('checked');//その値が選択されてたら✔
+    else if (item.dataset.action === "splinePeak" && splinePeakIs) item.classList.add('checked');//スプライン有効の時は✔
+    else if (item.dataset.action === "dBLabel" && dBLabelIs) item.classList.add('checked');//デシベル表示有効の時は✔
+    else item.classList.remove('checked');//それ以外は外す
+  });
+  
 });
 labelUnitMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
   if (!action) return;
   labelUnit = xUnitMap[action];
-  draw();
-  hideUnitMenu();
-  hideLabelUnitMenu();
-  hideMenu();
+  labelUnitMenu.querySelectorAll('div').forEach(item => {
+    item.classList.remove('checked');//それ以外は外す
+    if (xUnitMap[item.dataset.action] === labelUnit) item.classList.add('checked');//その単位が選択されてたら✔
+  });
+  if (!rafId) draw();
 });
 refLineMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -2316,9 +2287,14 @@ refLineMenu.addEventListener('click', async (e) => {//ポップアップメニ�
       fftBottomVisible = !fftBottomVisible;
       break;
   }
-  hideRefLineMenu();
-  hideMenu();
-  draw();
+  refLineMenu.querySelectorAll('div').forEach(item => {
+    item.classList.remove('checked');//それ以外は外す
+    if (item.dataset.action === "showBase" && fftBaseVisible) item.classList.add('checked');//有効の時は✔
+    else if (item.dataset.action === "showAve" && fftAveVisible) item.classList.add('checked');//有効の時は✔
+    else if (item.dataset.action === "shoeBottom" && fftBottomVisible) item.classList.add('checked');//有効の時は✔
+  });
+
+  if (!rafId) draw();
 });
 colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -2360,16 +2336,37 @@ colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニ�
       colorMapVisible = !colorMapVisible;
       break;
     case 'contrastInput':
-      contrastInput.value = spectrumContrast;
-      showContrastInput(fftCanvas.width * 0.5 * invDpr, fftCanvas.height * 0.5 * invDpr);
-      requestAnimationFrame(() => { contrastInput.focus(); contrastInput.select();});    
+
+      keyInputDivSetting.labelTxt = "コントラスト補正";
+      keyInputDivSetting.labelSubTxt = "dB/Oct";
+      keyInputDivSetting.nowValue = spectrumContrast;
+      keyInputDivSetting.undoValue = spectrumContrast;
+      keyInputDivSetting.homeValue = 0;
+      keyInputDivSetting.uprLimit = 5;
+      keyInputDivSetting.lwrLimit = -5;
+      keyInputDivSetting.digit = 2;
+      keyInputDivSetting.onConfirm = (value) => {
+        if (spectrumContrast !== value) {
+          spectrumContrast = value;//値セット
+          makeColorMap();
+          makeColorMapCanvas();
+          if (!rafId) draw();
+        }
+      };
+      showPopupInputDiv(e.clientX, e.clientY)
+      hideColorMapMenu();
+      hideMenu();
       break;
   }
+  colorMapMenu.querySelectorAll('div').forEach(item => {
+    item.classList.remove('checked');//それ以外は外す
+    if (item.dataset.action === nowColorMap) item.classList.add('checked');//有効の時は✔
+    else if (item.dataset.action === "colorMapVisible" && colorMapVisible) item.classList.add('checked');//有効の時は✔
+  });
+
   makeColorMap();
   makeColorMapCanvas();
-  hideColorMapMenu();
-  hideMenu();
-  draw();
+  if (!rafId) draw();
 });
 helpInfoMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
