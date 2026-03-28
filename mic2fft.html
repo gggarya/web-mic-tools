@@ -427,44 +427,6 @@
   <div data-action="dBLabel">dBも表示</div>
   <div data-action="labelUnit">単位設定　<span>›</span></div>
 </div>
-<div id="popupContrastInputDiv" class="inputBox hidden">
-  <label for="popupContrastInput" style="display:flex; flex-direction:column; align-items: center;">
-    Contrast
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
-      <div data-action="1" class="inputButton" style="justify-content: center;"><span>-</span></div>
-      <input type="number" id="popupContrastInput" style="font-size: 20px; width: 5ch; margin-top: 3px;text-align: right; padding-right: 0; appearance: none;" readonly>
-    </div>
-    <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
-      <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
-      <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
-      <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
-      <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
-      <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
-      <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
-      <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
-      <div data-action="home" class="inputButton" style="justify-content: center;"><span>⌂</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
-      <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
-      <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
-      <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
-      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>↺</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0;">
-      <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
-      <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
-      <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
-      <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
-<!--      <div data-action="1" class="inputButton" style="justify-content: center;"><span>&#x21B5;</span></div>-->
-    </div>
-
-
-
-  </label>
-</div>
 <div id="popupInputDiv" class="inputBox hidden">
     <div id="inputTitle"></div>
     <div style="border: 0px solid #555; margin: 0px; padding: 0px; align-items: center; justify-content: center;">
@@ -475,25 +437,25 @@
       <div id="inputDisplay">0</div>
     </div>
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+    <div style="border: 0px solid #555; margin: 0px; padding: 0px;">
       <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
       <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
       <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
       <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+    <div style="border: 0px solid #555; margin: 0px; padding: 0px;">
       <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
       <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
       <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
-      <div data-action="home" class="inputButton" style="justify-content: center;"><span>⌂</span></div>
+      <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px; padding: 0;">
+    <div style="border: 0px solid #555; margin: 0px; padding: 0px;">
       <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
       <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
       <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
-      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>↺</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0;">
+    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px;">
       <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
       <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
       <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
@@ -570,8 +532,6 @@ const overlayHelp = document.getElementById("overlayHelp");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
 const tiltMenu = document.getElementById('popupTiltMenu');
-const contrastInput = document.getElementById('popupContrastInput');
-const contrastInputDiv = document.getElementById('popupContrastInputDiv');
 const baseHzInput = document.getElementById('popupBaseHzInput');
 const sizeMenu = document.getElementById('popupSizeMenu');
 const waveSizeMenu = document.getElementById('popupWaveSizeMenu');
@@ -1687,11 +1647,6 @@ function showTiltMenu(x, y) {//チルトメニュー表示
     else item.classList.remove('checked');
   });
 }
-function showContrastInput(x, y) {//チルト入力表示
-  contrastInputDiv.style.left = `${x}px`;
-  contrastInputDiv.style.top  = `${y}px`;
-  fitMenuInViewportAndRemoveHide(contrastInputDiv);
-}
 function showSizeMenu(x, y) {//サイズメニュー表示
   sizeMenu.style.visibility = "hidden";//まだ隠す
   sizeMenu.classList.remove('hidden');
@@ -1906,13 +1861,11 @@ function checkPopupInputDiv() {
   if (keyInputDivSetting.nowValue > keyInputDivSetting.uprLimit || keyInputDivSetting.nowValue < keyInputDivSetting.lwrLimit)//範囲外だったら
     popupInputDiv.querySelector('[data-action="enter"]').classList.add('hidden');//enterを無効にする
   else popupInputDiv.querySelector('[data-action="enter"]').classList.remove('hidden');
-  console.log(keyInputDivSetting.nowValue, keyInputDivSetting.uprLimit);
 }
 
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
 function hideMicMenu() { micMenu.classList.add('hidden');}//ポップアップ消去
 function hideTiltMenu() { tiltMenu.classList.add('hidden');}//ポップアップ消去
-function hideContrastInput() { contrastInputDiv.classList.add('hidden');}//ポップアップ消去
 function hideSizeMenu() { sizeMenu.classList.add('hidden');}//ポップアップ消去
 function hideSmoothingMenu() { smoothingMenu.classList.add('hidden');}//ポップアップ消去
 function hideBaseHzInput() { baseHzInput.classList.add('hidden');}//ポップアップ消去
@@ -2018,7 +1971,6 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!menu.contains(e.target)) { hideMenu(); }
   if (!micMenu.contains(e.target)) { hideMicMenu(); }
   if (!tiltMenu.contains(e.target)) { hideTiltMenu(); }
-  if (!contrastInput.contains(e.target)) { hideContrastInput(); }
   if (!sizeMenu.contains(e.target)) { hideSizeMenu(); }
   if (!smoothingMenu.contains(e.target)) { hideSmoothingMenu(); }
   if (!baseHzInput.contains(e.target)) { hideBaseHzInput(); }
@@ -2127,20 +2079,6 @@ tiltMenu.addEventListener('click', (e) => {//ポップアップメニューク�
     });
   }
   draw();
-});
-contrastInput.addEventListener("keydown", (e) => {//傾きのキー入力
-  if (e.key === "Enter") {
-    const tmpValue = contrastInput.valueAsNumber;
-    if (!Number.isNaN(tmpValue)) {
-      spectrumContrast = tmpValue;
-      if (spectrumContrast > 5) spectrumContrast = 5; 
-      if (spectrumContrast < -5) spectrumContrast = -5; 
-      makeColorMap();
-      makeColorMapCanvas();
-      if (!rafId) draw();
-    }
-    contrastInputDiv.classList.add("hidden");
-  }
 });
 sizeMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -2353,7 +2291,7 @@ colorMapMenu.addEventListener('click', async (e) => {//ポップアップメニ�
           if (!rafId) draw();
         }
       };
-      showPopupInputDiv(e.clientX, e.clientY)
+      showPopupInputDiv(e.clientX - 120 - colorMapCanvas.width, e.clientY - 120)
       hideColorMapMenu();
       hideMenu();
       break;
@@ -2480,7 +2418,7 @@ popupInputDiv.addEventListener('pointerdown', async (e) => {//ポップアップ
                                * Math.pow(10, keyInputDivSetting.digit)) * Math.pow(0.1, keyInputDivSetting.digit);//桁を丸める
       keyInputDivSetting.nowValue = parseFloat(keyInputDivSetting.nowValue.toFixed(keyInputDivSetting.digit));
       if (keyInputDivSetting.nowValue !== NaN) keyInputDivSetting.onConfirm(keyInputDivSetting.nowValue);//値をセットする
-      hidePopupInputDiv();//テンキーを閉じる
+//      hidePopupInputDiv();//テンキーを閉じる
       break;
     default://数値の処理
     const keyNum = Number(action);
