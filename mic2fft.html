@@ -2380,7 +2380,7 @@ popupLockMenu.addEventListener('click', async (e) => {//ポップアップメニ
       break;
   }
 });
-popupInputDiv.addEventListener('pointerdown', async (e) => {//ポップアップメニュークリック
+popupInputDiv.addEventListener('click', async (e) => {//ポップアップメニュークリック
   e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
   e.preventDefault();   // デフォルトの右クリックメニューなし
   hideByOuterDown (e);//他のメニューが開いていたら閉じる
