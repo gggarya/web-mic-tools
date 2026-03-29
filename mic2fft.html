@@ -448,13 +448,13 @@
       <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
       <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
       <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
-      <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
     </div>
     <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px;">
       <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
       <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
       <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
-      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
+      <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
     </div>
     <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px;">
       <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
@@ -1377,7 +1377,10 @@ function panSeparator1() {//上側の区切り線の移動
   if (spectrumHistoryRate < waveWindowRate) waveWindowRate = spectrumHistoryRate;
   if (waveWindowRate > 0.9) waveWindowRate = 0.9;
   updateViewParams();
-  draw();
+  if (!rafId) {
+    drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+    draw();
+  }
 }
 function panSeparator2() {//下側の区切り線の移動
   if (Separator2LockIs && panZoomLockIs) return;//ロック
@@ -2429,6 +2432,138 @@ popupInputDiv.addEventListener('click', async (e) => {//ポップアップメニ
   }
   checkPopupInputDiv();
 });
+popupInputDiv.addEventListener('pointerdown', async (e) => {
+  popupInputDiv.setPointerCapture(e.pointerId);//範囲外に出てもこのキャンバスのイベントにする
+  if (e.button === 2) return;//右クリックはcontextmenuでとるのでキャンセル
+  gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (gesture.pointers.size === 1) {
+    gesture.mode = 'pan';
+    gesture.start = snapshotView();//初めのタップ位置
+    startX = e.clientX;
+    startY = e.clientY;
+    if (pressTimer) {//タイマが既にある
+      if (gesture.previousPoint) {//タイマが有効で一回目のタップなら、前回値があるはず・・・
+        const dx = e.clientX - gesture.previousPoint.x;
+        const dy = e.clientY - gesture.previousPoint.y;
+        if (dx * dx + dy * dy < MOVE_THRESHOLD * MOVE_THRESHOLD) {
+          gesture.tapNum++;//近くをタップしてたらカウントアップ
+          if (gesture.tapNum > 1) {//２回以上ダブルタップ成立
+//            doubleTap(e);
+          }
+        }
+      }
+    } else {//タイマがまだない
+      pressTimer = setTimeout(() => {
+        if (!gesture.previousPoint) {//前回点がない＝一度も離していない＝長押し成立
+//          showMenu(e.clientX, e.clientY);
+        }
+        pressTimer = null;
+      }, LONGPRESS_TIME);
+      gesture.tapNum = 1;//一回目のタップ
+      gesture.previousPoint = null;//前回値はナシにする
+    }
+    gesture.axis = null;
+
+  } else if (gesture.pointers.size === 2) {
+    if (pressTimer) {
+      clearTimeout(pressTimer);//二本目がきたら長押しキャンセル
+      pressTimer = null;
+    }
+    gesture.mode = 'pinch';
+    gesture.start = snapshotPinch();
+  }
+});
+popupInputDiv.addEventListener('pointermove', async (e) => {
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+//  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
+  if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
+    if (pressTimer) {
+      clearTimeout(pressTimer);//長押しキャンセル
+      pressTimer = null;
+    }
+    if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
+  }
+  if (!gesture.pointers.has(e.pointerId)) return;
+  gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (gesture.mode === 'pan') {
+    switch (getAreaName(gesture.start.pt.x * dpr, gesture.start.pt.y * dpr, gesture.start.waveWindowH0, gesture.start.spectrumHistoryH0)) {
+      case "help":
+        break;
+      case "separator1":
+        panSeparator1();
+        break;
+      case "separator2upr":
+        if (gesture.axis === "x") {
+          updateDragRect(0, spectrumHistoryH - HIT_RANGE * 2, fftCanvas.width, HIT_RANGE * 2);//操作エリアの表示
+          panHistoryVLAlpha();//横はヒストリーの縦線の透明度
+          if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
+        break;
+      case "separator2lwr":
+        if (gesture.axis === "x") {
+          updateDragRect(0, spectrumHistoryH, fftCanvas.width, HIT_RANGE * 2);//操作エリアの表示
+          panFftVLAlpha();//FFTの線の透明度
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
+        break;
+      case "freqRuler":
+        break;
+      case "colorMap":
+        panSpectrumContrast();
+        if (!rafId) draw();
+        break;
+      case "fftR":
+        const rectStX = fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2;
+        updateDragRect(rectStX, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
+        panTilt();
+        if (!rafId) draw();
+        break;
+      case "fft":
+        panFft();//FFT領域の移動
+        if (!rafId) draw();
+        break;
+      case "history":
+        break;
+      case "historyR":
+        updateDragRect(fftCanvas.width - HIT_RANGE * 2, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
+        panHistoryHLAlpha();//ヒストリーの横線の透明度
+        if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        break;
+      case "historyL":
+        updateDragRect(0, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
+        panHistoryHLAlpha();//ヒストリーの横線の透明度
+        if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        break;
+      case "wave":
+        break;
+    }
+  } else if (gesture.mode === 'pinch') pinch();//二つ指
+});
+popupInputDiv.addEventListener('pointerup', popupInputDivOnUp);
+popupInputDiv.addEventListener('pointercancel', popupInputDivOnUp);
+function popupInputDivOnUp(e) {
+  popupInputDiv.releasePointerCapture(e.pointerId);
+  if (e.button === 2) return;//右クリックはcontextmenuでとるのでキャンセル
+//  clearTimeout(pressTimer);//長押しキャンセル
+//  pressTimer = null;
+  const pts = [...gesture.pointers.values()];//消す前に確保
+  gesture.pointers.delete(e.pointerId);
+  if (gesture.pointers.size === 0) {//指がゼロならクリア
+    gesture.mode = null;
+    gesture.start = null;
+    gesture.axis = null;
+    if(pts.length) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
+    dragRect.classList.remove("active");
+    dragRect.classList.add("fadeout");
+  } else if (gesture.pointers.size === 1) {//一本になったらパンモード
+    gesture.mode = 'pan';
+    gesture.start = snapshotView();//初めのタップ位置
+  }
+}
+
 
 async function start() {
   try {
