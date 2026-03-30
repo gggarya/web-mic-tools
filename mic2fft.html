@@ -1310,7 +1310,7 @@ function onUp(e) {
     gesture.mode = null;
     gesture.start = null;
     gesture.axis = null;
-    if(pts.length) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
+    if(pts.length && pressTimer) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
     dragRect.classList.remove("active");
     dragRect.classList.add("fadeout");
   } else if (gesture.pointers.size === 1) {//一本になったらパンモード
