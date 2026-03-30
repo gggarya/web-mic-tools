@@ -1199,8 +1199,9 @@ function onDown(e) {
           gesture.tapNum++;//近くをタップしてたらカウントアップ
           if (gesture.tapNum > 1) {//２回以上ダブルタップ成立
             doubleTap(e);
-            clearTimeout(pressTimer);//二本目がきたら長押しキャンセル
+            clearTimeout(pressTimer);//タイマ消去
             pressTimer = null;
+            gesture.mode === 'non'//押し続けても動いても何もしないように
           }
         }
       }
