@@ -1198,10 +1198,14 @@ function onDown(e) {
         if (dx * dx + dy * dy < MOVE_THRESHOLD * MOVE_THRESHOLD) {
           gesture.tapNum++;//近くをタップしてたらカウントアップ
           if (gesture.tapNum > 1) {//２回以上ダブルタップ成立
-            doubleTap(e);
             clearTimeout(pressTimer);//タイマ消去
             pressTimer = null;
-            gesture.mode === 'non'//押し続けても動いても何もしないように
+
+    gesture.mode = null;
+    gesture.start = null;
+    gesture.axis = null;
+            doubleTap(e);
+
           }
         }
       }
@@ -1300,6 +1304,7 @@ function onUp(e) {
 //  clearTimeout(pressTimer);//長押しキャンセル
 //  pressTimer = null;
   const pts = [...gesture.pointers.values()];//消す前に確保
+
   gesture.pointers.delete(e.pointerId);
   if (gesture.pointers.size === 0) {//指がゼロならクリア
     gesture.mode = null;
