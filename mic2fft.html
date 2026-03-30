@@ -1229,6 +1229,8 @@ function onDown(e) {
   }
 }
 function onMove(e) {
+  if (gesture.lockedGesture === 'doubletap') return;//ダブルタップ後は受け付けない
+
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
 //  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
