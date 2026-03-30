@@ -169,6 +169,30 @@
     opacity: 0;
     transition: opacity 0.8s ease-out;
   }
+  #infoRect {
+    position: absolute;
+    pointer-events: none; /* 操作の邪魔しない */
+    background: rgba(0, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    font-size: 14px;
+    z-index: 000;
+    color: #2f2;
+    white-space: pre-wrap;
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;      
+  }
+  #infoRect.active {
+    opacity: 1;
+    transition: none; /* ドラッグ中は即表示 */
+  }
+  #infoRect.fadeout {
+    opacity: 0;
+    transition: opacity 0.8s ease-out;
+  }
 
 
 .menu {
@@ -317,6 +341,7 @@
   <div id="overlayLock"></div>
   <div id="overlayHelp">?</div>
   <div id="dragRect"></div>
+  <div id="infoRect"></div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 
@@ -436,25 +461,25 @@
       <div id="inputDisplay">0</div>
     </div>
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px;">
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
       <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
       <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
       <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px;">
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
       <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
       <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
       <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px;">
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
       <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
       <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
       <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
     </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px;">
+    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px; white-space: nowrap;">
       <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
       <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
       <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
@@ -543,6 +568,7 @@ const helpInfoMenu = document.getElementById('popupHelp');
 const popupPlayMenu = document.getElementById('popupPlayMenu');
 const popupLockMenu = document.getElementById('popupLockMenu');
 const dragRect = document.getElementById("dragRect");
+const infoRect = document.getElementById("infoRect");
 
 const popupInputDiv = document.getElementById('popupInputDiv');
 const popupInputDisplay = document.getElementById('inputDisplay');
@@ -856,7 +882,14 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
   }
 
-  draw();
+  infoRect.style.left = "0px";
+  infoRect.style.top = "0px";
+  infoRect.style.width = w * 0.01 * invDpr + "px";
+  infoRect.style.height = h * 0.01 * invDpr + "px";
+//  infoRect.style.width = 0 + "px";
+//  infoRect.style.height = 0 + "px";
+
+  if (!rafId) draw();
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
 resizeCanvas();//まず一回サイズを合わせておく
@@ -869,7 +902,6 @@ function drawError(ctx, canvas, messeageTxt) {//エラー表示
   ctx.fillText("error  : " + messeageTxt, 10,20);
   ctx.restore();
 }
-
 function drawDebug(ctx, canvas) {//チェック用
   const rect = canvas.getBoundingClientRect();
   let clientW = document.documentElement.clientWidth;//スクロールバーを含まない画面幅、SCC系
@@ -1104,7 +1136,6 @@ function updateDragRect(x, y, w, h) {//半透明で消える四角の設定
   dragRect.classList.remove("fadeout");
   dragRect.classList.add("active");  
 }
-
 
 fftCanvas.addEventListener('pointerdown', onDown);
 fftCanvas.addEventListener('pointermove', onMove);
@@ -1487,7 +1518,6 @@ function doubleTap(e) {//ダブルタップ
         break;
     }
 }
-
 
 function pinch() {
 
@@ -2030,8 +2060,6 @@ fftCanvas.addEventListener('click', (e) => {//キャンバス左クリックonDo
   e.preventDefault();   // デフォルトのメニューなし
 });
 
-
-
 menu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
   if (!action) return;
@@ -2556,7 +2584,6 @@ function popupInputDivOnUp(e) {
     gesture.start = snapshotView();//初めのタップ位置
   }
 }
-
 
 async function start() {
   try {
@@ -4255,6 +4282,11 @@ function draw(now) {
   ctxFft.fillRect(1, waveWindowH, fftCanvas.width - 2, 1);
   ctxFft.fillRect(1, spectrumHistoryH, fftCanvas.width - 2, 1);
   ctxFft.restore();
+
+//  infoRect.textContent = `${gesture.pointers.size}`; 
+  infoRect.textContent = `${now}`; 
+  infoRect.classList.remove("fadeout");
+  infoRect.classList.add("active");  
 
 
 //drawDebug(ctxFft, fftCanvas);
