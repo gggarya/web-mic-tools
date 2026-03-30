@@ -1312,7 +1312,7 @@ function onUp(e) {
     if(pts.length && pressTimer) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
     dragRect.classList.remove("active");
     dragRect.classList.add("fadeout");
-  } else if (gesture.pointers.size === 1) {//一本になったらパンモード
+  } else if (gesture.pointers.size === 1 && gesture.lockedGesture === null) {//一本になったらパンモード
     gesture.mode = 'pan';
     gesture.start = snapshotView();//初めのタップ位置
   }
