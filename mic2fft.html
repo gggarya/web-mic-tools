@@ -169,6 +169,27 @@
     opacity: 0;
     transition: opacity 0.8s ease-out;
   }
+  #dragRect2 {
+    position: absolute;
+    pointer-events: none; /* 操作の邪魔しない */
+    background: rgba(255, 255, 80, 0.2);
+    border: 1px solid rgba(255, 255, 80, 0.3);
+
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;      
+  }
+  #dragRect2.active {
+    opacity: 1;
+    transition: none; /* ドラッグ中は即表示 */
+  }
+  #dragRect2.fadeout {
+    opacity: 0;
+    transition: opacity 0.8s ease-out;
+  }
   #infoRect {
     position: absolute;
     pointer-events: none; /* 操作の邪魔しない */
@@ -342,6 +363,7 @@
   <div id="overlayLock"></div>
   <div id="overlayHelp">?</div>
   <div id="dragRect"></div>
+  <div id="dragRect2"></div>
   <div id="infoRect"></div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
@@ -500,7 +522,7 @@
   <div data-action="BASE">モニタ周波数比</div>
 </div>
 <div id="popupColorMapMenu" class="menu hidden" style="text-align: left;">
-  <div data-action="viridisStops">若草・新緑系</div>
+  <div data-action="viridisStops">新緑</div>
   <div data-action="infernoStops">インフェルノ</div>
   <div data-action="magmaStops">マグマ</div>
   <div data-action="plasmaStops">プラズマ</div>
@@ -541,6 +563,9 @@ historyCtx.globalCompositeOperation = "source-over";//上書き
 const historyVLCanvas = document.createElement("canvas");//ヒストリー用
 const historyVLCtx = historyVLCanvas.getContext("2d");
 historyVLCtx.globalCompositeOperation = "source-over";//上書き
+const historyV1LCanvas = document.createElement("canvas");//ヒストリー用
+const historyV1LCtx = historyV1LCanvas.getContext("2d");
+historyV1LCtx.globalCompositeOperation = "source-over";//上書き
 const historyHLCanvas = document.createElement("canvas");//ヒストリー用
 const historyHLCtx = historyHLCanvas.getContext("2d");
 historyHLCtx.globalCompositeOperation = "source-over";//上書き
@@ -550,6 +575,10 @@ colorMapCtx.globalCompositeOperation = "source-over";//上書き
 const levelCanvas = document.createElement("canvas");//レベルメーター用
 const levelCtx = levelCanvas.getContext("2d");
 levelCtx.globalCompositeOperation = "source-over";//上書き
+const fftOverlayCanvas = document.createElement("canvas");//FFT線図オーバレイ、グリッド用
+const fftOverLayCtx = fftOverlayCanvas.getContext("2d");
+fftOverLayCtx.globalCompositeOperation = "source-over";//上書き
+
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
 const overlayHelp = document.getElementById("overlayHelp");
@@ -569,8 +598,8 @@ const helpInfoMenu = document.getElementById('popupHelp');
 const popupPlayMenu = document.getElementById('popupPlayMenu');
 const popupLockMenu = document.getElementById('popupLockMenu');
 const dragRect = document.getElementById("dragRect");
+const dragRect2 = document.getElementById("dragRect2");
 const infoRect = document.getElementById("infoRect");
-
 const popupInputDiv = document.getElementById('popupInputDiv');
 const popupInputDisplay = document.getElementById('inputDisplay');
 const popupInputTitle = document.getElementById('inputTitle');
@@ -585,92 +614,9 @@ let audioCtx = null; // = new AudioContext();
 let stream = null; // = await navigator.mediaDevices.getUserMedia({ audio: true });
 let analyserNode = null; // = audioCtx.createAnalyser();
 let ctxSampleRate = 48000;
-
-//画面用
-const viewMinDecivelDefault = -150;
-const viewMaxDecivelDefault = 0;
-let viewMinDecivel = viewMinDecivelDefault;
-let viewMaxDecivel = viewMaxDecivelDefault;
-const viewMinDecivelLimit = viewMinDecivelDefault - 300;
-const viewMaxDecivelLimit = viewMaxDecivelDefault + 300;
-let viewDecivelRange = viewMaxDecivel - viewMinDecivel;
-let waveWindowRate = 0.3;
-let waveWindowH = fftCanvas.height * waveWindowRate | 0;
-let spectrumHistoryRate = 0.6;
-let spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
-let HistoryWriteLine = 0;//描画位置
-let spectrumHistoryMaxSize = Math.max(fftCanvas.width, fftCanvas.height);
-let fftViewH = fftCanvas.height - spectrumHistoryH;
-let fftViewZeroY = spectrumHistoryH + 1
-let YPerDecivel = fftViewH / viewDecivelRange;
-let decivelPerY = viewDecivelRange / fftViewH;
-let invDecivelRange = 1 / viewDecivelRange;
-let spectrumContrast = 0;//0が中央
-let spectrumContrastMax = 4;//0が中央
-
-let baseSlopePerOct = 0;//fft結果の傾き
-let fftBaseVisible = false;//ベースラインを表示するか
-let fftAveVisible = false;//平均線を表示するか
-let fftBottomVisible = false;//bottom線を表示するか
-//let historySecVisible = true;//ヒストリーに秒の横線を表示するか
-//let historyFreqVisible = true;//ヒストリーに縦線を表示するか
-let historyHLAlpha = 0.5;
-let historyVLAlpha = 1.0;
-let fftVLAlpha = 1.0;
-let panZoomLockIs = false;//画面のパンとズームをロックする
-let panZoomLockFreqIs = true;//周波数方向
-let panZoomLockDecibelIs = true;//デシベル方向
-let tiltLockIs = true;//傾き補正
-let colorLockIs = true;//カラーマップ
-let Separator1LockIs = true;//区切り上
-let Separator2LockIs = true;//区切り下
-
-let dBLabelIs = true;//ピークラベルにデシベルを表示するか
-let colorMapVisible = true;//カラーマップを表示
-let levelPeak = -Infinity;
-let levelRms = -Infinity;
-let levelMeterVisible = true;//レベルメーターを表示する
-let levelRangeIsSame = true;//レベルメーターをfftの表示レンジに合わせる
-
-let xUnit = 0;//0:Hz,1:rpm,2:note
-let labelUnit = 0;//0:Hz,1:rpm,2:note
-const inv60 = 1 / 60;//rpm計算用
-const inv12 = 1 / 12;//note計算用
-const inv440 = 1 / 440;//note計算用
-const xUnitMap = {
-  HZ: 0,
-  RPM: 1,
-  NOTE: 2,
-  SEC: 3,
-  BASE: 4
-};
-
-const viewMinFreqLimit = 10;
-const viewMaxFreqLimit = 30000;
-const viewMinFreqDefault = 40;
-const viewMaxFreqDefault = 20000;
-let viewMinFreq = viewMinFreqDefault;
-let viewMaxFreq = viewMaxFreqDefault;
-let viewFreqRange = viewMaxFreq - viewMinFreq;
-let XPerFreq_Linear = fftCanvas.width / viewFreqRange;
-let freqPerX_Linear = viewFreqRange / fftCanvas.width;
-let viewMinFreqLog2 = Math.log2(viewMinFreq);
-let viewMaxFreqLog2 = Math.log2(viewMaxFreq);
-let viewLog2Range = viewMaxFreqLog2 - viewMinFreqLog2;//log2での横軸範囲
-let XPerLog2 = fftCanvas.width / viewLog2Range;
-let log2PerX = viewLog2Range / fftCanvas.width;
-let viewIsLogFrequency = true;//横軸が対数表示ならtrue
-let peakLabelNum = 5;//ピークラベルの表示数
-let splinePeakIs = true;//ピークにスプラインを含めるかのフラグ
-const targetFreqDefault = 200;
-let targetFreq = targetFreqDefault;//波形表示のターゲット周波数
-
-let rafId = null; // = requestAnimationFrame(draw);
 let devices = null;
 let deviceId = undefined;
 let sampleRateDevice = 0;
-let running = false;
-let secDivTime = 0;
 
 //FFT設定用
 let fftSizeSetting = 2 ** 13;//2**5=32～2**15=32768
@@ -684,129 +630,16 @@ let fftBottom =  new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果底�
 let fftView =  new Float32Array(fftSizeSetting * 0.5).fill(-200);//表示用バッファ
 let timeDomain =  new Float32Array(fftSizeSetting).fill(0);//表示用バッファ
 let timeDomainAve =  new Float32Array(fftSizeSetting).fill(0);//表示用バッファ
-let fftBinFreq = ctxSampleRate / fftSizeSetting;//ビンサイズ
-let invFftBinFreq = fftSizeSetting / ctxSampleRate;
-let fftPeakIndex = new Int32Array(20).fill(-1);//ピークの場所保存用
-let fftPeakHeight = new Float32Array(20).fill(-1);//ピークのdB保存用
-let fftPeakIndexSortRank = new Int32Array(20).fill(-1);//ピークの場所保存用dBランク
+let fftBinFreq = ctxSampleRate / fftSizeSetting;//ビン周波数
+let invFftBinFreq = fftSizeSetting / ctxSampleRate;//ビン周波数の逆数
 
-let spectro1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
-let spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ドット
-let spectro1LineImageData = new ImageData(spectro1LineBufferUint8, spectro1LineBuffer.length, 1);
-const colorMapUnit8 = new Uint8ClampedArray(1024 * 4);//256階調×RGBA
-const colorMap =  new Uint32Array(colorMapUnit8.buffer);//256階調×RGBA
-const viridisStops = [
-  [0.00, [68, 1, 84]],
-  [0.25, [59, 82, 139]],
-  [0.50, [33, 145, 140]],
-  [0.75, [94, 201, 98]],
-  [1.00, [253, 231, 37]]
-];
-const magmaStops = [
-  [0.00, [0, 0, 4]],
-  [0.25, [78, 18, 123]],
-  [0.50, [183, 55, 121]],
-  [0.75, [251, 140, 60]],
-  [1.00, [252, 253, 191]]
-];
-const infernoStops = [
-  [0.0,[0,0,4]],
-  [0.25,[87,15,109]],
-  [0.5,[187,55,84]],
-  [0.75,[249,142,8]],
-  [1.0,[252,255,164]]
-];
-const plasmaStops = [
-  [0.00, [13, 8, 135]],
-  [0.25, [126, 3, 168]],
-  [0.50, [203, 71, 119]],
-  [0.75, [248, 149, 64]],
-  [1.00, [240, 249, 33]]
-];
-const classic2stops = [
-  [0.00, [0,   0,   0]  ],   // black
-  [0.15, [0,   0, 160]  ],   // deep blue
-  [0.35, [0, 180, 255]  ],   // cyan
-  [0.65, [255,220, 0 ]  ],   // yellow
-  [1.00, [255,255,255]  ]    // white
-];
-const classic1stops = [
-  [0.00, [0,   0,   0]  ],
-  [0.12, [0,   0, 200]  ],
-  [0.30, [0, 200, 255]  ],
-  [0.55, [255,220, 0 ]  ],
-  [0.80, [255,120, 0 ]  ],
-  [1.00, [255,255,255]  ]
-];
-const whiteStops = [
-  [0.0,[0,0,0]],
-  [1.0,[252,255,255]]
-];
-const greenStops = [
-  [0.0,[0,0,0]],
-  [1.0,[0,255,0]]
-];
-let nowColorMap = "infernoStops";
-let nowStops = infernoStops;
-function interpolateStops(stops,t){//[r,g,b]を返す関数。[ストップ値,[r,g,b]]の配列,求める値
-  for(let i=0;i<stops.length-1;i++){
-    const a = stops[i];
-    const b = stops[i+1];
-    if(t>=a[0] && t<=b[0]){
-      const u = (t-a[0])/(b[0]-a[0]);
-      return [
-        a[1][0]+(b[1][0]-a[1][0])*u,
-        a[1][1]+(b[1][1]-a[1][1])*u,
-        a[1][2]+(b[1][2]-a[1][2])*u
-      ];
-    }
-  }
-}
-function makeColorMap () {//カラーマップ作製
-  //あくまでゼロ～colorMap.length-1までで作成。上端下端の位置は使用時に調整
-  const invMapLength = 1 / (colorMap.length - 1);
-  for (i = 0; i < colorMap.length; i++) {
-    let norm = i * invMapLength;
-    norm = Math.pow(norm, Math.pow(2, spectrumContrast));   // コントラスト付け 0が中央＋でコントラスト増
-//    const k = Math.pow(100, 0) - 1;//0～１のはず
-//    norm = Math.log(1 + k * norm) / Math.log(1 + k);
-    const [r,g,b] = interpolateStops(nowStops,norm);
-    const ii = i * 4;
-    colorMapUnit8[ii] = Math.round(r);//R
-    colorMapUnit8[ii + 1] = Math.round(g);//G
-    colorMapUnit8[ii + 2] = Math.round(b);//B
-    colorMapUnit8[ii + 3] = 255;//A
-  }
-}
-makeColorMap();
-colorMapCanvas.width = 18 * dpr;
-colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
-levelCanvas.width = colorMapCanvas.width;
-levelCanvas.height = colorMapCanvas.height;
-function makeColorMapCanvas () {//カラーマップのスケール作成
-  const invCanvasHeight = 1 / (colorMapCanvas.height - 1);
-  for (let i = 0; i < colorMapCanvas.height; i++) {
-    let norm = i * invCanvasHeight;
-    norm = Math.pow(norm, Math.pow(2, spectrumContrast));   // コントラスト付け 0が中央＋でコントラスト増
-    const [r,g,b] = interpolateStops(nowStops, norm);
-    colorMapCtx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-    colorMapCtx.fillRect(0, colorMapCanvas.height - i - 1, colorMapCanvas.width, 1);
-  }
-}
-
-let nyquistFreq = ctxSampleRate * 0.5;
-let nyquistX = freqToX(nyquistFreq);
-let splineFirstIndex = 0;
-let splineFirstX = 0;
-let splineEndIndex = 0;
-let splineEndX = 0;
-let splineFineIndex = 0;
-let splineFineX = 0;
-let viewMinBinIndex = 0;
-let viewMaxBinIndex = 0;//バッファが作られていない可能性もあるので初期値0
-let splineDotIndex = 0;
-
-const wavelet8 =  new Float32Array(8).fill(0);//トリガー用
+//画面用
+//波形表示用
+let waveWindowRate = 0.3;//一つ目の区切り線の位置
+let waveWindowH = fftCanvas.height * waveWindowRate | 0;
+const targetFreqDefault = 200;
+let targetFreq = targetFreqDefault;//波形表示のターゲット周波数
+const wavelet8 =  new Float32Array(8).fill(0);//ゼロクロス捜査用
 function makeWavelet8 () {//ウェーブレット作成
   const cos8 =  new Float32Array(8).fill(0);//トリガー用
   let sum = 0;
@@ -825,164 +658,57 @@ function makeWavelet8 () {//ウェーブレット作成
 }
 makeWavelet8();
 
-//長押し実装用
-let pressTimer = null;
-let startX = 0;
-let startY = 0;
-const MOVE_THRESHOLD = 10; //長押しでこれ以上動いたら長押し判定を止める閾値
-const LONGPRESS_TIME = 500;//長押し判定の時間
-const HIT_RANGE = 20;//タップしたときのヒット範囲
+//ヒストリー表示用
+let spectrumHistoryRate = 0.6;//二つ目の区切り線の位置
+let spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
+let HistoryWriteLine = 0;//描画位置
+let spectrumHistoryMaxSize = Math.max(fftCanvas.width, fftCanvas.height);
+let spectrumContrast = 0;//カラーマップコントラスト、0が中央
+let spectrumContrastMax = 4;//カラーマップコントラストの最大絶対値
+let historyHLAlpha = 0.5;//横線の透明度
+let historyVLAlpha = 0.5;//縦線の透明度
 
-//画面用の変数
-
-//色
-const bgColorRed = "#600";//赤部分の背景色
-
-function resizeCanvas() {//キャンバスサイズの変更関数
-//  dpr = window.devicePixelRatio || 1;//
-//  invDpr = 1 / dpr;
-
-  let clientW = window.visualViewport.width - 1;//スクロールバーを含まない画面幅、SCC系
-  let clientH = window.visualViewport.height - 1;
-//  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
-//  let clientH = document.documentElement.clientHeight - 1;
-//  if (clientW > clientH) clientW *= 0.95; else clientH *= 0.95;
-//  clientW *= 0.95;
-//  clientH *= 0.95;
-  const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
-  const w = Math.round(clientW * dpr);//物理サイズ？
-  const h = Math.round(clientH * dpr);
-//  const w = Math.round(rect.width * 1);
-//  const h = Math.round(rect.height * 1);
-  fftCanvas.width = w;
-  fftCanvas.height = h;
-  fftCanvas.style.width = `${clientW}px`;
-  fftCanvas.style.height = `${clientH}px`;
-//  ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
-  updateViewParams();
-  spectrumHistoryMaxSize = Math.max(spectrumHistoryMaxSize, w, h);
-
-  historyCanvas.width = w;
-  historyCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
-  historyCtx.fillStyle = "#000";
-  historyCtx.fillRect(0, 0 , w, spectrumHistoryMaxSize);//とりま黒で塗りつぶす
-  historyVLCanvas.width = w;
-  historyVLCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
-  historyHLCanvas.width = w;
-  historyHLCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
-  colorMapCanvas.height = h - spectrumHistoryH - 1;
-  levelCanvas.height = colorMapCanvas.height;
-  makeColorMapCanvas();
-
-  if (spectro1LineBuffer.length !== w) {//スペクトロぐらむ用の１ラインバッファ
-    spectro1LineBuffer = null;
-    spectro1LineBufferUint8 = null;
-    spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
-    spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
-    spectro1LineImageData = null;
-    spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
-  }
-
-  infoRect.style.left = "0px";
-  infoRect.style.top = "0px";
-  infoRect.style.width = w * 0.01 * invDpr + "px";
-  infoRect.style.height = h * 0.01 * invDpr + "px";
-//  infoRect.style.width = 0 + "px";
-//  infoRect.style.height = 0 + "px";
-
-  if (!rafId) draw();
-}
-window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
-resizeCanvas();//まず一回サイズを合わせておく
-
-function drawError(ctx, canvas, messeageTxt) {//エラー表示
-  ctx.save();
-
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
-  ctx.fillRect(0,0,220,50);
-  ctx.fillText("error  : " + messeageTxt, 10,20);
-  ctx.restore();
-}
-function drawDebug(ctx, canvas) {//チェック用
-  const rect = canvas.getBoundingClientRect();
-  let clientW = document.documentElement.clientWidth;//スクロールバーを含まない画面幅、SCC系
-  let clientH = document.documentElement.clientHeight;
-
-  const pts = [...gesture.pointers.values()];
-  let d1 = Math.abs(pts[0].y - pts[1].y);
-  let scale = gesture.start.distance / d1;
-  if (gesture.start.axisIsFreq) {//横方向のピンチ
-    d1 = Math.abs(pts[0].x - pts[1].x);
-    scale = gesture.start.distance / d1;
-//    zoomFrequency(gesture.start.center.x, scale);
-  } else {//縦方向のピンチ
-    d1 = Math.abs(pts[0].y - pts[1].y);
-    scale = gesture.start.distance / d1;
-//    zoomVertical(scale);
-  }
-
-
-  ctx.save();
-
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
-  ctx.fillRect(0,0,220,120);
-
-  ctx.fillStyle = "#00ff00";
-  ctx.font = "12px monospace";
-
-  ctx.fillText("gesture.mode  : " + gesture.mode, 10,20);
-  ctx.fillText("gesture.start.axisIsFreq : " + gesture.start.axisIsFreq, 10,35);
-
-  ctx.fillText("gesture.start.distance   : " + gesture.start.distance, 10,55);
-  ctx.fillText("CSS height  : " + rect.height, 10,70);
-
-  ctx.fillText("d1 : " + d1, 10,90);
-  ctx.fillText("scale : " + scale, 10,105);
-
-  ctx.fillText("ViewportWidth  : " + window.visualViewport.width, 10,125);
-  ctx.fillText("ViewportHeight : " + window.visualViewport.height, 10,140);
-
-  ctx.fillText("devicePixelRatio : " + window.devicePixelRatio, 10,160);
-
-//  ctx.fillText("spectrumHistoryH : " + spectrumHistoryH, 10,110);
-
-  ctx.restore();
-}
-
-function updateViewParams() {//画面サイズやサンプルレート、fftサイズ変更など
-  viewDecivelRange = viewMaxDecivel - viewMinDecivel;
-  waveWindowH = fftCanvas.height * waveWindowRate | 0;
-  spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
-  fftViewH = fftCanvas.height - spectrumHistoryH;
-  fftViewZeroY = spectrumHistoryH + 1
-  YPerDecivel = fftViewH / viewDecivelRange;
-  decivelPerY = viewDecivelRange / fftViewH;
-  invDecivelRange = 1 / viewDecivelRange;
-  viewFreqRange = viewMaxFreq - viewMinFreq;
-  XPerFreq_Linear = fftCanvas.width / viewFreqRange;
-  freqPerX_Linear = viewFreqRange / fftCanvas.width;
-  viewMinFreqLog2 = Math.log2(viewMinFreq);
-  viewMaxFreqLog2 = Math.log2(viewMaxFreq);
-  viewLog2Range = viewMaxFreqLog2 - viewMinFreqLog2;//log2での横軸範囲
-  XPerLog2 = fftCanvas.width / viewLog2Range;
-  log2PerX = viewLog2Range / fftCanvas.width;
-
-  nyquistX = freqToX(nyquistFreq);
-  if (fftResult) {
-    viewMinBinIndex = Math.min(fftResult.length - 1, Math.max(0, Math.floor(viewMinFreq * invFftBinFreq) - 2));//画面の左側の一つ外からさらに二つ左
-    viewMaxBinIndex = Math.max(0, Math.min(fftResult.length - 1, Math.ceil(viewMaxFreq * invFftBinFreq) + 2));//画面の右側の一つ外からさらに二つ右
-    splineFirstIndex = Math.max(0, viewMinBinIndex);
-    splineFirstX = freqToX(splineFirstIndex * fftBinFreq);
-
-    splineEndIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(0.9), viewMaxBinIndex, fftResult.length - 1));
-    splineEndX = freqToX(splineEndIndex * fftBinFreq);
-    splineFineIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(2), viewMaxBinIndex, fftResult.length - 1));
-    splineFineX = freqToX(splineFineIndex * fftBinFreq);
-    splineDotIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(2.8), viewMaxBinIndex, fftResult.length - 1));
-  }
-  makePeakList ();//ピーク検出。範囲が変わるなら表示再検出
-}
-
+//FFT線表示用
+const viewMinDecivelDefault = -150;
+const viewMaxDecivelDefault = 0;
+let viewMinDecivel = viewMinDecivelDefault;
+let viewMaxDecivel = viewMaxDecivelDefault;
+const viewMinDecivelLimit = viewMinDecivelDefault - 300;
+const viewMaxDecivelLimit = viewMaxDecivelDefault + 300;
+let viewDecivelRange = viewMaxDecivel - viewMinDecivel;
+let fftViewH = fftCanvas.height - spectrumHistoryH;
+let fftViewZeroY = spectrumHistoryH + 1
+let YPerDecivel = fftViewH / viewDecivelRange;
+let decivelPerY = viewDecivelRange / fftViewH;
+let invDecivelRange = 1 / viewDecivelRange;
+let baseSlopePerOct = 0;//fft結果の傾き
+let decibelWeightAtX =  new Float32Array(fftCanvas.width).fill(0);//ウェイト事前計算用
+let fftVLAlpha = 1.0;//FFT線表示のグリッドの透明度
+const viewMinFreqLimit = 10;
+const viewMaxFreqLimit = 30000;
+const viewMinFreqDefault = 40;
+const viewMaxFreqDefault = 20000;
+let viewMinFreq = viewMinFreqDefault;
+let viewMaxFreq = viewMaxFreqDefault;
+let viewFreqRange = viewMaxFreq - viewMinFreq;
+let XPerFreq_Linear = fftCanvas.width / viewFreqRange;
+let freqPerX_Linear = viewFreqRange / fftCanvas.width;
+let viewMinFreqLog2 = Math.log2(viewMinFreq);
+let viewMaxFreqLog2 = Math.log2(viewMaxFreq);
+let viewLog2Range = viewMaxFreqLog2 - viewMinFreqLog2;//log2での横軸範囲
+let XPerLog2 = fftCanvas.width / viewLog2Range;
+let log2PerX = viewLog2Range / fftCanvas.width;
+let viewMinBinIndex = 0;//画面の左外のインデックス
+let viewMaxBinIndex = 0;//画面の右外のインデックス。バッファが作られていない可能性もあるので初期値0
+let viewBinNum = viewMaxBinIndex - viewMinBinIndex + 1;//Max=Minの場合もある。最小１
+let fftResultSub = fftView.subarray(viewMinBinIndex, viewMinBinIndex + viewBinNum);//表示範囲のみ切り出す。最小は１つ
+let splineEndIndex = 0;//スプラインを終了するインデックス
+let splineEndX = 0;
+let splineFineIndex = 0;
+let splineFineX = 0;
+let splineDotIndex = 0;
+let splineNum = splineEndIndex > 0 ? splineEndIndex - viewMinBinIndex + 1: 0;//end=minが同一の場合もある。length-1のとき
+  //splineNum<=1や、viewMaxBinIndex = viewMinBinIndex = length-1の時は場合分けした方がよさそう
 function cubicSpline(n, y) {//スプライン
 // 7点（x=0..6 固定）の Natural Cubic Spline
 // @param {number[]} y - 長さnの配列
@@ -1113,8 +839,287 @@ function cubicSpline(n, y) {//スプライン
     }
   };
 }
+let viewSpline = cubicSpline(splineNum, fftResultSub);//スプライン関数生成
 
-function makeBitRevTable(n) {
+//ロック
+let panZoomLockIs = false;//画面のパンとズームをロックする
+let panZoomLockFreqIs = true;//周波数方向
+let panZoomLockDecibelIs = true;//デシベル方向
+let tiltLockIs = true;//傾き補正
+let colorLockIs = true;//カラーマップ
+let Separator1LockIs = true;//区切り上
+let Separator2LockIs = true;//区切り下
+
+//表示のon|off
+let fftBaseVisible = false;//ベースラインを表示するか（FFT線表示）
+let fftAveVisible = false;//平均線を表示するか（FFT線表示）
+let fftBottomVisible = false;//bottom線を表示するか（FFT線表示）
+let dBLabelIs = true;//ピークラベルにデシベルを表示するか（FFT線表示）
+let colorMapVisible = true;//カラーマップを表示（FFT線表示）
+let levelMeterVisible = true;//レベルメーターを表示する（FFT線表示）
+let levelRangeIsSame = true;//レベルメーターをfftの表示レンジに合わせる（FFT線表示）
+
+//レベルメーター
+let levelPeak = -Infinity;
+let levelRms = -Infinity;
+
+//単位
+let xUnit = 0;//0:Hz,1:rpm,2:note
+let labelUnit = 0;//0:Hz,1:rpm,2:note
+const inv60 = 1 / 60;//rpm計算用
+const inv12 = 1 / 12;//note計算用
+const inv440 = 1 / 440;//note計算用
+const xUnitMap = {
+  HZ: 0,
+  RPM: 1,
+  NOTE: 2,
+  SEC: 3,
+  BASE: 4
+};
+let viewIsLogFrequency = true;//横軸が対数表示ならtrue
+
+//ピーク表示設定（FFT線表示）
+let peakLabelNum = 5;//ピークラベルの表示数
+let splinePeakIs = true;//ピークにスプラインを含めるかのフラグ
+let fftPeakIndex = new Int32Array(20).fill(-1);//ピークの場所保存用
+let fftPeakHeight = new Float32Array(20).fill(-1);//ピークのdB保存用
+let fftPeakIndexSortRank = new Int32Array(20).fill(-1);//ピークの場所保存用dBランク
+let fftPeakScanEndFreq = 9000;//スキャン終了の周波数
+let fftPeakScanEndBin = Math.min(Math.round(fftPeakScanEndFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1);//スキャン終了のインデックス
+let fftPeakScanStFreq = 30;//スキャン開始の周波数
+let fftPeakScanStBin = Math.max(Math.round(fftPeakScanStFreq * invFftBinFreq), 0);//スキャン開始のインデックス
+
+//アニメーション系
+let rafId = null; // = requestAnimationFrame(draw);
+let running = false;
+let secDivTime = 0;
+const previousNow = new Float32Array(30).fill(0);//fps確認用
+const invPreviousNowNum = 1 / previousNow.length;
+let previousNowIndex = 0;
+
+
+//カラーマップ
+let spectro1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
+let spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ドット
+let spectro1LineImageData = new ImageData(spectro1LineBufferUint8, spectro1LineBuffer.length, 1);
+const colorMapUnit8 = new Uint8ClampedArray(1024 * 4);//階調×RGBA
+const colorMap =  new Uint32Array(colorMapUnit8.buffer);//階調×RGBA
+const viridisStops = [
+  [0.00, [68, 1, 84]],
+  [0.25, [59, 82, 139]],
+  [0.50, [33, 145, 140]],
+  [0.75, [94, 201, 98]],
+  [1.00, [253, 231, 37]]
+];
+const magmaStops = [
+  [0.00, [0, 0, 4]],
+  [0.25, [78, 18, 123]],
+  [0.50, [183, 55, 121]],
+  [0.75, [251, 140, 60]],
+  [1.00, [252, 253, 191]]
+];
+const infernoStops = [
+  [0.0,[0,0,4]],
+  [0.25,[87,15,109]],
+  [0.5,[187,55,84]],
+  [0.75,[249,142,8]],
+  [1.0,[252,255,164]]
+];
+const plasmaStops = [
+  [0.00, [13, 8, 135]],
+  [0.25, [126, 3, 168]],
+  [0.50, [203, 71, 119]],
+  [0.75, [248, 149, 64]],
+  [1.00, [240, 249, 33]]
+];
+const classic2stops = [
+  [0.00, [0,   0,   0]  ],   // black
+  [0.15, [0,   0, 160]  ],   // deep blue
+  [0.35, [0, 180, 255]  ],   // cyan
+  [0.65, [255,220, 0 ]  ],   // yellow
+  [1.00, [255,255,255]  ]    // white
+];
+const classic1stops = [
+  [0.00, [0,   0,   0]  ],
+  [0.12, [0,   0, 200]  ],
+  [0.30, [0, 200, 255]  ],
+  [0.55, [255,220, 0 ]  ],
+  [0.80, [255,120, 0 ]  ],
+  [1.00, [255,255,255]  ]
+];
+const whiteStops = [
+  [0.0,[0,0,0]],
+  [1.0,[252,255,255]]
+];
+const greenStops = [
+  [0.0,[0,0,0]],
+  [1.0,[0,255,0]]
+];
+let nowColorMap = "infernoStops";
+let nowStops = infernoStops;
+function interpolateStops(stops,t){//[r,g,b]を返す関数。[ストップ値,[r,g,b]]の配列,求める値
+  for(let i=0;i<stops.length-1;i++){
+    const a = stops[i];
+    const b = stops[i+1];
+    if(t>=a[0] && t<=b[0]){
+      const u = (t-a[0])/(b[0]-a[0]);
+      return [
+        a[1][0]+(b[1][0]-a[1][0])*u,
+        a[1][1]+(b[1][1]-a[1][1])*u,
+        a[1][2]+(b[1][2]-a[1][2])*u
+      ];
+    }
+  }
+}
+function makeColorMap () {//カラーマップ作製
+  //あくまでゼロ～colorMap.length-1までで作成。上端下端の位置は使用時に調整
+  const invMapLength = 1 / (colorMap.length - 1);
+  for (i = 0; i < colorMap.length; i++) {
+    let norm = i * invMapLength;
+    norm = Math.pow(norm, Math.pow(2, spectrumContrast));   // コントラスト付け 0が中央＋でコントラスト増
+//    const k = Math.pow(100, 0) - 1;//0～１のはず
+//    norm = Math.log(1 + k * norm) / Math.log(1 + k);
+    const [r,g,b] = interpolateStops(nowStops,norm);
+    const ii = i * 4;
+    colorMapUnit8[ii] = Math.round(r);//R
+    colorMapUnit8[ii + 1] = Math.round(g);//G
+    colorMapUnit8[ii + 2] = Math.round(b);//B
+    colorMapUnit8[ii + 3] = 255;//A
+  }
+}
+makeColorMap();
+colorMapCanvas.width = 20 * dpr;
+colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+levelCanvas.width = colorMapCanvas.width;
+levelCanvas.height = colorMapCanvas.height;
+function makeColorMapCanvas () {//カラーマップのスケール作成
+  const invCanvasHeight = 1 / (colorMapCanvas.height - 1);
+  const invMapLength = 1 / (colorMap.length - 1);
+  for (let i = 0; i < colorMapCanvas.height; i++) {
+    let norm = i * invCanvasHeight;
+    norm = Math.pow(norm, Math.pow(2, spectrumContrast));   // コントラスト付け 0が中央＋でコントラスト増
+    norm = Math.round(norm * (colorMap.length - 1)) * invMapLength;//カラーマップと階調を合わせる
+    const [r,g,b] = interpolateStops(nowStops, norm);
+    colorMapCtx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+    colorMapCtx.fillRect(0, colorMapCanvas.height - i - 1, colorMapCanvas.width, 1);
+  }
+}
+
+
+//色
+const bgColorRed = "#600";//赤部分の背景色
+
+function resizeCanvas() {//キャンバスサイズの変更関数
+//  dpr = window.devicePixelRatio || 1;//
+//  invDpr = 1 / dpr;
+
+  let clientW = window.visualViewport.width - 1;//スクロールバーを含まない画面幅、SCC系
+  let clientH = window.visualViewport.height - 1;
+//  let clientW = document.documentElement.clientWidth - 1;//スクロールバーを含まない画面幅、SCC系
+//  let clientH = document.documentElement.clientHeight - 1;
+  const rect = fftCanvas.getBoundingClientRect();//cssでのサイズ
+  const w = Math.round(clientW * dpr);//物理サイズ？
+  const h = Math.round(clientH * dpr);
+  fftCanvas.width = w;
+  fftCanvas.height = h;
+  fftCanvas.style.width = `${clientW}px`;
+  fftCanvas.style.height = `${clientH}px`;
+//  ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
+  updateViewParams();
+  decibelWeightAtX =  new Float32Array(fftCanvas.width).fill(0);//ウェイト事前計算用
+
+
+  //ヒストリー領域のサイズ更新
+  spectrumHistoryMaxSize = Math.max(spectrumHistoryMaxSize, w, h);
+  historyCanvas.width = w;
+  historyCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
+  historyCtx.fillStyle = "#000";
+  historyCtx.fillRect(0, 0 , w, spectrumHistoryMaxSize);//とりま黒で塗りつぶす
+  historyVLCanvas.width = w;
+  historyVLCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
+  historyV1LCanvas.width = w;
+  historyV1LCanvas.height = 1;//1行更新用グリッド
+  historyHLCanvas.width = w;
+  historyHLCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
+  colorMapCanvas.height = h - spectrumHistoryH - 1;
+  levelCanvas.height = colorMapCanvas.height;
+  makeColorMapCanvas();
+
+  if (spectro1LineBuffer.length !== w) {//スペクトロぐらむ用の１ラインバッファ
+    spectro1LineBuffer = null;
+    spectro1LineBufferUint8 = null;
+    spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
+    spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
+    spectro1LineImageData = null;
+    spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
+  }
+
+  //オーバレイで文字を表示するdivのサイズ変更
+  infoRect.style.left = "0px";
+  infoRect.style.top = "0px";
+  infoRect.style.width = w * invDpr + "px";
+  infoRect.style.height = h * invDpr + "px";
+
+  if (!rafId) draw();
+}
+window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
+resizeCanvas();//まず一回サイズを合わせておく
+
+function updateViewParams() {//画面サイズやサンプルレート、fftサイズ変更など
+  //周波数方向の更新
+  viewFreqRange = viewMaxFreq - viewMinFreq;
+  XPerFreq_Linear = fftCanvas.width / viewFreqRange;
+  freqPerX_Linear = viewFreqRange / fftCanvas.width;
+  viewMinFreqLog2 = Math.log2(viewMinFreq);
+  viewMaxFreqLog2 = Math.log2(viewMaxFreq);
+  viewLog2Range = viewMaxFreqLog2 - viewMinFreqLog2;//log2での横軸範囲
+  XPerLog2 = fftCanvas.width / viewLog2Range;
+  log2PerX = viewLog2Range / fftCanvas.width;
+
+  if (fftResult) {//表示用に切り出すデータ範囲の更新
+    viewMinBinIndex = Math.min(fftResult.length - 1, Math.max(0, Math.floor(viewMinFreq * invFftBinFreq) - 2));//画面の左側の一つ外からさらに二つ左
+    viewMaxBinIndex = Math.max(0, Math.min(fftResult.length - 1, Math.ceil(viewMaxFreq * invFftBinFreq) + 2));//画面の右側の一つ外からさらに二つ右
+
+    splineEndIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(0.9), viewMaxBinIndex, fftResult.length - 1));
+    splineEndX = freqToX(splineEndIndex * fftBinFreq);
+    splineFineIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(2), viewMaxBinIndex, fftResult.length - 1));
+    splineFineX = freqToX(splineFineIndex * fftBinFreq);
+    splineDotIndex = Math.max(viewMinBinIndex, Math.min(splineEndBinIndex(2.8), viewMaxBinIndex, fftResult.length - 1));
+
+    viewBinNum = viewMaxBinIndex - viewMinBinIndex + 1;//Max=Minの場合もある。最小１
+    fftResultSub = fftView.subarray(viewMinBinIndex, viewMinBinIndex + viewBinNum);//表示範囲のみ切り出す。最小は１つ
+    splineNum = splineEndIndex > 0 ? splineEndIndex - viewMinBinIndex + 1: 0;//end=minが同一の場合もある。length-1のとき
+
+  }
+
+  //縦方向の更新
+  viewDecivelRange = viewMaxDecivel - viewMinDecivel;
+  invDecivelRange = 1 / viewDecivelRange;
+
+  waveWindowH = fftCanvas.height * waveWindowRate | 0;
+
+  makeDecibelWeightAtX();//重み配列の更新
+  updateLwrSepareteArea();//FFT線図領域のサイズ更新
+  drawFftOverLay();//オーバレイの作図しなおし
+
+  makePeakList ();//ピーク検出。範囲が変わるなら表示再検出
+}
+
+function updateLwrSepareteArea() {//FFT線図領域のサイズが変わったらこれを呼ぶ。縦方向の変更の時にはこれだけ呼ぶ
+  if (spectrumHistoryH !== fftCanvas.height * spectrumHistoryRate | 0) {//区切り線の位置が変わっていたら
+    spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;//下部区切り線の位置
+    fftViewH = fftCanvas.height - spectrumHistoryH - 1;//FFT線図領域の高さ
+    fftViewZeroY = spectrumHistoryH + 1;//FFT線図領域のYゼロ
+    YPerDecivel = fftViewH / viewDecivelRange;
+    decivelPerY = viewDecivelRange / fftViewH;
+  }
+  if (fftOverlayCanvas.width !== fftCanvas.width || fftOverlayCanvas.height !== fftViewH) {//サイズ更新が必要なら変える
+    fftOverlayCanvas.width = fftCanvas.width;
+    fftOverlayCanvas.height = fftViewH;
+  }
+}
+
+function makeBitRevTable(n) {//ビット回転(未使用)
   const rev = new Uint16Array(n);
   let j = 0;
   for (let i = 0; i < n; i++) {
@@ -1137,25 +1142,22 @@ function updateDragRect(x, y, w, h) {//半透明で消える四角の設定
   dragRect.classList.remove("fadeout");
   dragRect.classList.add("active");  
 }
+function updateDragRect2(x, y, w, h) {//半透明で消える四角の設定
+  dragRect2.style.left = x * invDpr + "px";
+  dragRect2.style.top = y * invDpr + "px";
+  dragRect2.style.width = w * invDpr + "px";
+  dragRect2.style.height = h * invDpr + "px";
+  dragRect2.classList.remove("fadeout");
+  dragRect2.classList.add("active");  
+}
 
-fftCanvas.addEventListener('pointerdown', onDown);
-fftCanvas.addEventListener('pointermove', onMove);
-fftCanvas.addEventListener('pointerup', onUp);
-fftCanvas.addEventListener('pointercancel', onUp);
-fftCanvas.addEventListener("wheel", e => {
-  e.preventDefault();
-
-  if (e.shiftKey) {
-    // Shift + ホイール
-    const scale = Math.exp(-e.deltaY * 0.001);    
-    zoomVertical(e.offsetY, scale);
-  } else {
-    // 通常ホイール
-    const scale = Math.exp(-e.deltaY * 0.001);    
-    zoomFrequency(e.offsetX, scale);
-  }
-}, { passive:false });
-
+//画面操作用
+let pressTimer = null;//長押しやダブルタップ判定用タイマー
+let startX = 0;
+let startY = 0;
+const MOVE_THRESHOLD = 10; //長押しでこれ以上動いたら長押し判定を止める閾値
+const LONGPRESS_TIME = 600;//長押し判定の時間
+const HIT_RANGE = 20;//タップしたときのヒット範囲
 let gesture = {//ポインタ動作用構造体
   pointers: new Map(),
   mode: null, // 'pan' | 'pinch'
@@ -1168,7 +1170,7 @@ let gesture = {//ポインタ動作用構造体
 function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上のエリアの名前を返す。座標はdprをかけたあとのもの
   if (x * dpr <= HIT_RANGE * 4 && y <= HIT_RANGE * 6) {//画面の左上
     return "help";
-  } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 4) {//下の区切り線
+  } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 2) {//下の区切り線
     if (y < spectrumHistoryHcomp) {//区切り線の上側
       if (x < HIT_RANGE * 2) {//中段の左端
         return "historyL";
@@ -1184,13 +1186,24 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
         return "fftR";
       } else return "separator2lwr";
     }
-  } else if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 3) {//上の区切り線
+  } else if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 2) {//上の区切り線
     return "separator1";
   } else if (Math.abs(fftCanvas.height - y) <= HIT_RANGE * 3) {//下端の周波数軸
+    if (x < HIT_RANGE * 2) {//下端の左端
+      return "freqRulerL";
+    } else if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) {//カラースケール下端
+      return "colorMapXfreqRulerR";
+    } else if (Math.abs(fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - x ) < HIT_RANGE * 2) {//下端の右端
+      return "freqRulerR";
+    } else {
+      return "freqRuler";//ルーラー
+    }
+
     if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) return "colorMap";
     else return "freqRuler";
   } else if (y > spectrumHistoryHcomp) {//下段のFFT領域
     if (x < HIT_RANGE * 2) {//下段の左端
+      return "fftL";
     } else if (colorMapVisible && Math.abs(fftCanvas.width - x) < colorMapCanvas.width) {//カラースケール
       return "colorMap";
     } else if (Math.abs(fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - x ) < HIT_RANGE * 2) {//下段の右端
@@ -1213,6 +1226,40 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
     }
   }
 }
+function fitMenuInViewportAndRemoveHide(menu) {//メニューを渡すと画面内に収めてくれる関数
+  menu.style.visibility = "hidden";//まだ隠す
+  menu.classList.remove('hidden');
+  menu.offsetHeight; // ←レイアウト確定
+  const nowLeft = parseFloat(menu.style.left);
+  menu.style.left = `${0}px`;//改行されるのを防ぐために一時的に左に動かす
+  const rect = menu.getBoundingClientRect();
+  const maxLeft = window.innerWidth - rect.width;
+  const maxTop =  window.innerHeight - rect.height;
+  const x = Math.max(0, Math.min(maxLeft, nowLeft));
+  const y = Math.min(maxTop, Math.max(0, rect.top));//下側が優先
+  menu.style.left = `${x}px`;
+  menu.style.top  = `${y}px`;
+  menu.style.visibility = "";//ここで表示
+}
+
+fftCanvas.addEventListener('pointerdown', onDown);
+fftCanvas.addEventListener('pointermove', onMove);
+fftCanvas.addEventListener('pointerup', onUp);
+fftCanvas.addEventListener('pointercancel', onUp);
+fftCanvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  switch (getAreaName(e.clientX * dpr, e.clientY * dpr, waveWindowH, spectrumHistoryH)) {
+    case "fft"://チルトをデフォルトに戻す
+      if (e.shiftKey) {// Shift + ホイール
+        const scale = Math.exp(-e.deltaY * 0.001);    
+        zoomVertical(e.offsetY * dpr, scale);
+      } else {// 通常ホイール
+        const scale = Math.exp(-e.deltaY * 0.001);    
+        zoomFrequency(e.offsetX * dpr, scale);
+      }
+      break;
+  }
+}, { passive:false });
 
 function onDown(e) {
   fftCanvas.setPointerCapture(e.pointerId);//範囲外に出てもこのキャンバスのイベントにする
@@ -1297,7 +1344,35 @@ function onMove(e) {
           if (!rafId) draw();
         } else if (gesture.axis === "y") panSeparator2();//縦方向はセパレート位置調整
         break;
-      case "freqRuler":
+      case "freqRuler"://下端の周波数線
+        if (gesture.axis === "x") {
+          panTargetFreq(e);
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") {
+        }
+        break;
+      case "freqRulerL"://下端の周波数線の左端
+        if (gesture.axis === "x") {
+          panPeakScanSt(e);//ピークの走査の左端を変更
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") {
+        }
+        break;
+      case "freqRulerR"://下端の周波数線の右端
+        if (gesture.axis === "x") {
+          panPeakScanEnd(e);//ピークの走査の右端を変更
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") {
+        }
+        break;
+      case "colorMapXfreqRulerR"://下端の周波数線とカラーマップの交点
+        if (gesture.axis === "x") {
+          panPeakScanEnd(e);//ピークの走査の右端を変更
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") {
+          panSpectrumContrast();
+          if (!rafId) draw();
+        }
         break;
       case "colorMap":
         panSpectrumContrast();
@@ -1346,6 +1421,8 @@ function onUp(e) {
     if(pts.length && pressTimer) gesture.previousPoint = {x: pts[0].x, y: pts[0].y};//最後の指の位置を保存
     dragRect.classList.remove("active");
     dragRect.classList.add("fadeout");
+    dragRect2.classList.remove("active");
+    dragRect2.classList.add("fadeout");
   } else if (gesture.pointers.size === 1 && gesture.lockedGesture === null) {//一本になったらパンモード
     gesture.mode = 'pan';
     gesture.start = snapshotView();//初めのタップ位置
@@ -1467,6 +1544,7 @@ function panTilt() {//傾きの変更
 
   if (baseSlopePerOct > 30) baseSlopePerOct = 30; 
   if (baseSlopePerOct < -30) baseSlopePerOct = -30; 
+  makeDecibelWeightAtX();//重み配列の更新
 }
 function panSpectrumContrast() {//コントラスト変更
   if (colorLockIs && panZoomLockIs) return;//ロック
@@ -1479,6 +1557,46 @@ function panSpectrumContrast() {//コントラスト変更
   makeColorMap();
   makeColorMapCanvas();
 }
+function panPeakScanEnd(e) {
+  const pointX = e.clientX * dpr;
+  const rectStX = Math.max(0, freqToX(fftPeakScanStFreq));
+  const rectW = Math.max(0, pointX - rectStX);
+  dragRect2.style.backgroundColor = "hsla(180, 100%, 50%, 0.2)";
+  dragRect2.style.borderColor = "hsla(180, 100%, 50%, 0.5)";
+  updateDragRect2(rectStX, fftViewZeroY, rectW, fftViewH);//操作エリアの表示
+  const pointFreq = xToFreq(pointX);//周波数
+  const pointBin = Math.max(0, Math.min(Math.floor(pointFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1));//インデックスでいうと？
+  fftPeakScanEndBin = Math.max(fftPeakScanStBin, pointBin);//走査開始点よりは大きくする
+  fftPeakScanEndFreq = fftPeakScanEndBin * fftBinFreq;
+  if (!rafId) makePeakList();//ピークリスト更新
+}
+function panPeakScanSt(e) {
+  const pointX = e.clientX * dpr;
+  const rectEndX = Math.min(fftCanvas.width - 1, freqToX(fftPeakScanEndFreq));
+  const rectW = Math.max(0, rectEndX - pointX);
+  dragRect2.style.backgroundColor = "hsla(180, 100%, 50%, 0.2)";
+  dragRect2.style.borderColor = "hsla(180, 100%, 50%, 0.5)";
+  updateDragRect2(pointX, fftViewZeroY, rectW, fftViewH);//操作エリアの表示
+  const pointFreq = xToFreq(pointX);//周波数
+  const pointBin = Math.max(0, Math.min(Math.floor(pointFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1));//インデックスでいうと？
+  fftPeakScanStBin = Math.min(fftPeakScanEndBin, pointBin);//走査終了点よりは小さくする
+  fftPeakScanStFreq = fftPeakScanStBin * fftBinFreq;
+  if (!rafId) makePeakList();//ピークリスト更新
+}
+function panTargetFreq(e) {
+  const pointX = e.clientX * dpr;
+  const pointFreq = xToFreq(pointX);//周波数
+  const uprLimit = Math.floor(ctxSampleRate / 1.2) / 10;
+  const lwrLimit = Math.ceil(fftBinFreq * 25) / 10;
+  targetFreq = Math.max(lwrLimit, Math.min(uprLimit, pointFreq));//値セット
+  const targetX = freqToX(targetFreq);
+  const rectW = 0.3 * dpr;
+  dragRect2.style.backgroundColor = "hsla(60, 100%, 50%, 0.7)";;
+  dragRect2.style.borderColor = "hsla(60, 100%, 50%, 0.2)";;          
+  updateDragRect2(targetX - rectW, fftViewZeroY, rectW + rectW, fftViewH);//操作エリアの表示
+
+}
+
 function doubleTap(e) {//ダブルタップ
     switch (getAreaName(e.clientX * dpr, e.clientY * dpr, waveWindowH, spectrumHistoryH)) {
       case "fftR"://チルトをデフォルトに戻す
@@ -1614,22 +1732,7 @@ function snapshotPinch() {//二つ指の初期値
   };
 }
 
-function fitMenuInViewportAndRemoveHide(menu) {//メニューを渡すと画面内に収めてくれる関数
-  menu.style.visibility = "hidden";//まだ隠す
-  menu.classList.remove('hidden');
-  menu.offsetHeight; // ←レイアウト確定
-  const nowLeft = parseFloat(menu.style.left);
-  menu.style.left = `${0}px`;//改行されるのを防ぐために一時的に左に動かす
-  const rect = menu.getBoundingClientRect();
-  const maxLeft = window.innerWidth - rect.width;
-  const maxTop =  window.innerHeight - rect.height;
-  const x = Math.max(0, Math.min(maxLeft, nowLeft));
-  const y = Math.min(maxTop, Math.max(0, rect.top));//下側が優先
-  menu.style.left = `${x}px`;
-  menu.style.top  = `${y}px`;
-  menu.style.visibility = "";//ここで表示
-}
-
+//メニュー表示
 function showMenu(x, y) {//ポップアップ表示
   const canvasHeight = fftCanvas.height;
   const canvasStyleHeight = parseFloat(fftCanvas.style.height);
@@ -1714,9 +1817,6 @@ function showTiltMenu(x, y) {//チルトメニュー表示
   fitMenuInViewportAndRemoveHide(tiltMenu);
   tiltMenu.querySelectorAll('div').forEach(item => {
     if (Number(item.dataset.action) === baseSlopePerOct) item.classList.add('checked');
-    else if (item.dataset.action === "998" && fftBaseVisible) item.classList.add('checked');
-    else if (item.dataset.action === "997" && fftAveVisible) item.classList.add('checked');
-    else if (item.dataset.action === "996" && fftBottomVisible) item.classList.add('checked');
     else item.classList.remove('checked');
   });
 }
@@ -1931,6 +2031,7 @@ function checkPopupInputDiv() {
   else popupInputDiv.querySelector('[data-action="enter"]').classList.remove('hidden');
 }
 
+//メニュー非表示
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
 function hideMicMenu() { micMenu.classList.add('hidden');}//ポップアップ消去
 function hideTiltMenu() { tiltMenu.classList.add('hidden');}//ポップアップ消去
@@ -1947,89 +2048,6 @@ function hideHelpMenu() { helpInfoMenu.classList.add('hidden');}//ポップア�
 function hidePopupPlayMenu() { popupPlayMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupLockMenu() { popupLockMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupInputDiv() { popupInputDiv.classList.add('hidden'); keyInputDivSetting.onConfirm = null;}//ポップアップ消去
-
-overlayPlay.style.touchAction = 'none';
-overlayLock.style.touchAction = 'none';
-overlayHelp.style.touchAction = 'none';
-overlayPlay.addEventListener("pointerdown", async (e) => {//再生ボタン
-  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
-  e.preventDefault();   // デフォルトの右クリックメニューなし
-  hideByOuterDown (e);//他のメニューが開いていたら閉じる
-  if (e.button === 2) {//右クリック
-  } else if (!pressTimer) {//右クリックじゃなくてタイマーがないなら
-    pressTimer = setTimeout(() => {//長押しタイマースタート
-      pressTimer = null;
-      showPopupPlayMenu(e.clientX, e.clientY);
-    }, LONGPRESS_TIME);
-  }
-}//, { once: true, capture: true }
-);
-overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
-  overlayPlay.releasePointerCapture(e.pointerId);
-  clearTimeout(pressTimer);//長押しキャンセル
-  if (e.button === 2) {//右クリック
-
-  } else if (pressTimer) {//タイマーがまだ動いていたら長押しじゃない場合の処理
-    overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
-    pressTimer = null;  
-    if (!running) {
-      start();
-      overlayPlay.textContent = "❚❚";
-    } else {
-      stop();
-      overlayPlay.textContent = "▶";
-    }
-  } else {//タイマーが無い場合はタイマー側でメニューを出しているはずなので何もしない
-  }
-});
-overlayPlay.addEventListener('contextmenu', (e) => {//再生ボタン右クリック
-  e.stopPropagation();  
-  e.preventDefault();   // デフォルトの右クリックメニューなし
-  showPopupPlayMenu(e.clientX, e.clientY);
-});
-overlayLock.addEventListener("pointerdown", async (e) => {//ロックボタン
-  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
-  e.preventDefault();   // デフォルトの右クリックメニューなし
-  hideByOuterDown (e);//他のメニューが開いていたら閉じる
-  if (e.button === 2) {//右クリック
-  } else if (!pressTimer) {//右クリックじゃなくてタイマーがないなら
-    pressTimer = setTimeout(() => {//長押しタイマースタート
-      pressTimer = null;
-      showPopupLockMenu(e.clientX, e.clientY);
-    }, LONGPRESS_TIME);
-  }
-}//, { once: true, capture: true }
-);
-overlayLock.addEventListener('pointerup', (e) => {//再生ボタンを離した
-  overlayLock.releasePointerCapture(e.pointerId);
-  clearTimeout(pressTimer);//長押しキャンセル
-  if (e.button === 2) {//右クリック
-
-  } else if (pressTimer) {//タイマーがまだ動いていたら長押しじゃない場合の処理
-    pressTimer = null;  
-    if (panZoomLockIs) {
-      overlayLock.classList.remove('locked');
-    } else {
-      overlayLock.classList.add('locked');
-    }
-    panZoomLockIs = !panZoomLockIs;
-  } else {//タイマーが無い場合はタイマー側でメニューを出しているはずなので何もしない
-  }
-});
-overlayLock.addEventListener('contextmenu', (e) => {//ロックボタン右クリック
-  e.stopPropagation();  
-  e.preventDefault();   // デフォルトの右クリックメニューなし
-  showPopupLockMenu(e.clientX, e.clientY);
-});
-overlayHelp.addEventListener("pointerdown", (e) => {//ヘルプボタン
-  e.stopPropagation();  
-  showHelpMenu(e.clientX + 2, 10);
-}//, { once: true, capture: true }
-);
-overlayHelp.addEventListener('contextmenu', (e) => {//ヘルプボタン右クリック
-  e.stopPropagation();  
-  e.preventDefault();   // デフォルトの右クリックメニューなし
-});
 
 document.addEventListener('pointerdown', (e) => {// 外をクリックしたら閉じる
   hideByOuterDown (e);
@@ -2061,6 +2079,7 @@ fftCanvas.addEventListener('click', (e) => {//キャンバス左クリックonDo
   e.preventDefault();   // デフォルトのメニューなし
 });
 
+//メニューの実動作
 menu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
   if (!action) return;
@@ -2127,7 +2146,7 @@ tiltMenu.addEventListener('click', (e) => {//ポップアップメニューク�
   const action = e.target.dataset.action;
   if (!action) return;
 
-  if (action === "999") {
+  if (action === "999") {//数値入力
     keyInputDivSetting.labelTxt = "傾き補正";
     keyInputDivSetting.labelSubTxt = "dB/Oct";
     keyInputDivSetting.nowValue = baseSlopePerOct;
@@ -2140,24 +2159,27 @@ tiltMenu.addEventListener('click', (e) => {//ポップアップメニューク�
       baseSlopePerOct = value;//値セット
       if (baseSlopePerOct !== 0) fftBaseVisible = true;//ゼロじゃなかったら参考線を表示しちゃう
       else fftBaseVisible = false;
-      if (!rafId) draw();
+      makeDecibelWeightAtX();//重み配列の更新
+      if (!rafId) makeFftView();//画面が動いていなければ反映させる
+      if (!rafId) draw();//画面が動いていなければ更新
     };
     showPopupInputDiv(e.clientX, e.clientY)
     hideTiltMenu();
     hideMenu();
-  } else {
+  } else {//メニュー選択
     baseSlopePerOct = Number(action);
-    if (baseSlopePerOct !== 0) fftBaseVisible = true;//ゼロじゃなかったら参考線を表示しちゃう
-    else fftBaseVisible = false;
-    tiltMenu.querySelectorAll('div').forEach(item => {
+    tiltMenu.querySelectorAll('div').forEach(item => {//メニューのチェック状態を更新
       if (Number(item.dataset.action) === baseSlopePerOct) item.classList.add('checked');
-      else if (item.dataset.action === "998" && fftBaseVisible) item.classList.add('checked');
-      else if (item.dataset.action === "997" && fftAveVisible) item.classList.add('checked');
-      else if (item.dataset.action === "996" && fftBottomVisible) item.classList.add('checked');
       else item.classList.remove('checked');
     });
+//  <div data-action="555">平均を0dBに</div>
+//  <div data-action="556">底を0dBに</div>
+    if (baseSlopePerOct !== 0 && baseSlopePerOct !== 555 && baseSlopePerOct !== 556) fftBaseVisible = true;//ゼロじゃなかったら参考線を表示しちゃう
+    else fftBaseVisible = false;
+    makeDecibelWeightAtX();//重み配列の更新
+    if (!rafId) makeFftView();//画面が動いていなければ反映させる
+    if (!rafId) draw();//画面が動いていなければ更新
   }
-  draw();
 });
 sizeMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -2244,6 +2266,7 @@ unitMenu.addEventListener('click', async (e) => {//ポップアップメニュ�
     else if (item.dataset.action === "log" && viewIsLogFrequency) item.classList.add('checked');//logの時はログか✔
     else item.classList.remove('checked');//それ以外は外す
   });
+  drawFftOverLay();//グリッド線を更新
   if (!rafId) draw();
 });
 peakMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
@@ -2586,7 +2609,88 @@ function popupInputDivOnUp(e) {
   }
 }
 
-async function start() {
+//ボタン類
+overlayPlay.addEventListener("pointerdown", async (e) => {//再生ボタン
+  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  hideByOuterDown (e);//他のメニューが開いていたら閉じる
+  if (e.button === 2) {//右クリック
+  } else if (!pressTimer) {//右クリックじゃなくてタイマーがないなら
+    pressTimer = setTimeout(() => {//長押しタイマースタート
+      pressTimer = null;
+      showPopupPlayMenu(e.clientX, e.clientY);
+    }, LONGPRESS_TIME);
+  }
+}//, { once: true, capture: true }
+);
+overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
+  overlayPlay.releasePointerCapture(e.pointerId);
+  clearTimeout(pressTimer);//長押しキャンセル
+  if (e.button === 2) {//右クリック
+
+  } else if (pressTimer) {//タイマーがまだ動いていたら長押しじゃない場合の処理
+    overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
+    pressTimer = null;  
+    if (!running) {
+      start();
+      overlayPlay.textContent = "❚❚";
+    } else {
+      stop();
+      overlayPlay.textContent = "▶";
+    }
+  } else {//タイマーが無い場合はタイマー側でメニューを出しているはずなので何もしない
+  }
+});
+overlayPlay.addEventListener('contextmenu', (e) => {//再生ボタン右クリック
+  e.stopPropagation();  
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  showPopupPlayMenu(e.clientX, e.clientY);
+});
+overlayLock.addEventListener("pointerdown", async (e) => {//ロックボタン
+  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  hideByOuterDown (e);//他のメニューが開いていたら閉じる
+  if (e.button === 2) {//右クリック
+  } else if (!pressTimer) {//右クリックじゃなくてタイマーがないなら
+    pressTimer = setTimeout(() => {//長押しタイマースタート
+      pressTimer = null;
+      showPopupLockMenu(e.clientX, e.clientY);
+    }, LONGPRESS_TIME);
+  }
+}//, { once: true, capture: true }
+);
+overlayLock.addEventListener('pointerup', (e) => {//再生ボタンを離した
+  overlayLock.releasePointerCapture(e.pointerId);
+  clearTimeout(pressTimer);//長押しキャンセル
+  if (e.button === 2) {//右クリック
+
+  } else if (pressTimer) {//タイマーがまだ動いていたら長押しじゃない場合の処理
+    pressTimer = null;  
+    if (panZoomLockIs) {
+      overlayLock.classList.remove('locked');
+    } else {
+      overlayLock.classList.add('locked');
+    }
+    panZoomLockIs = !panZoomLockIs;
+  } else {//タイマーが無い場合はタイマー側でメニューを出しているはずなので何もしない
+  }
+});
+overlayLock.addEventListener('contextmenu', (e) => {//ロックボタン右クリック
+  e.stopPropagation();  
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  showPopupLockMenu(e.clientX, e.clientY);
+});
+overlayHelp.addEventListener("pointerdown", (e) => {//ヘルプボタン
+  e.stopPropagation();  
+  showHelpMenu(e.clientX + 2, 10);
+}//, { once: true, capture: true }
+);
+overlayHelp.addEventListener('contextmenu', (e) => {//ヘルプボタン右クリック
+  e.stopPropagation();  
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+});
+
+async function start() {//ストリーム取得開始とアニメーションスタート
   try {
     // 事前チェック
     const tmpDevices = await navigator.mediaDevices.enumerateDevices();
@@ -2659,7 +2763,8 @@ async function start() {
     ctxSampleRate = audioCtx.sampleRate;//stopした時でもバグらないようにサンプルレートを保存
     fftBinFreq = ctxSampleRate / fftSizeSetting;//ビンサイズ
     invFftBinFreq = fftSizeSetting / ctxSampleRate;//ビンサイズの逆数
-    nyquistFreq = ctxSampleRate * 0.5;
+    fftPeakScanEndBin = Math.min(Math.round(fftPeakScanEndFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1);//スキャン終了のインデックス
+    fftPeakScanStBin = Math.max(Math.round(fftPeakScanStFreq * invFftBinFreq), 0);//スキャン開始のインデックス
 
     //指定した内容の取得
     const constraints = track.getConstraints();
@@ -2703,7 +2808,7 @@ async function start() {
     }
   }
 }
-function stop() {
+function stop() {//ストリーム取得終了とアニメーションストップ
   running = false;
   if (rafId) {
     cancelAnimationFrame(rafId);
@@ -2722,7 +2827,31 @@ function stop() {
     audioCtx = null;
   }
 }
+function animateByCtx(now) {//アニメーションループ
+  rafId = requestAnimationFrame(animateByCtx);//次のフレームで呼ぶ関数に自身を指定することでループする
+  updateAnalyserData();//アナライザーからデータを取得して値を更新する
+  draw(now);
+  const longTimeAgo = previousNow[previousNowIndex];
+  previousNow[previousNowIndex] = now;//fps確認用
+  previousNowIndex = (previousNowIndex + 1) % previousNow.length;
+  const fps = 1000 / (now - longTimeAgo) * previousNow.length;
+  infoRect.textContent = `fps : ${fps.toFixed(1)}`; 
+  infoRect.classList.remove("fadeout");
+  infoRect.classList.add("active");  
 
+}
+function updateAnalyserData() {//アナライザーからデータを取得して値を更新する
+  if (!analyserNode) return//アナライザーノードが無かったら更新しない
+  analyserNode.getFloatFrequencyData(fftResult);
+  analyserNode.getFloatTimeDomainData(timeDomain);
+  averageFftResult (0.5);//平均とボトムを作成
+  makeBottomResult();//ボトムライン作成
+  makePeakList ();//ピーク検出。
+  makeLevelValue();//レベルメーター用の値を計算
+  makeFftView();//平均やボトムの反映
+}
+
+//変換、値取得系
 function freqToX(freq) {//周波数からｘ座標
 //  if (freq < viewMinFreq) return -2;//範囲外
 //  if (freq > viewMaxFreq) return fftCanvas.width + 2;//範囲外
@@ -2770,13 +2899,35 @@ function getAWeightingDb(freq) {
 function getFreqWeightingDb(freq) {
   if (baseSlopePerOct === 0) return 0;
   if (baseSlopePerOct === 888) {//A特性
-    return getAWeightingDb(freq);
+    const x = Math.round(freqToX(freq));
+    if (x > 0 && x < fftCanvas.width) return decibelWeightAtX[x];
+    else return getAWeightingDb(freq)
   } else if (baseSlopePerOct === 555) {//平均。結果を直接いじってしまうのでここでは何もしない
     return 0;
   } else if (baseSlopePerOct === 556) {//ボトムライン。結果を直接いじってしまうのでここでは何もしない
     return 0;
   } else {
     return Math.log2(freq * 0.001) * baseSlopePerOct;//1000を基準
+  }
+}
+function getXWeightingDb(x) {
+  if (baseSlopePerOct === 0) return 0;
+  if (baseSlopePerOct === 888) {//A特性
+    if (x > 0 && x < fftCanvas.width) return decibelWeightAtX[x];
+    else {
+      const freq = xToFreq(x);
+      return getAWeightingDb(freq)
+    }
+  } else if (baseSlopePerOct === 555) {//平均。結果を直接いじってしまうのでここでは何もしない
+    return 0;
+  } else if (baseSlopePerOct === 556) {//ボトムライン。結果を直接いじってしまうのでここでは何もしない
+    return 0;
+  } else {
+    if (x > 0 && x < fftCanvas.width) return decibelWeightAtX[x];
+    else {
+      const freq = xToFreq(x);
+      return Math.log2(freq * 0.001) * baseSlopePerOct;//1000を基準
+    }
   }
 }
 
@@ -2801,531 +2952,8 @@ function splineEndBinIndex(gap) {//何ドットまでスプラインで書くか
     else return 0;//広いならゼロ
   }
 }
-function animateByCtx(now) {
-  rafId = requestAnimationFrame(animateByCtx);
-  draw(now);
-}
 
-function drawXScale () {//周波数基準の縦の線を描く
-  //縦線
-  ctxFft.save();
-  ctxFft.globalAlpha = fftVLAlpha;
-  ctxFft.font = "12px JetBrains Mono, Fira Code, monospace";
-  ctxFft.textAlign = "center";
-  ctxFft.globalCompositeOperation = "lighter";//加算モード
-
-  switch (xUnit) {
-    case 0://Hz
-      drawHzScale (fftViewZeroY, true);
-      break;
-    case 1://RPM
-      drawHzScale (fftCanvas.height - 13, false);
-      drawRpmScale (fftViewZeroY);
-      break;
-    case 3://SEC
-      drawHzScale (fftCanvas.height - 13, false);
-      drawSecScale (fftViewZeroY);
-      break;
-    case 2://Note
-      drawHzScale (fftCanvas.height - 13, false);
-      drawNoteScale (fftViewZeroY);
-      break;
-  }
-//  ctxFft.globalCompositeOperation = "source-over";//通常モード
-  ctxFft.restore();
-}
-function drawHzScale (TopY, uprTxtIs) {
-  const divColor1 = "#bbb";//線の色
-  const divColor2 = "#888";//線の色
-  const divColor3 = "#666";//線の色
-  const divColor4 = "#555";//線の色
-  const divColor5 = "#444";//線の色
-  const txtColor1 = "#bbb";//文字の色
-  const divHeight = fftCanvas.height - TopY + 1;
-  if (viewIsLogFrequency) {//横軸対数
-    ctxFft.fillStyle = divColor2;
-    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinFreq)));
-    let minGap = fftCanvas.width;//最小ギャップ計測用
-    let previousX = - fftCanvas.width;
-    let nextDecade = minDecade * 10;
-    let subDecade = minDecade;
-    for (let i = Math.ceil(viewMinFreq / subDecade) * subDecade; i <= viewMaxFreq; i += subDecade) {
-      const x = freqToX(i) | 0;
-      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctxFft.fillStyle = divColor2;} else {
-        ctxFft.fillStyle = txtColor1;
-        ctxFft.textBaseline = "bottom";
-        ctxFft.fillText(`${i}`, x, fftCanvas.height - 2);
-        if (uprTxtIs) {
-          ctxFft.textBaseline = "top";
-          ctxFft.fillText(`${i}`, x, TopY + 2);
-        }
-        ctxFft.fillStyle = divColor1;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId && TopY === fftViewZeroY) {//動いている時だけ書く
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-      const gap = x - previousX;
-      if (gap < minGap) minGap = gap;
-      previousX = x;
-      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
-    }
-    if (minGap * 8 > fftCanvas.width) {
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.1;
-      subSubDecade5 = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinFreq / subSubDecade) * subSubDecade; i <= viewMaxFreq; i += subSubDecade) {
-        const x = freqToX(i) | 0;
-        if (i % subDecade !== 0) {
-          if (i % subSubDecade5 !== 0) {ctxFft.fillStyle = divColor5;} else {ctxFft.fillStyle = divColor3}
-
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId && TopY === fftViewZeroY) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時
-          ctxFft.fillStyle = txtColor1;
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i}`, x, fftCanvas.height - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i}`, x, TopY + 2);
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
-      }
-    } else if (minGap * 20 > fftCanvas.width) {
-      ctxFft.fillStyle = divColor3;
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinFreq / subSubDecade) * subSubDecade; i <= viewMaxFreq; i += subSubDecade) {
-        if (i % subDecade !== 0) {
-          const x = freqToX(i) | 0;
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId && TopY === fftViewZeroY) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
-      }
-    }
-  } else {//横軸リニア
-    let divFreq = 100;
-    if (viewFreqRange < 200) {divFreq = 10;}
-    if (viewFreqRange > 10000) {divFreq = 1000;}
-    let div5Freq = divFreq * 5;
-    for (i = Math.ceil(viewMinFreq / divFreq) * divFreq; i < viewMaxFreq; i += divFreq) {
-      const x = freqToX(i) | 0;
-      if (viewFreqRange < 200) {//範囲狭い時カラー
-        if (i % 50 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i}`, x, fftCanvas.height - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor5;
-        if (i % 50 === 0) ctxFft.fillStyle = divColor4;
-        if (i % 100 === 0) ctxFft.fillStyle = divColor3;
-        if (i % 500 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 1000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 5000 === 0) ctxFft.fillStyle = divColor1;
-      } else if (viewFreqRange > 10000) {//範囲広い時カラー
-        if (i % 5000 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i}`, x, fftCanvas.height - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor5;
-        if (i % 5000 === 0) ctxFft.fillStyle = divColor1;
-      } else {//普通のカラー
-        if (i % 1000 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i}`, x, fftCanvas.height - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor3;
-        if (i % 500 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 1000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 5000 === 0) ctxFft.fillStyle = divColor1;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId && TopY === fftViewZeroY) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-    }
-  }
-}
-function drawRpmScale (TopY) {
-  const divColor1 = "#bbb";//線の色
-  const divColor2 = "#888";//線の色
-  const divColor3 = "#666";//線の色
-  const divColor4 = "#555";//線の色
-  const divColor5 = "#444";//線の色
-  const txtColor1 = "#bbb";//文字の色
-  const divHeight = fftCanvas.height - TopY - 14;
-  const divBottom = fftCanvas.height - 14;
-  const uprTxtIs = true;
-  const viewMinFreq60 = viewMinFreq * 60;
-  const viewMaxFreq60 = viewMaxFreq * 60;
-  if (viewIsLogFrequency) {//横軸対数
-    ctxFft.fillStyle = divColor2;
-    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinFreq60)));
-    let minGap = fftCanvas.width;//最小ギャップ計測用
-    let previousX = - fftCanvas.width;
-    let nextDecade = minDecade * 10;
-    let subDecade = minDecade;
-    for (let i = Math.ceil(viewMinFreq60 / subDecade) * subDecade; i <= viewMaxFreq60; i += subDecade) {
-      const x = freqToX(i * inv60) | 0;
-      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctxFft.fillStyle = divColor2;} else {
-        ctxFft.fillStyle = txtColor1;
-        ctxFft.textBaseline = "bottom";
-        ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
-        if (uprTxtIs) {
-          ctxFft.textBaseline = "top";
-          ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
-        }
-        ctxFft.fillStyle = divColor1;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-      const gap = x - previousX;
-      if (gap < minGap) minGap = gap;
-      previousX = x;
-      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
-    }
-    if (minGap * 8 > fftCanvas.width) {
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.1;
-      subSubDecade5 = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinFreq60 / subSubDecade) * subSubDecade; i <= viewMaxFreq60; i += subSubDecade) {
-        const x = freqToX(i * inv60) | 0;
-        if (i % subDecade !== 0) {//書かれていないところなら
-          if (i % subSubDecade5 !== 0) {ctxFft.fillStyle = divColor5;} else {ctxFft.fillStyle = divColor3}
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時で５倍以外
-          ctxFft.fillStyle = txtColor1;
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
-      }
-    } else if (minGap * 20 > fftCanvas.width) {
-      ctxFft.fillStyle = divColor3;
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinFreq60 / subSubDecade) * subSubDecade; i <= viewMaxFreq60; i += subSubDecade) {
-        if (i % subDecade !== 0) {
-          const x = freqToX(i * inv60) | 0;
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
-      }
-    }
-  } else {//横軸リニア
-    let divFreq = 10000;
-    if (viewFreqRange < 500) {divFreq = 1000;}//狭い時
-    if (viewFreqRange > 5000) {divFreq = 100000;}//広い時
-    let div5Freq = divFreq * 5;
-    for (i = Math.ceil(viewMinFreq60 / divFreq) * divFreq; i < viewMaxFreq60; i += divFreq) {
-      const x = freqToX(i * inv60) | 0;
-      if (viewFreqRange < 500) {//範囲狭い時カラー
-        if (i % 50 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor5;
-        if (i % 500 === 0) ctxFft.fillStyle = divColor4;
-        if (i % 1000 === 0) ctxFft.fillStyle = divColor3;
-        if (i % 5000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 10000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 50000 === 0) ctxFft.fillStyle = divColor1;
-      } else if (viewFreqRange > 5000) {//範囲広い時カラー
-        if (i % 50000 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor5;
-        if (i % 50000 === 0) ctxFft.fillStyle = divColor2;
-      } else {//普通のカラー
-        if (i % 10000 === 0) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${i}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${i}`, x, TopY + 2);
-          }
-        }
-        ctxFft.fillStyle = divColor3;
-        if (i % 5000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 10000 === 0) ctxFft.fillStyle = divColor2;
-        if (i % 50000 === 0) ctxFft.fillStyle = divColor1;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-    }
-  }
-}
-function drawSecScale (TopY) {
-  const divColor1 = "#bbb";//線の色
-  const divColor2 = "#888";//線の色
-  const divColor3 = "#666";//線の色
-  const divColor4 = "#555";//線の色
-  const divColor5 = "#444";//線の色
-  const txtColor1 = "#bbb";//文字の色
-  const divHeight = fftCanvas.height - TopY - 14;
-  const divBottom = fftCanvas.height - 14;
-  const uprTxtIs = true;
-  const viewMinFreq60 = viewMinFreq * 60;
-  const viewMaxFreq60 = viewMaxFreq * 60;
-  const viewMinSec = 1 / viewMaxFreq;//逆数なのでMinとMaxが逆になる
-  const viewMaxSec = 1 / viewMinFreq;
-  if (viewIsLogFrequency) {//横軸対数
-    ctxFft.fillStyle = divColor2;
-    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinSec)));
-    let minGap = fftCanvas.width;//最小ギャップ計測用
-    let previousX = - fftCanvas.width;
-    let nextDecade = minDecade * 10;
-    let subDecade = minDecade;
-    for (let i = Math.ceil(viewMinSec / subDecade) * subDecade; i <= viewMaxSec; i += subDecade) {
-      const x = freqToX(1 / i) | 0;
-      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctxFft.fillStyle = divColor2;} else {
-        ctxFft.fillStyle = txtColor1;
-        ctxFft.textBaseline = "bottom";
-        ctxFft.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
-        if (uprTxtIs) {
-          ctxFft.textBaseline = "top";
-          ctxFft.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
-        }
-        ctxFft.fillStyle = divColor1;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-      const gap = x - previousX;
-      if (gap < minGap) minGap = gap;
-      previousX = x;
-      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
-    }
-    if (minGap * 8 > fftCanvas.width) {
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.1;
-      subSubDecade5 = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinSec / subSubDecade) * subSubDecade; i <= viewMaxSec; i += subSubDecade) {
-        const x = freqToX(1 / i) | 0;
-        if (i % subDecade !== 0) {//書かれていないところなら
-          if (i % subSubDecade5 !== 0) {ctxFft.fillStyle = divColor5;} else {ctxFft.fillStyle = divColor3}
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時で５倍以外
-          ctxFft.fillStyle = txtColor1;
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
-      }
-    } else if (minGap * 20 > fftCanvas.width) {
-      ctxFft.fillStyle = divColor3;
-      nextDecade = minDecade * 10;
-      subDecade = minDecade;
-      subSubDecade = minDecade * 0.5;
-      for (let i = Math.ceil(viewMinSec / subSubDecade) * subSubDecade; i <= viewMaxSec; i += subSubDecade) {
-        if (i % subDecade !== 0) {
-          const x = freqToX(1 / i) | 0;
-          ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-          if (rafId) {
-            historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-            historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-          }
-        }
-        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
-      }
-    }
-  } else {//横軸リニア。といっても逆数なので特殊
-    const viewMinSecX1000 = viewMinSec * 1000;//逆数なのでMinとMaxが逆になる
-    const viewMaxSecX1000 = viewMaxSec * 1000;
-    const inv1000 = 0.001;
-    let divFreq = 0.01;
-    while ((viewMaxSecX1000 - viewMinSecX1000) < divFreq * 1.5) {//線が少なくなりそうなら、区切りを細かくする
-      divFreq *= 0.1;
-    }
-    let nextDecade = divFreq * 10;
-    let div5Freq = divFreq * 5;
-    let previousX = Infinity;
-    for (i = Math.ceil(viewMinSecX1000 / divFreq) * divFreq; i < viewMaxSecX1000; i += divFreq) {
-      const iInv1000 = i * inv1000;
-      const x = freqToX(1000 / i) | 0;
-      const gap = previousX - x;
-      i = Math.round(i / divFreq) * divFreq;
-      previousX = x;
-      if (i >= nextDecade && (viewMaxSecX1000 - viewMinSecX1000) > nextDecade * 5 ) {
-        nextDecade *= 10; 
-        divFreq *= 10; 
-        div5Freq *= 10; 
-        ctxFft.fillStyle = txtColor1
-        ctxFft.textBaseline = "bottom";
-        ctxFft.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
-        if (uprTxtIs) {
-          ctxFft.textBaseline = "top";
-          ctxFft.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
-        }
-        ctxFft.fillStyle = divColor2;
-      } else {
-
-        if (gap > 60) {
-          ctxFft.fillStyle = txtColor1
-          ctxFft.textBaseline = "bottom";
-          ctxFft.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
-          if (uprTxtIs) {
-            ctxFft.textBaseline = "top";
-            ctxFft.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
-          }
-        }
-        if (i % (divFreq * 10) < divFreq * 0.5) ctxFft.fillStyle = divColor2;
-        else ctxFft.fillStyle = divColor4;
-      }
-      ctxFft.fillRect(x, TopY, 1, divHeight + 1);
-      if (rafId) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(x, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-      if (gap < 2) break;//ピッチが狭くなりすぎてたら終わる
-    }
-  }
-}
-function drawNoteScale (TopY) {
-  const whiteKeyColor = "#bbb";//線の色
-  const blackKeyColor = "#000";//線の色
-  const divColor1 = "#bbb";//線の色
-  const divColor2 = "#888";//線の色
-  const divColor3 = "#666";//線の色
-  const divColor4 = "#555";//線の色
-  const divColor5 = "#444";//線の色
-  const txtColor1 = "#bbb";//文字の色
-  const txtColor2 = "#000";//文字の色
-  const txtHeight = 15;
-  const divBottom = fftCanvas.height - txtHeight * 4;//線の下端
-  const divHeight = divBottom - TopY;
-  const uprTxtIs = true;
-  const viewMinNote = Math.floor(freqToNote(viewMinFreq));
-  const viewMaxNote = Math.ceil(freqToNote(viewMaxFreq));
-  let previousEdgeX = 0;
-  ctxFft.fillStyle = whiteKeyColor;
-  ctxFft.fillRect(0, divBottom, fftCanvas.width, txtHeight * 3);//キーボード部を白で塗りつぶす
-  ctxFft.textBaseline = "top";
-//  ctxFft.globalCompositeOperation = "xor";
-  for (let note = viewMinNote; note <= viewMaxNote; note++) {
-    const noteX = freqToX(noteToFreq(note)) | 0;
-    const edgeX = freqToX(noteToFreq(note + 0.5))| 0;//次の境い目
-    const gap = edgeX - previousEdgeX;
-    ctxFft.save();
-    ctxFft.globalCompositeOperation = "source-over";//通常モード
-    ctxFft.fillStyle = txtColor2;//黒
-    if (noteIsSharp(note)) {//今が黒鍵
-      ctxFft.fillRect(previousEdgeX, divBottom, gap, txtHeight - 1);//黒鍵
-      ctxFft.fillRect(noteX, divBottom + txtHeight, 1, txtHeight);//黒鍵の下の白鍵の間の線
-    } else if (!noteIsSharp(note + 1)) {//今も次も白
-      ctxFft.fillRect(edgeX, divBottom , 1, txtHeight + txtHeight);//白鍵の間の線
-    }
-    if ((note + 1) % 12 === 0) {//オクターブ区切りの線とオクターブテキスト
-      ctxFft.fillRect(edgeX, divBottom + txtHeight + txtHeight, 1, txtHeight);//下まで突き抜ける線
-      const lowerEdgeX = freqToX(noteToFreq(note + 0.5 - 12));//一個前のオクターブ区切り
-      ctxFft.fillText(`${noteToOct(note)}`, (lowerEdgeX + edgeX) * 0.5, divBottom + txtHeight + txtHeight);//文字
-      ctxFft.fillStyle = divColor3;
-    } else {
-      ctxFft.fillStyle = divColor5;
-    }
-    ctxFft.globalCompositeOperation = "lighter";//加算モード
-    ctxFft.fillRect(edgeX, TopY, 1, divHeight);//キーボードの上の線
-      if (rafId) {
-        historyVLCtx.fillStyle = ctxFft.fillStyle;//ヒストリー側に点を打つ
-        historyVLCtx.fillRect(edgeX, HistoryWriteLine , 1, 1);//ヒストリー側に点を打つ
-      }
-    ctxFft.globalCompositeOperation = "source-over";//通常モード
-
-    if (noteIsSharp(note)) {//黒鍵
-      if (gap > 20) {
-        ctxFft.fillStyle = txtColor1;//白
-        ctxFft.fillText(`${noteToLabel(note)}`, noteX, divBottom);//文字
-      }
-    } else {//白鍵
-      if (gap > 7) {
-        let adjustX = noteX;
-        if (noteIsSharp(note + 1) && noteIsSharp(note - 1)) adjustX = noteX;
-        else if (noteIsSharp(note + 1)) adjustX = (noteX + edgeX) * 0.5;
-        else if (noteIsSharp(note - 1)) adjustX = (noteX + previousEdgeX) * 0.5;
-        ctxFft.fillStyle = txtColor2;//黒
-        ctxFft.fillText(`${noteToLabel(note)}`, adjustX, divBottom + txtHeight);//文字
-      }
-    }
-    previousEdgeX = edgeX;
-    ctxFft.restore();
-  }
-
-
-
-
-//console.log(viewMinNote, viewMaxNote);
-
-}
-
+//少し重めの計算
 function averageFftResult (rangeOct) {
   if (!fftResult) return;
   if (rangeOct > 1) return;
@@ -3406,15 +3034,16 @@ function makeBottomResult() {//fftAveを作ったあとに底のラインを探�
   }
 }
 function makePeakList () {
+
   const peakThreshold = 12;//ピーク検出するためのデシベル
   const baseFreqEndBin = Math.round(2000 * invFftBinFreq);//基本周波数を探るビン番号
   for (let i = 0; i < fftPeakHeight.length; i++) {
     fftPeakHeight[i] = -Infinity;//ピーク削除
     fftPeakIndex[i] = Infinity;//ピーク削除
   }
-  let i = Math.min(fftResult.length - 1, Math.max(0, Math.ceil(viewMinFreq * invFftBinFreq)));
+  let i = Math.min(fftResult.length - 1, Math.max(0, Math.ceil(viewMinFreq * invFftBinFreq), fftPeakScanStBin), fftPeakScanEndBin);
   let needSort = false;
-  while (i <= viewMaxBinIndex) {
+  while (i <= viewMaxBinIndex && i <= fftPeakScanEndBin) {
     if (fftResult[i] > fftAve[i]) {//山側
       const tmpDecibel = fftResult[i] - fftBottom[i];//比較する値
       if (fftPeakHeight[0] < tmpDecibel && tmpDecibel > peakThreshold) {
@@ -3440,7 +3069,6 @@ function makePeakList () {
   for (let i = 0; i < fftPeakIndexSortRank.length; i++) fftPeakIndexSortRank[i] = i;//0～
   fftPeakIndexSortRank.sort((a, b) => fftPeakIndex[a] - fftPeakIndex[b]);//昇順
 }
-
 function baseFreqByPeakList () {//ピークリストから推定する基本周波数
   for (let i = 0; i < fftPeakIndexSortRank.length; i++) fftPeakIndexSortRank[i] = i;//0～
   fftPeakIndexSortRank.sort((a, b) => fftPeakIndex[a] - fftPeakIndex[b]);//昇順
@@ -3461,6 +3089,588 @@ function baseFreqByPeakList () {//ピークリストから推定する基本周�
 //  console.log(gapNum, gapSum / gapNum * fftBinFreq);
   return (gapNum !== 0) ? gapSum / gapNum * fftBinFreq: 200;
 }
+function searchZeroCross (stIndex, previousValue, waveletPitch) {//ゼロクロスを探す
+  let endMargin = waveletPitch * 16;
+  let j = stIndex;
+  let k0 = previousValue;
+  let k1 = k0;
+  if (k0 === 0) return [j, k0];//そこがゼロならそれを返して終わる
+  while ((k0 > 0 || k1 <= 0) && j < timeDomain.length - endMargin) {
+    [k0, k1] = [k1, 0];
+    j += waveletPitch;//進め量
+    for (let i = -7; i < 8; i++) k1 += wavelet8[Math.abs(i)] * timeDomain[j + (i + 7) * waveletPitch];
+  }
+  j -= waveletPitch;//一個戻る
+  if (k0 === 0) return [j, k0];//そこがゼロならそれを返して終わる
+  k1 = k0;
+  while ((k0 > 0 || k1 <= 0) && j < timeDomain.length - endMargin) {
+    [k0, k1] = [k1, 0];
+    j += 1;//進め量
+    for (let i = -7; i < 8; i++) k1 += wavelet8[Math.abs(i)] * timeDomain[j + (i + 7) * waveletPitch];
+  }
+  if (j >= timeDomain.length - endMargin) return [-1, -1];//最後までいってたら-1を返す。
+  j--;  
+  return [j, k0];//前回のインデックスと前回値を返す
+}
+function makeFftView() {//平均ベースやボトムベースの反映
+  if (baseSlopePerOct === 555) {//平均との差分にする。
+    for (let i = 0; i < fftResult.length; i++) fftView[i] = fftResult[i] - fftAve[i];
+  } else if (baseSlopePerOct === 556) {//ボトムとの差分にする
+    for (let i = 0; i < fftResult.length; i++) fftView[i] = fftResult[i] - fftBottom[i];
+  } else {//そのままコピー
+    fftView.set(fftResult);
+  }
+}
+function makeLevelValue() {//レベルメーター用の値を計算する
+  levelPeak = -Infinity;
+  levelRms = 0;
+  for (let i = 0; i < timeDomain.length; i++) {
+    if (levelPeak < timeDomain[i]) levelPeak = timeDomain[i];
+    levelRms += timeDomain[i] * timeDomain[i];
+  }
+  levelPeak = Math.log10(levelPeak) * 20;
+  levelRms /= timeDomain.length;
+  levelRms =  Math.log10(levelRms) * 10;
+}
+function makeDecibelWeightAtX () {//重み配列を作る
+  if (baseSlopePerOct === 0) {
+    for (let i = 0; i < decibelWeightAtX.length; i++) { decibelWeightAtX[i] = 0; }
+  } else if (baseSlopePerOct === 888) {//A特性
+    for (let i = 0; i < decibelWeightAtX.length; i++) {
+      const freq = xToFreq(i);
+      decibelWeightAtX[i] = getAWeightingDb(freq);
+    }
+  } else if (baseSlopePerOct === 555) {//平均。結果を直接いじってしまうのでここでは何もしない
+    for (let i = 0; i < decibelWeightAtX.length; i++) { decibelWeightAtX[i] = 0; }
+  } else if (baseSlopePerOct === 556) {//ボトムライン。結果を直接いじってしまうのでここでは何もしない
+    for (let i = 0; i < decibelWeightAtX.length; i++) { decibelWeightAtX[i] = 0; }
+  } else {
+    for (let i = 0; i < decibelWeightAtX.length; i++) {
+      const freq = xToFreq(i);
+      decibelWeightAtX[i] = Math.log2(freq * 0.001) * baseSlopePerOct;
+    }
+  }
+} 
+
+//描画系
+function drawXScale () {//周波数基準の縦の線を描く
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+
+  ctx.save();
+  ctx.font = "12px JetBrains Mono, Fira Code, monospace";
+  ctx.textAlign = "center";
+
+  switch (xUnit) {
+    case 0://Hz
+      drawHzScale (0, true);
+      break;
+    case 1://RPM
+      drawHzScale (fftOverlayCanvas.height - 13, false);
+      drawRpmScale (0);
+      break;
+    case 3://SEC
+      drawHzScale (fftOverlayCanvas.height - 13, false);
+      drawSecScale (0);
+      break;
+    case 2://Note
+      drawHzScale (fftOverlayCanvas.height - 13, false);
+      drawNoteScale (0);
+      break;
+  }
+  ctx.restore();
+
+}
+function drawHzScale (TopY, uprTxtIs) {
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const divColor1 = "#bbb";//線の色
+  const divColor2 = "#888";//線の色
+  const divColor3 = "#666";//線の色
+  const divColor4 = "#555";//線の色
+  const divColor5 = "#444";//線の色
+  const txtColor1 = "#bbb";//文字の色
+  const divHeight = fftOverlayCanvas.height - TopY + 1;
+  if (viewIsLogFrequency) {//横軸対数
+    ctx.fillStyle = divColor2;
+    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinFreq)));
+    let minGap = fftCanvas.width;//最小ギャップ計測用
+    let previousX = - fftCanvas.width;
+    let nextDecade = minDecade * 10;
+    let subDecade = minDecade;
+    for (let i = Math.ceil(viewMinFreq / subDecade) * subDecade; i <= viewMaxFreq; i += subDecade) {
+      const x = freqToX(i) | 0;
+      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctx.fillStyle = divColor2;} else {
+        ctx.fillStyle = txtColor1;
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
+        if (uprTxtIs) {
+          ctx.textBaseline = "top";
+          ctx.fillText(`${i}`, x, TopY + 2);
+        }
+        ctx.fillStyle = divColor1;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+      const gap = x - previousX;
+      if (gap < minGap) minGap = gap;
+      previousX = x;
+      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
+    }
+    if (minGap * 8 > fftCanvas.width) {
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.1;
+      subSubDecade5 = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinFreq / subSubDecade) * subSubDecade; i <= viewMaxFreq; i += subSubDecade) {
+        const x = freqToX(i) | 0;
+        if (i % subDecade !== 0) {
+          if (i % subSubDecade5 !== 0) {ctx.fillStyle = divColor5;} else {ctx.fillStyle = divColor3}
+
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時
+          ctx.fillStyle = txtColor1;
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i}`, x, TopY + 2);
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
+      }
+    } else if (minGap * 20 > fftCanvas.width) {
+      ctx.fillStyle = divColor3;
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinFreq / subSubDecade) * subSubDecade; i <= viewMaxFreq; i += subSubDecade) {
+        if (i % subDecade !== 0) {
+          const x = freqToX(i) | 0;
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
+      }
+    }
+  } else {//横軸リニア
+    let divFreq = 100;
+    if (viewFreqRange < 200) {divFreq = 10;}
+    if (viewFreqRange > 10000) {divFreq = 1000;}
+    let div5Freq = divFreq * 5;
+    for (i = Math.ceil(viewMinFreq / divFreq) * divFreq; i < viewMaxFreq; i += divFreq) {
+      const x = freqToX(i) | 0;
+      if (viewFreqRange < 200) {//範囲狭い時カラー
+        if (i % 50 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor5;
+        if (i % 50 === 0) ctx.fillStyle = divColor4;
+        if (i % 100 === 0) ctx.fillStyle = divColor3;
+        if (i % 500 === 0) ctx.fillStyle = divColor2;
+        if (i % 1000 === 0) ctx.fillStyle = divColor2;
+        if (i % 5000 === 0) ctx.fillStyle = divColor1;
+      } else if (viewFreqRange > 10000) {//範囲広い時カラー
+        if (i % 5000 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor5;
+        if (i % 5000 === 0) ctx.fillStyle = divColor1;
+      } else {//普通のカラー
+        if (i % 1000 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor3;
+        if (i % 500 === 0) ctx.fillStyle = divColor2;
+        if (i % 1000 === 0) ctx.fillStyle = divColor2;
+        if (i % 5000 === 0) ctx.fillStyle = divColor1;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+    }
+  }
+}
+function drawRpmScale (TopY) {
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const divColor1 = "#bbb";//線の色
+  const divColor2 = "#888";//線の色
+  const divColor3 = "#666";//線の色
+  const divColor4 = "#555";//線の色
+  const divColor5 = "#444";//線の色
+  const txtColor1 = "#bbb";//文字の色
+  const divHeight = fftOverlayCanvas.height - TopY - 14;
+  const divBottom = fftOverlayCanvas.height - 14;
+  const uprTxtIs = true;
+  const viewMinFreq60 = viewMinFreq * 60;
+  const viewMaxFreq60 = viewMaxFreq * 60;
+  if (viewIsLogFrequency) {//横軸対数
+    ctx.fillStyle = divColor2;
+    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinFreq60)));
+    let minGap = fftCanvas.width;//最小ギャップ計測用
+    let previousX = - fftCanvas.width;
+    let nextDecade = minDecade * 10;
+    let subDecade = minDecade;
+    for (let i = Math.ceil(viewMinFreq60 / subDecade) * subDecade; i <= viewMaxFreq60; i += subDecade) {
+      const x = freqToX(i * inv60) | 0;
+      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctxFft.fillStyle = divColor2;} else {
+        ctx.fillStyle = txtColor1;
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
+        if (uprTxtIs) {
+          ctx.textBaseline = "top";
+          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+        }
+        ctx.fillStyle = divColor1;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+      const gap = x - previousX;
+      if (gap < minGap) minGap = gap;
+      previousX = x;
+      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
+    }
+    if (minGap * 8 > fftCanvas.width) {
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.1;
+      subSubDecade5 = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinFreq60 / subSubDecade) * subSubDecade; i <= viewMaxFreq60; i += subSubDecade) {
+        const x = freqToX(i * inv60) | 0;
+        if (i % subDecade !== 0) {//書かれていないところなら
+          if (i % subSubDecade5 !== 0) {ctx.fillStyle = divColor5;} else {ctx.fillStyle = divColor3}
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時で５倍以外
+          ctx.fillStyle = txtColor1;
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
+      }
+    } else if (minGap * 20 > fftCanvas.width) {
+      ctx.fillStyle = divColor3;
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinFreq60 / subSubDecade) * subSubDecade; i <= viewMaxFreq60; i += subSubDecade) {
+        if (i % subDecade !== 0) {
+          const x = freqToX(i * inv60) | 0;
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
+      }
+    }
+  } else {//横軸リニア
+    let divFreq = 10000;
+    if (viewFreqRange < 500) {divFreq = 1000;}//狭い時
+    if (viewFreqRange > 5000) {divFreq = 100000;}//広い時
+    let div5Freq = divFreq * 5;
+    for (i = Math.ceil(viewMinFreq60 / divFreq) * divFreq; i < viewMaxFreq60; i += divFreq) {
+      const x = freqToX(i * inv60) | 0;
+      if (viewFreqRange < 500) {//範囲狭い時カラー
+        if (i % 50 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor5;
+        if (i % 500 === 0) ctx.fillStyle = divColor4;
+        if (i % 1000 === 0) ctx.fillStyle = divColor3;
+        if (i % 5000 === 0) ctx.fillStyle = divColor2;
+        if (i % 10000 === 0) ctx.fillStyle = divColor2;
+        if (i % 50000 === 0) ctx.fillStyle = divColor1;
+      } else if (viewFreqRange > 5000) {//範囲広い時カラー
+        if (i % 50000 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor5;
+        if (i % 50000 === 0) ctx.fillStyle = divColor2;
+      } else {//普通のカラー
+        if (i % 10000 === 0) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${i}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${i}`, x, TopY + 2);
+          }
+        }
+        ctx.fillStyle = divColor3;
+        if (i % 5000 === 0) ctx.fillStyle = divColor2;
+        if (i % 10000 === 0) ctx.fillStyle = divColor2;
+        if (i % 50000 === 0) ctx.fillStyle = divColor1;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+    }
+  }
+}
+function drawSecScale (TopY) {
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const divColor1 = "#bbb";//線の色
+  const divColor2 = "#888";//線の色
+  const divColor3 = "#666";//線の色
+  const divColor4 = "#555";//線の色
+  const divColor5 = "#444";//線の色
+  const txtColor1 = "#bbb";//文字の色
+  const divHeight = fftOverlayCanvas.height - TopY - 14;
+  const divBottom = fftOverlayCanvas.height - 14;
+  const uprTxtIs = true;
+  const viewMinFreq60 = viewMinFreq * 60;
+  const viewMaxFreq60 = viewMaxFreq * 60;
+  const viewMinSec = 1 / viewMaxFreq;//逆数なのでMinとMaxが逆になる
+  const viewMaxSec = 1 / viewMinFreq;
+  if (viewIsLogFrequency) {//横軸対数
+    ctx.fillStyle = divColor2;
+    const minDecade = Math.pow(10, Math.floor(Math.log10(viewMinSec)));
+    let minGap = fftCanvas.width;//最小ギャップ計測用
+    let previousX = - fftCanvas.width;
+    let nextDecade = minDecade * 10;
+    let subDecade = minDecade;
+    for (let i = Math.ceil(viewMinSec / subDecade) * subDecade; i <= viewMaxSec; i += subDecade) {
+      const x = freqToX(1 / i) | 0;
+      if (i < nextDecade && i % (subDecade * 5) !== 0) {ctx.fillStyle = divColor2;} else {
+        ctx.fillStyle = txtColor1;
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
+        if (uprTxtIs) {
+          ctx.textBaseline = "top";
+          ctx.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
+        }
+        ctx.fillStyle = divColor1;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+      const gap = x - previousX;
+      if (gap < minGap) minGap = gap;
+      previousX = x;
+      if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; }
+    }
+    if (minGap * 8 > fftCanvas.width) {
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.1;
+      subSubDecade5 = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinSec / subSubDecade) * subSubDecade; i <= viewMaxSec; i += subSubDecade) {
+        const x = freqToX(1 / i) | 0;
+        if (i % subDecade !== 0) {//書かれていないところなら
+          if (i % subSubDecade5 !== 0) {ctx.fillStyle = divColor5;} else {ctx.fillStyle = divColor3}
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        } else if (i % (subDecade * 5) !== 0) {//細かくない既に書かれてる線の時で５倍以外
+          ctx.fillStyle = txtColor1;
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
+      }
+    } else if (minGap * 20 > fftCanvas.width) {
+      ctx.fillStyle = divColor3;
+      nextDecade = minDecade * 10;
+      subDecade = minDecade;
+      subSubDecade = minDecade * 0.5;
+      for (let i = Math.ceil(viewMinSec / subSubDecade) * subSubDecade; i <= viewMaxSec; i += subSubDecade) {
+        if (i % subDecade !== 0) {
+          const x = freqToX(1 / i) | 0;
+          ctx.fillRect(x, TopY, 1, divHeight + 1);
+          if (TopY === 0) {//0からの時のみヒストリーにも描く
+            historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+            historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+          }
+        }
+        if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; }
+      }
+    }
+  } else {//横軸リニア。といっても逆数なので特殊
+    const viewMinSecX1000 = viewMinSec * 1000;//逆数なのでMinとMaxが逆になる
+    const viewMaxSecX1000 = viewMaxSec * 1000;
+    const inv1000 = 0.001;
+    let divFreq = 0.01;
+    while ((viewMaxSecX1000 - viewMinSecX1000) < divFreq * 1.5) {//線が少なくなりそうなら、区切りを細かくする
+      divFreq *= 0.1;
+    }
+    let nextDecade = divFreq * 10;
+    let div5Freq = divFreq * 5;
+    let previousX = Infinity;
+    for (i = Math.ceil(viewMinSecX1000 / divFreq) * divFreq; i < viewMaxSecX1000; i += divFreq) {
+      const iInv1000 = i * inv1000;
+      const x = freqToX(1000 / i) | 0;
+      const gap = previousX - x;
+      i = Math.round(i / divFreq) * divFreq;
+      previousX = x;
+      if (i >= nextDecade && (viewMaxSecX1000 - viewMinSecX1000) > nextDecade * 5 ) {
+        nextDecade *= 10; 
+        divFreq *= 10; 
+        div5Freq *= 10; 
+        ctx.fillStyle = txtColor1
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
+        if (uprTxtIs) {
+          ctx.textBaseline = "top";
+          ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
+        }
+        ctx.fillStyle = divColor2;
+      } else {
+
+        if (gap > 60) {
+          ctx.fillStyle = txtColor1
+          ctx.textBaseline = "bottom";
+          ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
+          if (uprTxtIs) {
+            ctx.textBaseline = "top";
+            ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
+          }
+        }
+        if (i % (divFreq * 10) < divFreq * 0.5) ctx.fillStyle = divColor2;
+        else ctx.fillStyle = divColor4;
+      }
+      ctx.fillRect(x, TopY, 1, divHeight + 1);
+      if (TopY === 0) {//0からの時のみヒストリーにも描く
+        historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+        historyV1LCtx.fillRect(x, 0 , 1, 1);//ヒストリー側に点を打つ
+      }
+      if (gap < 2) break;//ピッチが狭くなりすぎてたら終わる
+    }
+  }
+}
+function drawNoteScale (TopY) {
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const whiteKeyColor = "#bbb";//線の色
+  const blackKeyColor = "#000";//線の色
+  const divColor1 = "#bbb";//線の色
+  const divColor2 = "#888";//線の色
+  const divColor3 = "#666";//線の色
+  const divColor4 = "#555";//線の色
+  const divColor5 = "#444";//線の色
+  const txtColor1 = "#bbb";//文字の色
+  const txtColor2 = "#000";//文字の色
+  const txtHeight = 15;
+  const divBottom = fftOverlayCanvas.height - txtHeight * 4;//線の下端
+  const divHeight = divBottom - TopY;
+  const uprTxtIs = true;
+  const viewMinNote = Math.floor(freqToNote(viewMinFreq));
+  const viewMaxNote = Math.ceil(freqToNote(viewMaxFreq));
+  let previousEdgeX = 0;
+  ctx.fillStyle = whiteKeyColor;
+  ctx.fillRect(0, divBottom, fftCanvas.width, txtHeight * 3);//キーボード部を白で塗りつぶす
+  ctx.textBaseline = "top";
+  for (let note = viewMinNote; note <= viewMaxNote; note++) {
+    const noteX = freqToX(noteToFreq(note)) | 0;
+    const edgeX = freqToX(noteToFreq(note + 0.5))| 0;//次の境い目
+    const gap = edgeX - previousEdgeX;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";//通常モード
+    ctx.fillStyle = txtColor2;//黒
+    if (noteIsSharp(note)) {//今が黒鍵
+      ctx.fillRect(previousEdgeX, divBottom, gap, txtHeight - 1);//黒鍵
+      ctx.fillRect(noteX, divBottom + txtHeight, 1, txtHeight);//黒鍵の下の白鍵の間の線
+    } else if (!noteIsSharp(note + 1)) {//今も次も白
+      ctx.fillRect(edgeX, divBottom , 1, txtHeight + txtHeight);//白鍵の間の線
+    }
+    if ((note + 1) % 12 === 0) {//オクターブ区切りの線とオクターブテキスト
+      ctx.fillRect(edgeX, divBottom + txtHeight + txtHeight, 1, txtHeight);//下まで突き抜ける線
+      const lowerEdgeX = freqToX(noteToFreq(note + 0.5 - 12));//一個前のオクターブ区切り
+      ctx.fillText(`${noteToOct(note)}`, (lowerEdgeX + edgeX) * 0.5, divBottom + txtHeight + txtHeight);//文字
+      ctx.fillStyle = divColor3;
+    } else {
+      ctx.fillStyle = divColor5;
+    }
+    ctx.globalCompositeOperation = "lighter";//加算モード
+    ctx.fillRect(edgeX, TopY, 1, divHeight);//キーボードの上の線
+    if (TopY === 0) {//0からの時のみヒストリーにも描く
+      historyV1LCtx.fillStyle = ctx.fillStyle;//ヒストリー側に点を打つ
+      historyV1LCtx.fillRect(edgeX, 0 , 1, 1);//ヒストリー側に点を打つ
+    }
+    ctx.globalCompositeOperation = "source-over";//通常モード
+
+    if (noteIsSharp(note)) {//黒鍵
+      if (gap > 20) {
+        ctx.fillStyle = txtColor1;//白
+        ctx.fillText(`${noteToLabel(note)}`, noteX, divBottom);//文字
+      }
+    } else {//白鍵
+      if (gap > 7) {
+        let adjustX = noteX;
+        if (noteIsSharp(note + 1) && noteIsSharp(note - 1)) adjustX = noteX;
+        else if (noteIsSharp(note + 1)) adjustX = (noteX + edgeX) * 0.5;
+        else if (noteIsSharp(note - 1)) adjustX = (noteX + previousEdgeX) * 0.5;
+        ctx.fillStyle = txtColor2;//黒
+        ctx.fillText(`${noteToLabel(note)}`, adjustX, divBottom + txtHeight);//文字
+      }
+    }
+    previousEdgeX = edgeX;
+    ctx.restore();
+  }
+}
+
 function drawBaseAve () {
   ctxFft.save();
   ctxFft.lineWidth = 1;
@@ -3649,12 +3859,14 @@ function drawAWeighting () {
   ctxFft.save();
   ctxFft.lineWidth = 1;
   ctxFft.strokeStyle = "#08f";//色指定
+  const xCtr = fftCanvas.width * 0.5 | 0;
+  const freqCtr = xToFreq(xCtr);//中央の周波数
+  const yCtr = fftViewH * 0.5;
+  const weightCtr = getAWeightingDb(freqCtr);
+  /*
+  if (false) {//
     const xSt = freqToX(viewMinFreq);
     const xEnd = freqToX(viewMaxFreq);
-    const xCtr = fftCanvas.width * 0.5;
-    const freqCtr = xToFreq(xCtr);//中央の周波数
-    const yCtr = fftViewH * 0.5;
-    const weightCtr = getAWeightingDb(freqCtr);
     const ySt = yCtr - (getAWeightingDb(viewMinFreq) - weightCtr) * YPerDecivel;
     const yEnd = yCtr - (getAWeightingDb(viewMaxFreq) - weightCtr) * YPerDecivel;
     if (ySt < 0 && yEnd < 0) return;
@@ -3677,6 +3889,14 @@ function drawAWeighting () {
       if (tmpY > 0) ctxFft.lineTo(freqToX(tmpFreq), tmpY + fftViewZeroY);
     }
     ctxFft.stroke();
+  }
+    */
+  ctxFft.fillStyle = "#08f";//色指定
+  for(let i = 0; i < fftCanvas.width; i++) {
+     const tmpY = yCtr - (decibelWeightAtX[i] - weightCtr) * YPerDecivel;
+    if (tmpY > 0 && tmpY <= fftViewH) ctxFft.fillRect(i, tmpY + fftViewZeroY, 1, 1);//範囲内なら点を打つ
+  }
+
   ctxFft.restore();
 }
 function drawAve () {
@@ -3749,7 +3969,7 @@ function drawBottom () {
   ctxFft.stroke();
   ctxFft.restore();
 }
-function drawPeakText (tmpSpline) {
+function drawPeakText (viewSpline) {
   if (fftPeakHeight[fftPeakHeight.length - 1]) {//ピーク表示
     ctxFft.save();
     const peakFontSize = 18 * Math.pow(dpr, 0.3);
@@ -3777,13 +3997,13 @@ function drawPeakText (tmpSpline) {
       let showDecibel = fftView[peakBinIndex] + getFreqWeightingDb(peakFreq);
       if (splinePeakIs && peakBinIndex >= viewMinBinIndex && peakBinIndex <= splineEndIndex) {//スプライン範囲内ならスプラインでのピークにする
         let tmpDecibel = fftView[peakBinIndex];
-        if (tmpDecibel < tmpSpline(peakBinIndex - viewMinBinIndex, 2)) {//対象インデックスの上側のスプラインと比較
-          tmpDecibel = tmpSpline(peakBinIndex - viewMinBinIndex, 2);
-          peakFreq = (tmpSpline(peakBinIndex - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
+        if (tmpDecibel < viewSpline(peakBinIndex - viewMinBinIndex, 2)) {//対象インデックスの上側のスプラインと比較
+          tmpDecibel = viewSpline(peakBinIndex - viewMinBinIndex, 2);
+          peakFreq = (viewSpline(peakBinIndex - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
         }
-        if (tmpDecibel < tmpSpline(peakBinIndex - 1 - viewMinBinIndex, 2)) {//対象インデックスの下側のスプラインと比較
-          tmpDecibel = tmpSpline(peakBinIndex - 1 - viewMinBinIndex, 2);
-          peakFreq = (tmpSpline(peakBinIndex - 1 - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
+        if (tmpDecibel < viewSpline(peakBinIndex - 1 - viewMinBinIndex, 2)) {//対象インデックスの下側のスプラインと比較
+          tmpDecibel = viewSpline(peakBinIndex - 1 - viewMinBinIndex, 2);
+          peakFreq = (viewSpline(peakBinIndex - 1 - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
         }
         showDecibel = tmpDecibel + getFreqWeightingDb(peakFreq);
       }
@@ -3847,17 +4067,15 @@ function drawPeakText (tmpSpline) {
   }
 }
 
-function makeSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
+function makeSpectrumHistory (now, viewSpline) {//ヒストリー領域の描画
   HistoryWriteLine = (HistoryWriteLine + 1) % historyCanvas.height;//書く前に一個下にずらす
   const y = HistoryWriteLine;
   for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
-  historyVLCtx.clearRect(0, y , historyCanvas.width, 1);//縦線消去
-  historyHLCtx.clearRect(0, y , historyCanvas.width, 1);//横線消去
 
   const colorMapMax = colorMap.length - 1;
 
   for (let i = 0; i <= splineEndX; i++) {//スプライン部分の描画ターン
-    const dB = tmpSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getFreqWeightingDb(xToFreq(i));
+    const dB = viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getXWeightingDb(i);
     let norm = Math.max(0, Math.min(1, 1 + dB * invDecivelRange));
     spectro1LineBuffer[i] = colorMap[Math.round(norm * colorMapMax)];//１ドット×RGBA
   }
@@ -3880,11 +4098,18 @@ function makeSpectrumHistory (now, tmpSpline) {//ヒストリー領域の描画
     spectro1LineBuffer[tmpNowX] = colorMap[Math.round(norm * colorMapMax)];//１ドット×RGBA
   }
   historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
+
+  //横線の挿入
+  historyHLCtx.clearRect(0, y , historyCanvas.width, 1);//横線消去
   if (now > secDivTime) {//一秒ごとの横線
     while (now > secDivTime) secDivTime += 1000;//１秒あとに送る
     historyHLCtx.fillStyle = "#fff";
     historyHLCtx.fillRect(0, y , historyCanvas.width, 1);
   }// else if (!historySecVisible) secDivTime = now;
+
+  //縦線の描画
+  historyVLCtx.clearRect(0, y , historyCanvas.width, 1);//縦線消去
+  historyVLCtx.drawImage(historyV1LCanvas, 0, 0, historyV1LCanvas.width, 1, 0, y, historyV1LCanvas.width, 1);
 }
 function drawImageSpectrumHistory () {//ヒストリー領域をメイン画面にコピーする
   const drawHeight = spectrumHistoryH - waveWindowH - 1;//描画の高さ
@@ -3968,17 +4193,99 @@ function drawImageSpectrumHistory () {//ヒストリー領域をメイン画面�
   ctxFft.restore();
 }
 
-function makeLevelValue() {//レベルメーター用の値を計算する
-  levelPeak = -Infinity;
-  levelRms = 0;
-  for (let i = 0; i < timeDomain.length; i++) {
-    if (levelPeak < timeDomain[i]) levelPeak = timeDomain[i];
-    levelRms += timeDomain[i] * timeDomain[i];
+function drawFftLine() {//FFT線作図
+  //線でつなぐ
+  ctxFft.strokeStyle = "#0f0";//色指定
+  ctxFft.beginPath();
+  const fftLineStY = (viewMaxDecivel - viewSpline(xToFftBinFloat(0) - viewMinBinIndex, 0) - getFreqWeightingDb(viewMinFreq)) * YPerDecivel;
+  if (fftLineStY >= 0) ctxFft.moveTo(0, fftViewZeroY + fftLineStY);
+  else ctxFft.moveTo(0, fftViewZeroY);
+  for (let i = 1; i < splineFineX; i++) {//スプライン描画その１
+    const y = (viewMaxDecivel - viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - getXWeightingDb(i)) * YPerDecivel;
+    if (y >= 0) ctxFft.lineTo(i, fftViewZeroY + y);
+    else ctxFft.lineTo(i, fftViewZeroY);
   }
-  levelPeak = Math.log10(levelPeak) * 20;
-  levelRms /= timeDomain.length;
-  levelRms =  Math.log10(levelRms) * 10;
+    for (let i = splineFineX; i < splineEndX; i += 0.5) {//スプライン描画２
+    const y = (viewMaxDecivel - viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - getXWeightingDb(i | 0)) * YPerDecivel;
+    if (y >= 0) ctxFft.lineTo(i, fftViewZeroY + y);
+    else ctxFft.lineTo(i, fftViewZeroY);
+  }
+  ctxFft.stroke();
+  ctxFft.save();
+  ctxFft.lineWidth = 0.85;
+  ctxFft.beginPath();
+  const tmpStFreq = splineEndIndex * fftBinFreq;
+  const tmpLineStY = fftViewZeroY + (viewMaxDecivel - fftResultSub[splineEndIndex - viewMinBinIndex] - getFreqWeightingDb(tmpStFreq)) * YPerDecivel;
+  if (tmpLineStY >= fftViewZeroY) ctxFft.moveTo(splineEndX, tmpLineStY);
+  else ctxFft.moveTo(splineEndX, fftViewZeroY);
+  for (let i = splineEndIndex - viewMinBinIndex + 1; i < fftResultSub.length; i++) {//直線描画
+    const tmpFreq = (i + viewMinBinIndex) * fftBinFreq;
+    const y = fftViewZeroY + (viewMaxDecivel - fftResultSub[i] - getFreqWeightingDb(tmpFreq)) * YPerDecivel;
+    if (y >= fftViewZeroY) ctxFft.lineTo(freqToX(tmpFreq), y);
+    else ctxFft.lineTo(freqToX(tmpFreq), fftViewZeroY);
+  }
+  ctxFft.stroke();
+  ctxFft.restore();
+  ctxFft.fillStyle = "#8f8";
+  for (let i = 0; i < splineDotIndex; i++) {//点をうつ
+    const freq = (i + viewMinBinIndex) * fftBinFreq;
+    const x = freqToX(freq);
+    const y = (viewMaxDecivel - fftResultSub[i] - getFreqWeightingDb(freq)) * YPerDecivel;
+    if (y > 0 && y <= fftViewH) ctxFft.fillRect(x - 1, fftViewZeroY + y - 1, 2, 2);
+  }
+
 }
+
+function drawFftOverLay() {
+  fftOverLayCtx.clearRect(0, 0, fftOverlayCanvas.width, fftOverlayCanvas.height);//全消し
+  historyV1LCtx.clearRect(0, 0, historyV1LCanvas.width, historyV1LCanvas.height);//全消し
+  drawDecibelLine();//横線
+  drawXScale ();//縦線の描画。
+}
+function drawDecibelLine() {//FFT線図領域の横線
+  const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+
+  ctx.save();
+//  ctx.globalAlpha = fftVLAlpha;//アルファはdrawImage時に反映するのでここではしない
+//  ctx.globalCompositeOperation = "lighter";//加算モード
+  ctx.font = "12px JetBrains Mono, Fira Code, monospace";
+  ctx.textBaseline = "top";
+  for (let i = viewMaxDecivel - (viewMaxDecivel % 10); i >= viewMinDecivel; i -= 10) {//横線
+    if (i % 50 === 0) {ctx.fillStyle = "#aaa";}
+    else {ctx.fillStyle = "#777"}
+    const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
+    if (y >= 0 && y <= fftViewH) ctx.fillRect(0, y, fftCanvas.width, 1);
+  }
+  //横線の文字
+  ctx.fillStyle = "#aaa";
+  if (viewDecivelRange > 70) {//50dBごと
+    for (let i = viewMaxDecivel - (viewMaxDecivel % 50); i >= viewMinDecivel; i -= 50) {//横線
+      const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
+      if (y >= 0 && y <= fftViewH) {
+        ctx.textAlign = "left";
+        ctx.fillText(`${i}dB`, 2, y + 2);
+        if (!colorMapVisible) {
+          ctx.textAlign = "right";
+          ctx.fillText(`${i}dB`, fftCanvas.width - 2, y + 2);
+        }
+      }
+    }
+  } else {//10dBごと
+    for (let i = viewMaxDecivel - (viewMaxDecivel % 10); i >= viewMinDecivel; i -= 10) {//横線
+      const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
+      if (y >= 0 && y <= fftViewH) {
+        ctx.textAlign = "left";
+        ctx.fillText(`${i}dB`, 2, y + 2);
+        if (!colorMapVisible) {
+          ctx.textAlign = "right";
+          ctx.fillText(`${i}dB`, fftCanvas.width - 2, y + 2);
+        }
+      }
+    }
+  }
+  ctx.restore();
+}
+
 function makeLevelCanvas () {//レベルメーターを作画する
 //let levelMeterVisible = true;//レベルメーターを表示する
   let uprDecivel = 0;
@@ -4011,43 +4318,10 @@ function makeLevelCanvas () {//レベルメーターを作画する
   //viewDecivelRange
 }
 
-function searchZeroCross (stIndex, previousValue, waveletPitch) {//ゼロクロスを探す
-  let endMargin = waveletPitch * 16;
-  let j = stIndex;
-  let k0 = previousValue;
-  let k1 = k0;
-  if (k0 === 0) return [j, k0];//そこがゼロならそれを返して終わる
-  while ((k0 > 0 || k1 <= 0) && j < timeDomain.length - endMargin) {
-    [k0, k1] = [k1, 0];
-    j += waveletPitch;//進め量
-    for (let i = -7; i < 8; i++) k1 += wavelet8[Math.abs(i)] * timeDomain[j + (i + 7) * waveletPitch];
-  }
-  j -= waveletPitch;//一個戻る
-  if (k0 === 0) return [j, k0];//そこがゼロならそれを返して終わる
-  k1 = k0;
-  while ((k0 > 0 || k1 <= 0) && j < timeDomain.length - endMargin) {
-    [k0, k1] = [k1, 0];
-    j += 1;//進め量
-    for (let i = -7; i < 8; i++) k1 += wavelet8[Math.abs(i)] * timeDomain[j + (i + 7) * waveletPitch];
-  }
-  if (j >= timeDomain.length - endMargin) return [-1, -1];//最後までいってたら-1を返す。
-  j--;  
-  return [j, k0];//前回のインデックスと前回値を返す
-}
-
-function draw(now) {
-  const y0 = fftViewH * 0.5 | 0;
+function draw(now) {//全画面を作図
   ctxFft.fillStyle = "#000";
   ctxFft.fillRect(0, fftViewZeroY, fftCanvas.width, fftViewH);
  
-  if (analyserNode) {//アナライザノードが生きている時のみ結果更新
-    analyserNode.getFloatFrequencyData(fftResult);
-    analyserNode.getFloatTimeDomainData(timeDomain);
-    averageFftResult (0.5);//平均も更新
-    makeBottomResult();//ボトムライン作成
-    makePeakList ();//ピーク検出。
-    makeLevelValue();//レベルメーター用の値を計算
-  }
   makeLevelCanvas();//レベルメーターを作画
 
   if (fftBaseVisible) {//ベースラインを描画する
@@ -4068,115 +4342,34 @@ function draw(now) {
   if (fftAveVisible) drawAve();//平均線を描画
   if (fftBottomVisible) drawBottom();//平均線を描画
 
-
-//    console.log(viewMinBinIndex, splineEndIndex, viewMaxBinIndex, fftSizeSetting * 0.5);
-
-  if (baseSlopePerOct === 555) {//平均との差分にする。
-    for (let i = 0; i < fftResult.length; i++) fftView[i] = fftResult[i] - fftAve[i];
-  } else if (baseSlopePerOct === 556) {//ボトムとの差分にする
-    for (let i = 0; i < fftResult.length; i++) fftView[i] = fftResult[i] - fftBottom[i];
-  } else {
-    fftView.set(fftResult);
-  }
-
-
-
-
   //線でつなぐ
-  const viewBinNum = viewMaxBinIndex - viewMinBinIndex + 1;//Max=Minの場合もある。最小１
-  const fftResultSub = fftView.subarray(viewMinBinIndex, viewMinBinIndex + viewBinNum);//表示範囲のみ切り出す。最小は１つ
-  const splineNum = splineEndIndex > 0 ? splineEndIndex - viewMinBinIndex + 1: 0;//end=minが同一の場合もある。length-1のとき
   //splineNum<=1や、viewMaxBinIndex = viewMinBinIndex = length-1の時は場合分けした方がよさそう
-  console.log(splineNum, splineEndIndex, viewMinBinIndex);
-  const tmpSpline = cubicSpline(splineNum, fftResultSub);//スプライン関数生成
+  viewSpline = cubicSpline(splineNum, fftResultSub);//スプライン関数生成
 
-  ctxFft.strokeStyle = "#0f0";//色指定
-  ctxFft.beginPath();
-  const fftLineStY = (viewMaxDecivel - tmpSpline(xToFftBinFloat(0) - viewMinBinIndex, 0) - getFreqWeightingDb(viewMinFreq)) * YPerDecivel;
-  if (fftLineStY >= 0) ctxFft.moveTo(0, fftViewZeroY + fftLineStY);
-  else ctxFft.moveTo(0, fftViewZeroY);
-  for (let i = 1; i < splineFineX; i++) {//スプライン描画その１
-    const y = (viewMaxDecivel - tmpSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - getFreqWeightingDb(xToFreq(i))) * YPerDecivel;
-    if (y >= 0) ctxFft.lineTo(i, fftViewZeroY + y);
-    else ctxFft.lineTo(i, fftViewZeroY);
-  }
-    for (let i = splineFineX; i < splineEndX; i += 0.5) {//スプライン描画２
-    const y = (viewMaxDecivel - tmpSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - getFreqWeightingDb(xToFreq(i))) * YPerDecivel;
-    if (y >= 0) ctxFft.lineTo(i, fftViewZeroY + y);
-    else ctxFft.lineTo(i, fftViewZeroY);
-  }
-  ctxFft.stroke();
-  ctxFft.save();
-  ctxFft.lineWidth = 0.85;
-  ctxFft.beginPath();
-  const tmpStFreq = splineEndIndex * fftBinFreq;
-  const tmpLineStY = fftViewZeroY + (viewMaxDecivel - fftResultSub[splineEndIndex - viewMinBinIndex] - getFreqWeightingDb(tmpStFreq)) * YPerDecivel;
-  if (tmpLineStY >= fftViewZeroY) ctxFft.moveTo(splineEndX, tmpLineStY);
-  else ctxFft.moveTo(splineEndX, fftViewZeroY);
-  for (let i = splineEndIndex - viewMinBinIndex + 1; i < fftResultSub.length; i++) {//直線描画
-    const tmpFreq = (i + viewMinBinIndex) * fftBinFreq;
-    const y = fftViewZeroY + (viewMaxDecivel - fftResultSub[i] - getFreqWeightingDb(tmpFreq)) * YPerDecivel;
-    if (y >= fftViewZeroY) ctxFft.lineTo(freqToX(tmpFreq), y);
-    else ctxFft.lineTo(freqToX(tmpFreq), fftViewZeroY);
-  }
-  ctxFft.stroke();
-  ctxFft.restore();
-  ctxFft.fillStyle = "#8f8";
-  for (let i = 0; i < splineDotIndex; i++) {//点をうつ
-    const freq = (i + viewMinBinIndex) * fftBinFreq;
-    const x = freqToX(freq);
-    const y = (viewMaxDecivel - fftResultSub[i] - getFreqWeightingDb(freq)) * YPerDecivel;
-    if (y > 0 && y <= fftViewH) ctxFft.fillRect(x - 1, fftViewZeroY + y - 1, 2, 2);
-  }
+  drawFftLine();
 
   //横線
-  ctxFft.save();
-  ctxFft.globalAlpha = fftVLAlpha;
-  ctxFft.font = "12px JetBrains Mono, Fira Code, monospace";
-  ctxFft.textBaseline = "top";
-  ctxFft.globalCompositeOperation = "lighter";//加算モード
-  for (let i = viewMaxDecivel - (viewMaxDecivel % 10); i >= viewMinDecivel; i -= 10) {//横線
-    if (i % 50 === 0) {ctxFft.fillStyle = "#aaa";}
-    else {ctxFft.fillStyle = "#777"}
-    const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
-    if (y >= 0 && y <= fftViewH) ctxFft.fillRect(0, fftViewZeroY + y, fftCanvas.width, 1);
-  }
-  //横線の文字
-  ctxFft.fillStyle = "#aaa";
-  if (viewDecivelRange > 70) {//50dBごと
-    for (let i = viewMaxDecivel - (viewMaxDecivel % 50); i >= viewMinDecivel; i -= 50) {//横線
-      const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
-      if (y >= 0 && y <= fftViewH) {
-        ctxFft.textAlign = "left";
-        ctxFft.fillText(`${i}dB`, 2, fftViewZeroY + y + 2);
-        if (!colorMapVisible) {
-          ctxFft.textAlign = "right";
-          ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
-        }
-      }
-    }
-  } else {//10dBごと
-    for (let i = viewMaxDecivel - (viewMaxDecivel % 10); i >= viewMinDecivel; i -= 10) {//横線
-      const y = ((viewMaxDecivel - i) * YPerDecivel) | 0;
-      if (y >= 0 && y <= fftViewH) {
-        ctxFft.textAlign = "left";
-        ctxFft.fillText(`${i}dB`, 2, fftViewZeroY + y + 2);
-        if (!colorMapVisible) {
-          ctxFft.textAlign = "right";
-          ctxFft.fillText(`${i}dB`, fftCanvas.width - 2, fftViewZeroY + y + 2);
-        }
-      }
-    }
-  }
-  ctxFft.restore();
+  if (true) {//FFT線図領域のオーバレイ描画
+    ctxFft.save();
+    ctxFft.globalAlpha = fftVLAlpha;//アルファ
+    ctxFft.globalCompositeOperation = "lighter";//加算モード
 
-  drawXScale ();//縦線の描画。
-  drawPeakText (tmpSpline);//ピーク値
+    ctxFft.drawImage(
+      fftOverlayCanvas,
+      0,0,
+      fftOverlayCanvas.width, fftOverlayCanvas.height,
+      0, fftViewZeroY,
+      fftOverlayCanvas.width, fftOverlayCanvas.height
+    );
+    ctxFft.restore();
+  }
+
+  drawPeakText (viewSpline);//ピーク値
 
 
   //上部のスペクトルヒストリー
   if (rafId && spectrumHistoryH > waveWindowH) {
-    makeSpectrumHistory (now, tmpSpline);//ヒストリー領域の描画。HistoryWriteLineは描画直前に移動。
+    makeSpectrumHistory (now, viewSpline);//ヒストリー領域の描画。HistoryWriteLineは描画直前に移動。
     drawImageSpectrumHistory ();//ヒストリー領域をメインにコピーする。
   }
 
@@ -4289,13 +4482,11 @@ function draw(now) {
   ctxFft.restore();
 
 //  infoRect.textContent = `${gesture.pointers.size}`; 
-  infoRect.textContent = `${now}`; 
-  infoRect.classList.remove("fadeout");
-  infoRect.classList.add("active");  
+//  infoRect.textContent = `${now}`; 
+//  infoRect.classList.remove("fadeout");
+//  infoRect.classList.add("active");  
 
 
-//drawDebug(ctxFft, fftCanvas);
-//console.log(splineEndIndex, viewMaxBinIndex);
 }
 
 
