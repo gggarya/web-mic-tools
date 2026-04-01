@@ -1407,7 +1407,13 @@ function onMove(e) {
       case "wave":
         break;
     }
-  } else if (gesture.mode === 'pinch') pinch();//二つ指
+  } else if (gesture.mode === 'pinch') {
+    switch (getAreaName(gesture.start.center.x * dpr, gesture.start.center.y * dpr, waveWindowH, spectrumHistoryH)) {
+      case "fft":
+        pinch();//二つ指
+        break;
+    }
+  }
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
