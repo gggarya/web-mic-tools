@@ -1939,11 +1939,16 @@ function showColorMapMenu(x, y) {//カラーマップメニュー表示
   colorMapMenu.style.left = `${x}px`;
   colorMapMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   colorMapMenu.querySelectorAll('div').forEach(item => {
+    item.classList.add('checked');//一度全部付ける
+  });
+  fitMenuInViewportAndRemoveHide(colorMapMenu);
+  colorMapMenu.style.left = `${parseFloat(colorMapMenu.style.left) - colorMapCanvas.width * invDpr}px`;
+  colorMapMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
     if (item.dataset.action === nowColorMap) item.classList.add('checked');//有効の時は✔
     else if (item.dataset.action === "colorMapVisible" && colorMapVisible) item.classList.add('checked');//有効の時は✔
   });
-  fitMenuInViewportAndRemoveHide(colorMapMenu);
+
 }
 function showHelpMenu(x, y) {//ヘルプ表示
   helpInfoMenu.style.visibility = "hidden";//まだ隠す
