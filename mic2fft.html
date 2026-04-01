@@ -1346,7 +1346,8 @@ function onMove(e) {
         break;
       case "freqRuler"://下端の周波数線
         if (gesture.axis === "x") {
-          updateDragRect(0, fftCanvas.height - HIT_RANGE * 3 * dpr, fftCanvas.width, HIT_RANGE * 3 * dpr);//操作エリアの表示
+          updateDragRect(fftCanvas.width * 0.25, fftCanvas.height - HIT_RANGE * 3 * dpr
+                          , fftCanvas.width * 0.5, HIT_RANGE * 3 * dpr);//操作エリアの表示
           panTargetFreq(e);
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
@@ -1354,7 +1355,7 @@ function onMove(e) {
         break;
       case "freqRulerL"://下端の周波数線の左端
         if (gesture.axis === "x") {
-          updateDragRect(0, fftCanvas.height - HIT_RANGE * 3 * dpr, fftCanvas.width, HIT_RANGE * 3 * dpr);//操作エリアの表示
+          updateDragRect(0, fftCanvas.height - HIT_RANGE * 3 * dpr, fftCanvas.width * 0.25, HIT_RANGE * 3 * dpr);//操作エリアの表示
           panPeakScanSt(e);//ピークの走査の左端を変更
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
@@ -1362,7 +1363,8 @@ function onMove(e) {
         break;
       case "freqRulerR"://下端の周波数線の右端
         if (gesture.axis === "x") {
-          updateDragRect(0, fftCanvas.height - HIT_RANGE * 3 * dpr, fftCanvas.width, HIT_RANGE * 3 * dpr);//操作エリアの表示
+          updateDragRect(fftCanvas.width * 0.75, fftCanvas.height - HIT_RANGE * 3 * dpr
+                          , fftCanvas.width * 0.25, HIT_RANGE * 3 * dpr);//操作エリアの表示
           panPeakScanEnd(e);//ピークの走査の右端を変更
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
