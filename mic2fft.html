@@ -1025,8 +1025,8 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   fftCanvas.style.width = `${clientW}px`;
   fftCanvas.style.height = `${clientH}px`;
 //  ctxFft.setTransform(dpr, 0, 0, dpr, 0, 0);
-  updateViewParams();
   decibelWeightAtX =  new Float32Array(fftCanvas.width).fill(0);//ウェイト事前計算用
+
 
 
   //ヒストリー領域のサイズ更新
@@ -1041,9 +1041,6 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   historyV1LCanvas.height = 1;//1行更新用グリッド
   historyHLCanvas.width = w;
   historyHLCanvas.height = spectrumHistoryMaxSize;//spectrumHistoryH - waveWindowH;
-  colorMapCanvas.height = h - spectrumHistoryH - 1;
-  levelCanvas.height = colorMapCanvas.height;
-  makeColorMapCanvas();
 
   if (spectro1LineBuffer.length !== w) {//スペクトロぐらむ用の１ラインバッファ
     spectro1LineBuffer = null;
@@ -1054,11 +1051,18 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
   }
 
+  updateViewParams();
+
+  colorMapCanvas.height = h - spectrumHistoryH - 1;
+  levelCanvas.height = colorMapCanvas.height;
+  makeColorMapCanvas();
+
   //オーバレイで文字を表示するdivのサイズ変更
   infoRect.style.left = "0px";
   infoRect.style.top = "0px";
   infoRect.style.width = w * invDpr + "px";
   infoRect.style.height = h * invDpr + "px";
+
 
   if (!rafId) draw();
 }
