@@ -1490,7 +1490,7 @@ function onMove(e) {
 
       case "fftRXfreqRulerR"://下端の周波数線とチルト領域の交点
         if (gesture.axis === "x") {
-          updateDragRect(fftCanvas.width * 0.75, fftCanvas.height - HIT_RANGE * 3 * dpr
+          updateDragRect(fftCanvas.width * 0.75, fftCanvas.height - HIT_RANGE * 3 * Math.sqrt(dpr)
                           , fftCanvas.width * 0.25
                           , HIT_RANGE * 3 * Math.sqrt(dpr));//操作エリアの表示
           panPeakScanEnd(e);//ピークの走査の右端を変更
@@ -1504,7 +1504,7 @@ function onMove(e) {
         break;
       case "colorMapXfreqRulerR"://下端の周波数線とカラーマップの交点
         if (gesture.axis === "x") {
-          updateDragRect(fftCanvas.width * 0.75, fftCanvas.height - HIT_RANGE * 3 * dpr
+          updateDragRect(fftCanvas.width * 0.75, fftCanvas.height - HIT_RANGE * 3 * Math.sqrt(dpr)
                           , fftCanvas.width * 0.25
                           , HIT_RANGE * 3 * Math.sqrt(dpr));//操作エリアの表示
           panPeakScanEnd(e);//ピークの走査の右端を変更
