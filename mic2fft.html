@@ -173,7 +173,7 @@
   }
   #dragRect.fadeout {
     opacity: 0;
-    transition: opacity 0.8s ease-out;
+    transition: opacity 1.2s ease-out;
   }
   #dragRect2 {
     position: absolute;
@@ -194,7 +194,7 @@
   }
   #dragRect2.fadeout {
     opacity: 0;
-    transition: opacity 0.8s ease-out;
+    transition: opacity 1.2s ease-out;
   }
   #infoRect {
     position: absolute;
@@ -1737,8 +1737,8 @@ function panTargetFreq(e) {
   targetFreq = Math.max(lwrLimit, Math.min(uprLimit, pointFreq));//値セット
   const targetX = freqToX(targetFreq);
   const rectW = 0.3 * dpr;
-  dragRect2.style.backgroundColor = "hsla(60, 100%, 50%, 0.7)";;
-  dragRect2.style.borderColor = "hsla(60, 100%, 50%, 0.2)";;          
+  dragRect2.style.backgroundColor = "hsla(60, 100%, 50%, 0.7)";
+  dragRect2.style.borderColor = "hsla(60, 100%, 50%, 0.2)";         
   updateDragRect2(targetX - rectW, fftViewZeroY, rectW + rectW, fftViewH);//操作エリアの表示
 
 }
@@ -2841,7 +2841,21 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
       keyInputDivSetting.digit = 1;
       keyInputDivSetting.onConfirm = (value) => {
         targetFreq = value;//値セット
+        const targetX = freqToX(targetFreq);
+        const rectW = 0.3 * dpr;
+        dragRect2.style.backgroundColor = "hsla(60, 100%, 50%, 0.7)";
+        dragRect2.style.borderColor = "hsla(60, 100%, 50%, 0.2)";         
+        updateDragRect2(targetX - rectW, fftViewZeroY, rectW + rectW, fftViewH);//操作エリアの表示
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            dragRect2.classList.remove("active");
+            dragRect2.classList.add('fadeout');//表示したらすぐ消す
+          });
+        });
+
+
         if (!rafId) draw();
+
       };
       showPopupInputDiv(menuRect.left, menuRect.bottom + 130)
       hideMenu();
