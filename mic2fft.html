@@ -3589,6 +3589,7 @@ function getXWeightingDb(x) {
   }
 }
 
+
 function xToFftBinFloat(x) {//fftのインデックスでどの位置かを返す
   if (viewIsLogFrequency) {
     const freq = 2 ** (x * log2PerX + viewMinFreqLog2);
@@ -4484,7 +4485,30 @@ function drawBaseTilt () {
       fftOverLayCtx.lineTo(x, 1);
     }
     fftOverLayCtx.stroke();
-  } else {
+
+    //傾き文字表示
+//    fftOverLayCtx.globalCompositeOperation = "lighter";//加算モード
+
+    fftOverLayCtx.font = "12px JetBrains Mono, Fira Code, monospace";//デシベルのフォント
+    const decibelTextWidth = fftOverLayCtx.measureText("-200dBB").width;
+    const fontSize = 16 * Math.pow(dpr, 0.3);
+    const textX = Math.max(levelCanvas.width * 1.5, decibelTextWidth);
+    const textY = yCtr - getFreqWeightingDb(xToFreq(textX)) * YPerDecivel - yAve - fontSize * 0.2;
+    fftOverLayCtx.font = `${fontSize}px JetBrains Mono, Fira Code, monospace`;
+    fftOverLayCtx.textBaseline = "bottom";
+    const labelText = `${baseSlopePerOct > 0 ? "+" : ""}${baseSlopePerOct.toFixed(2)} dB/Oct`;
+    const labelTextWidth = fftOverLayCtx.measureText(labelText).width;
+    fftOverLayCtx.translate(textX, textY); // 回転の中心を文字位置に移動
+    const angle = Math.atan2(- baseSlopePerOct * YPerDecivel, XPerLog2);
+    fftOverLayCtx.rotate(angle);     
+    fftOverLayCtx.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
+    fftOverLayCtx.fillRect(0, - fontSize * 1.1, labelTextWidth, fontSize * 1.2);
+//    fftOverLayCtx.fillStyle = "#2af";
+    fftOverLayCtx.fillStyle = fftOverLayCtx.strokeStyle;
+    fftOverLayCtx.fillText(labelText, 0, 0);
+
+
+  } else {//対数じゃない軸
     const xSt = freqToX(viewMinFreq);
     const xEnd = freqToX(viewMaxFreq);
     const xCtr = fftCanvas.width * 0.5;
@@ -4654,17 +4678,30 @@ function drawPeakText (viewSpline) {
       const peakBinIndex = fftPeakIndex[peakIndex];//fft上でのインデックス
       if (peakBinIndex === 0) continue;//ゼロは表示しない
       let peakFreq = peakBinIndex * fftBinFreq;
-      let showDecibel = fftView[peakBinIndex];
+      let showDecibel = fftResult[peakBinIndex];//fftView[peakBinIndex];
       let showDecibelTilt = fftView[peakBinIndex] + getFreqWeightingDb(peakFreq);
+      let aveBottomWeight = 0;
       if (splinePeakIs && peakBinIndex >= viewMinBinIndex && peakBinIndex <= splineEndIndex) {//スプライン範囲内ならスプラインでのピークにする
-        let tmpDecibel = fftView[peakBinIndex];
+        let tmpDecibel = fftView[peakBinIndex];//aveやbottom込み
         if (tmpDecibel < viewSpline(peakBinIndex - viewMinBinIndex, 2)) {//対象インデックスの上側のスプラインと比較
           tmpDecibel = viewSpline(peakBinIndex - viewMinBinIndex, 2);
-          peakFreq = (viewSpline(peakBinIndex - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
+          const truePeakBin = viewSpline(peakBinIndex - viewMinBinIndex, 1) + viewMinBinIndex;
+          const truePeakBinLwr = Math.floor(truePeakBin);//整数部
+          const truePeakBinDecimals = truePeakBin - truePeakBinLwr;//小数部
+          const weightLwr = fftResult[truePeakBinLwr] - fftView[truePeakBinLwr];
+          const weightUpr = fftResult[truePeakBinLwr + 1] - fftView[truePeakBinLwr + 1];
+          aveBottomWeight = weightLwr + (weightUpr - weightLwr) * truePeakBinDecimals;
+          peakFreq = truePeakBin * fftBinFreq;
         }
         if (tmpDecibel < viewSpline(peakBinIndex - 1 - viewMinBinIndex, 2)) {//対象インデックスの下側のスプラインと比較
           tmpDecibel = viewSpline(peakBinIndex - 1 - viewMinBinIndex, 2);
-          peakFreq = (viewSpline(peakBinIndex - 1 - viewMinBinIndex, 1) + viewMinBinIndex) * fftBinFreq;
+          const truePeakBin = viewSpline(peakBinIndex - 1 - viewMinBinIndex, 1) + viewMinBinIndex;
+          const truePeakBinLwr = Math.floor(truePeakBin);//整数部
+          const truePeakBinDecimals = truePeakBin - truePeakBinLwr;//小数部
+          const weightLwr = fftResult[truePeakBinLwr] - fftView[truePeakBinLwr];
+          const weightUpr = fftResult[truePeakBinLwr + 1] - fftView[truePeakBinLwr + 1];
+          aveBottomWeight = weightLwr + (weightUpr - weightLwr) * truePeakBinDecimals;
+          peakFreq = truePeakBin * fftBinFreq;
         }
         showDecibel = tmpDecibel;
         showDecibelTilt = tmpDecibel + getFreqWeightingDb(peakFreq);
@@ -4703,9 +4740,9 @@ function drawPeakText (viewSpline) {
           labelText = `[${(peakFreq / baseFreq).toFixed(2)}倍`;
           break;
       }
-      if (dBLabelIs) labelText += `,${showDecibel.toFixed(1)}dB]`;
+      if (dBLabelIs) labelText += `,${(showDecibel + aveBottomWeight).toFixed(1)}dB]`;
       if (dBLabelTiltIs) labelText += `,${showDecibelTilt.toFixed(1)}dB]`;
-      else labelText += `]`;
+      if (!dBLabelIs && !dBLabelTiltIs) labelText += `]`;
       const labelTextWidth = ctxFft.measureText(labelText).width;
       previousTextWidth = labelTextWidth;
       if (textX + labelTextWidth > fftCanvas.width - colorMapCanvas.width - 2)
