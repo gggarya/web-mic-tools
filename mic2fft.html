@@ -3956,13 +3956,22 @@ function makeFftView() {//平均ベースやボトムベースの反映
 function makeLevelValue() {//レベルメーター用の値を計算する
   levelPeak = -Infinity;
   levelRms = 0;
+  let maxZeroLength = 0;
+  let zeroLength = 0;
   for (let i = 0; i < timeDomain.length; i++) {
+    if (Math.abs(timeDomain[i]) < 1e-12) {
+      zeroLength++;
+      if (zeroLength > maxZeroLength) maxZeroLength = zeroLength;
+    } else {
+      zeroLength = 0;
+    }
     if (levelPeak < timeDomain[i]) levelPeak = timeDomain[i];
     levelRms += timeDomain[i] * timeDomain[i];
   }
   levelPeak = Math.log10(levelPeak) * 20;
   levelRms /= timeDomain.length;
   levelRms =  Math.log10(levelRms) * 10;
+  if (maxZeroLength > 10) console.log(maxZeroLength);
 }
 function makeDecibelWeightAtX () {//重み配列を作る
   if (baseSlopePerOct === 0) {
