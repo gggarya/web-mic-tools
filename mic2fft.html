@@ -2148,6 +2148,7 @@ function doubleTap(e) {//ダブルタップ
 
         HistoryZoomRate = HistoryZoomRateDefault;
         HistoryViewOffset = 0;
+        if (!rafId) draw();
         break;
       case "historyR":
         updateDragRect(fftCanvas.width - HIT_RANGE * 2, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
@@ -2237,22 +2238,6 @@ function zoomVertical(y, scale) {
   if (!rafId) draw();
 }
 function zoomHistoryVertical(y, scale) {
-/*  
-  const pts = [...gesture.pointers.values()];
-  if (gesture.mode === 'pinch' && HistoryViewOffset === 0) {//ピンチでオフセット位置がゼロならyとスケールを変える
-    y = (gesture.start.minY + spectrumHistoryH) * 0.5;//上側のタップ位置と下の区切り線の間をセンターにする
-    const nowMinY = Math.min(pts[0].y, pts[1].y);
-    scale = Math.pow(Math.abs(spectrumHistoryH - gesture.start.minY) / Math.abs(spectrumHistoryH - nowMinY), 0.5);
-    gesture.start.minY = nowMinY;
-  }
-  if (gesture.mode === 'pinch' &&
-      HistoryViewOffset === historyCanvas.height - drawHeightInImage) {//ピンチでオフセット位置が上端ならyとスケールを変える
-    y = (gesture.start.maxY + waveWindowH) * 0.5;//下側のタップ位置と下の区切り線の間をセンターにする
-    const nowMaxY = Math.max(pts[0].y, pts[1].y);
-    scale = Math.pow(Math.abs(waveWindowH - gesture.start.maxY) / Math.abs(waveWindowH - nowMinY), 1);
-    gesture.start.maxY = nowMaxY;
-  }
-*/
 //let HistoryZoomRate = 2;//描画位置のズーム率
   let tapOffset = Math.abs(spectrumHistoryH - y) / HistoryZoomRate;
   const centerOffset = (HistoryViewOffset === 0) ? 0 : HistoryViewOffset + tapOffset;
