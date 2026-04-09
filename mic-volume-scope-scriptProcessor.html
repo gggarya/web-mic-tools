@@ -173,63 +173,26 @@
 </div>
 <div class="numText" id="sampleRate_audioContext">sampleRate : ***** (device) , ***** (Context)</div>
 <hr>
-<pre class="txtInfoNoBorder"  style="color: #f77;">
-createScriptProcessorを用いたバージョン。
-createScriptProcessorは既に使うの非推奨らしい。
-でも環境を構築せずに、オフラインでただhtmlファイルを開くだけで音量確認を出来るのはこっち。
-（オフラインでただhtmlファイルを開くだけだと、デバイスの選択も出来ないですが）
-また、audioWorklet版とは-70dB付近から下の微小音量の扱いが違うようです。
-</pre>
+<div class="canvas-container" style="display:inline-block; margin:0px auto;    text-align: center;">
+  <div class="canvas-container" style="display:inline-block; margin:0px auto;    text-align: center; width: 30ch;">
+    <div class="numText" style="color: #0f0">緑の線：ピーク値</div>
+    <div class="numText" style="color: #aaf;">藤色：Ｋ特性フィルタ後のＲＭＳ</div>
+    <div class="numText" style="color: #f77;">赤：Ａ特性フィルタ後のＲＭＳ</div>
+  </div>
+  <div class="canvas-container" style="display:inline-block; margin:0px auto;    text-align: center; width: 30ch;">
+    <div class="numText" style="color: #eee">白の線：ＲＭＳ(実行値)</div>
+    <div class="numText" style="color: #bcf;">薄花色：リニア波形形状</div>
+    <div class="numText" style="color: #ccc">赤と青の細い線：白との差</div>
+  </div>
+</div>
 <hr>
-<pre class="txtInfoNoBorder">
-★概要
-・マイクの音量を目で確認するためのスクリプトです。
-・出力側を確認したい時はループバック（ステレオミキサー、再生リダイレクト）を使用してください。
+<div class="canvas-container" style="display:inline-block; margin:0px auto;    text-align: center;">
+  <div class="canvas-container" style="display:inline-block; margin:0px auto;    text-align: center;">
+    <div class="numText" style="color: #ccc;width:auto;">上段はデシベル値の変化
+下段は左から「ピークの波形」「リニアメーター」「デシベルメーター」「疑似LUFS算出窓」</div>
+  </div>
+</div>
 
-★画面説明
-●入力デバイス：表示対象のデバイス
-●上段
-　・大きい窓：デシベル変化を確認する窓です。
-　　・緑：ピーク
-　　・白（太）：ＲＭＳの０．４秒(くらい)平均
-　　・青（太）：Ｋ特性ぽいＲＭＳの０．４秒(くらい)平均
-　　・赤（太）：Ａ特性ぽいＲＭＳの０．４秒(くらい)平均
-　　・青（細）：青（太）と　白（太）の差を－４０の線を０として描画
-　　・赤（細）：赤（太）と　白（太）の差を－４０の線を０として描画
-　　・太さの変わる線：－６０を０、－４０～－８０を＋１～－１のリニアとする波形
-　・右の窓：左の窓のプロット数をｙ座標ごとに(なんとなく)８０個集計したヒストグラム
-●下段
-　・左下：サンプリングデータの最大値を、前後３点とともに切り出し、曲線でつないだもの
-　・左のレベルメーター：リニアスケールのピークメーター。切れ目はＲＭＳ
-　・右のレベルメーター：対数ケールのピークメーター。切れ目はＲＭＳ
-　・ＰＥＡＫ：ピーク値が－６ｄＢを超えた時に点灯
-　・ＳＩＧ：ピーク値が－２０ｄＢを超えた時に点灯
-　・数値群：上の大きい窓の内容を数字で表示
-　・頻出は描画ヒストグラムのピークとなるｙ位置のｄＢ。座標単位なので粗い。
-　・右下はＫ特性フィルタをかけて0.4秒ごとに平均して－０．６９１ｄＢし、
-　　－７０ｄＢ以上のブロックのみを３０秒間で平均した仮基準をー１０ｄＢしたのを基準として
-　　ふるいにかけて、残ったブロックを３０秒間平均したのが紫の線。
-
-★用途
-　・ＯＳの表示じゃ音量が分からないよって時に使う。
-　・ＯＳの表示じゃ音量が小さいだけなのか、繋がっていないのか分からない時に使う。
-　・ＯＳやアプリの謎メーターが、リニアか対数か判断する比較対象として。
-　・世間一般のコンテンツって、どれくらいの音量で作られているのかを見る。
-　・多人数時の音量調整の目安として。
-　・社内ＰＡの学習用など。アプリインストールできない環境などに。
-
-★仕様に関する事
-・画面更新の時間間隔ごとに、下記を集計して表示している。
-（上側ピーク、下側ピーク、二乗和、ＫとＡの重みづけ後の二乗和、データ数、最大振幅と前後3つ(計7点)の振幅）
-・ブラウザの画面更新で1px進む。横軸の長さは環境依存。
-・二乗平均の平均期間は0.4秒を狙っているが、こちらも環境の更新頻度ごとなので誤差あり。
-・補間表示は７点での三次スプライン。こちらは描画データでなく三次式としてのピーク。
-・ヒストグラムは、描画した点の集計。音声データの集計ではない。
-・ヒストグラム対象は描画データ80個。時間は環境依存。80個はなんとなく。
-・落とす時はこのhtmlファイル単体でよいが、https://かlocalhost環境でないと動かないらしい。
-・個人的にＡの変化、Ｚとの乖離は気にしているので、計算リソース食うの承知で盛り込んだ。
-・スタート後に↓に取得した情報を表示
-</pre>
 <hr>
 <div>
   <pre class="txtInfo" id="info_devices"></pre>
