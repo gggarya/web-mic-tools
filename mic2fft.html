@@ -779,7 +779,8 @@ let spectrumHistoryRate = 0.6;//二つ目の区切り線の位置
 let spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
 let HistoryWriteLine = 0;//描画位置
 let HistoryViewOffset = 0;//描画位置のオフセット
-let HistoryZoomRate = 1;//描画位置のズーム率
+let HistoryZoomRateDefault = 1;//描画位置のズーム率
+let HistoryZoomRate = HistoryZoomRateDefault;//描画位置のズーム率
 let HistoryZoomRateMax = 10;//描画位置のズーム率最大
 let spectrumHistoryMaxSize = Math.max(fftCanvas.width, fftCanvas.height);
 let spectrumContrast = 0;//カラーマップコントラスト、0が中央
@@ -1741,12 +1742,15 @@ function onMove(e) {
       case "historyMRR":
       case "historyMRL":
       case "historyML":
-        if (gesture.start.axisIsFreq) {//横方向のピンチ
-        } else {//縦方向のピンチ
-          const d1 = Math.abs(pts[0].y - pts[1].y);
-          const scale = Math.pow(gesture.start.distance / d1, 1);
-          gesture.start.distance = d1;
-          zoomHistoryVertical(gesture.start.center.y * dpr, scale);
+        {
+          const pts = [...gesture.pointers.values()];
+          if (gesture.start.axisIsFreq) {//横方向のピンチ
+          } else {//縦方向のピンチ
+            const d1 = Math.abs(pts[0].y - pts[1].y);
+            const scale = Math.pow(gesture.start.distance / d1, 1);
+            gesture.start.distance = d1;
+            zoomHistoryVertical(gesture.start.center.y * dpr, scale);
+          }
         }
         break;
     }
@@ -2143,6 +2147,9 @@ function doubleTap(e) {//ダブルタップ
             dragRect.classList.add('fadeout');//表示したらすぐ消す
           });
         });
+
+        HistoryZoomRate = HistoryZoomRateDefault;
+        HistoryViewOffset = 0;
         break;
       case "historyR":
         updateDragRect(fftCanvas.width - HIT_RANGE * 2, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
@@ -2170,7 +2177,6 @@ function doubleTap(e) {//ダブルタップ
 }
 
 function pinch() {
-
   const pts = [...gesture.pointers.values()];
   if (gesture.start.axisIsFreq) {//横方向のピンチ
     const d1 = Math.abs(pts[0].x - pts[1].x);
