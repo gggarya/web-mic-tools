@@ -1746,7 +1746,7 @@ function onMove(e) {
         } else {//縦方向のピンチ
           const pts = [...gesture.pointers.values()];
           const d1 = Math.abs(pts[0].y - pts[1].y);
-          const scale = Math.pow(gesture.start.distance / d1, 1);
+          const scale = Math.pow(gesture.start.distance / d1, HistoryViewOffset !== 0 ? 1 : 0.5);
           gesture.start.distance = d1;
           zoomHistoryVertical(gesture.start.center.y * dpr, scale);
         }
@@ -2237,11 +2237,12 @@ function zoomVertical(y, scale) {
   if (!rafId) draw();
 }
 function zoomHistoryVertical(y, scale) {
+/*  
   const pts = [...gesture.pointers.values()];
   if (gesture.mode === 'pinch' && HistoryViewOffset === 0) {//ピンチでオフセット位置がゼロならyとスケールを変える
     y = (gesture.start.minY + spectrumHistoryH) * 0.5;//上側のタップ位置と下の区切り線の間をセンターにする
     const nowMinY = Math.min(pts[0].y, pts[1].y);
-    scale = Math.pow(Math.abs(spectrumHistoryH - gesture.start.minY) / Math.abs(spectrumHistoryH - nowMinY), 1);
+    scale = Math.pow(Math.abs(spectrumHistoryH - gesture.start.minY) / Math.abs(spectrumHistoryH - nowMinY), 0.5);
     gesture.start.minY = nowMinY;
   }
   if (gesture.mode === 'pinch' &&
@@ -2251,7 +2252,7 @@ function zoomHistoryVertical(y, scale) {
     scale = Math.pow(Math.abs(waveWindowH - gesture.start.maxY) / Math.abs(waveWindowH - nowMinY), 1);
     gesture.start.maxY = nowMaxY;
   }
-
+*/
 //let HistoryZoomRate = 2;//描画位置のズーム率
   let tapOffset = Math.abs(spectrumHistoryH - y) / HistoryZoomRate;
   const centerOffset = (HistoryViewOffset === 0) ? 0 : HistoryViewOffset + tapOffset;
