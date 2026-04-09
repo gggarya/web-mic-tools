@@ -3344,6 +3344,7 @@ popupViewHistoryMenu.addEventListener('click', async (e) => {//ポップアッ�
       copyBrightness = 100;//明るさ
       copyHueRotate = 0;//色合い
       copyInvert = false;//反転
+      if (!rafId) draw();
       break;
   }
 });
