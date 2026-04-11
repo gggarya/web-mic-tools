@@ -5712,7 +5712,11 @@ function drawLpc1Line() {//LPC線図用
     offsetDecibel = (viewMaxDecivel + viewMinDecivel) * 0.5;
   }
   ctxFft.save();
-  ctxFft.fillStyle = "#ff0";//色指定
+  ctxFft.strokeStyle = "#ff0";//色指定
+  ctxFft.beginPath();
+  ctxFft.lineWidth = 2;//線の密度で太さを変える
+
+//  ctxFft.fillStyle = "#ff0";//色指定
   const stopX = Math.min(fftCanvas.width, freqToX(ctxSampleRate / lpc1DownSamplePitch * 0.5))
   for (let i = 0; i < stopX; i++) {
     const ii = i * lpc1Order;
@@ -5725,12 +5729,16 @@ function drawLpc1Line() {//LPC線図用
     const power = re * re + im * im + 1e-12;
     const spectrumDecibel = -10 * Math.log10(power);
     const y = (viewMaxDecivel - spectrumDecibel - getXWeightingDb(i) - offsetDecibel) * YPerDecivel;
-    if (y > 0 && y <= fftViewH) ctxFft.fillRect(i, fftViewZeroY + y, 2, 2);
+
+    if (y < 0) y = 0;
+    if (y > fftViewH) y = fftViewH;
+    if (i === 0) ctxFft.moveTo(i, fftViewZeroY + y);
+    else  ctxFft.lineTo(i, fftViewZeroY + y);
     if (historyIsLpc) spectro1LineY[i] = y;
   }
-  if (historyIsLpc) for(let i = stopX; i < fftCanvas.width; i++) spectro1LineY[i] = Infinity;
-
+  ctxFft.stroke();
   ctxFft.restore();
+  if (historyIsLpc) for(let i = stopX | 0; i < fftCanvas.width; i++) {spectro1LineY[i] = Infinity;}
 }
 
 function drawFftOverLay() {
