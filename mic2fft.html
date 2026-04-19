@@ -777,6 +777,7 @@ const norm = new Float32Array(3).fill(0);
 const zeroPos = new Float32Array(3).fill(0);
 const targetCoeff = new Float32Array(3).fill(0);
 let waveMinRange = Math.pow(10, -60 / 20);//波形の最小のレンジ
+let waveViewOffset = 0;//表示オフセット
 
 function makeTargetSin() {
   targetSin = new Float32Array(targetSampleLength);//サイン
@@ -4438,16 +4439,17 @@ function targetFreqFourier() {//タイムドメインデータをターゲット
       z2 = z1;
       z1 = z0;
     }
-    const invLength = 2 / goertzelLength;;
+    const invLength = 2 / goertzelLength;
     const w = j > 0 ? baseW * j : baseW * 0.5;
     const real = (z1 - Math.cos(w) * z2);
-    const imag = (Math.sin(w) * z2);
+    const imag = (-Math.sin(w) * z2);
     norm[j] = Math.hypot(real * invLength, imag * invLength);
     const rad = Math.atan2(imag, real);
-    let shifted = j > 0 ? -rad : rad;//描画のゼロ位置を出したいので回転する
+    let shifted = rad + Math.PI;//描画のゼロ位置を出したいので回転する
     const waveLength = targetSampleLength / ( j > 0 ? j : 0.5);
-    zeroPos[j] = waveLength * shifted / (2 * Math.PI);//float
+    zeroPos[j] = (waveLength * shifted / (2 * Math.PI));//float
   } 
+
 /*
   {//確かめ
     let re = 0;
@@ -4464,7 +4466,6 @@ function targetFreqFourier() {//タイムドメインデータをターゲット
     const norm1 = Math.hypot(re, im);
     const rad1 = Math.atan2(im, re);
     const zeroPos1 = targetSampleLength * rad1 / (2 * Math.PI);//float
-    console.log (norm[1], norm1);
   }
 */
 }
@@ -5783,7 +5784,6 @@ function drawMinY() {//最も上の点を描画
     }
     ctxFft.stroke();
   }
-
   ctxFft.restore();
 }
 
@@ -5862,10 +5862,12 @@ function drawWave() {
   ctxFft.fillStyle = "#aaa";
   ctxFft.fillRect(0, waveY0, fftCanvas.width, 1);//中心線を描画
 
-  let viewLength = Math.min(Math.round(targetSampleLength * 3), timeDomain.length);
-  const stIndex = Math.max(0, Math.round((timeDomain.length - viewLength) * 0.5));
-  const zeroIndex = Math.max(0, stIndex + Math.round(zeroPos[1]));//開始点
-  if (zeroIndex + viewLength > timeDomain.length) viewLength = timeDomain.length - zeroIndex;
+  const viewLength = Math.min(Math.round(targetSampleLength * 3), timeDomain.length);
+  const offsetCtrIndex = Math.round(timeDomain.length * 0.5 + waveViewOffset);
+  const stIndex = Math.max(0, Math.round(offsetCtrIndex - viewLength * 0.5));
+  const zeroPosWithMaxNorm = norm[1] * 5 >= Math.max(norm[0], norm[2]) ? zeroPos[1] : norm[2] > norm [0] ? zeroPos[2] : zeroPos[0];
+  const zeroIndex = Math.min(Math.max(0, stIndex + Math.round(zeroPosWithMaxNorm)), timeDomain.length - viewLength);//開始点
+//  if (zeroIndex + viewLength > timeDomain.length) viewLength = timeDomain.length - zeroIndex;
 
   const endIndex = zeroIndex + viewLength;
   const iToX = fftCanvas.width / viewLength;
@@ -5880,24 +5882,25 @@ function drawWave() {
   const normInY0 = norm[0] * valueToY;
   const normInY1 = norm[1] * valueToY;
   const normInY2 = norm[2] * valueToY;
+  const offset0 = zeroPos[0] - zeroPosWithMaxNorm;
+  const offset1 = zeroPos[1] - zeroPosWithMaxNorm;
+  const offset2 = zeroPos[2] - zeroPosWithMaxNorm;
 
-  //1/2倍
-  const offset0 = Math.round(zeroPos[0] - zeroPos[1]);
+  //0.5倍
   ctxFft.strokeStyle = "#6af";//色指定
   ctxFft.beginPath();
-  ctxFft.moveTo(0, waveY0 - normInY0 * targetCos[(targetCos.length - offset0) * 0.5  % targetCos.length]);
+  ctxFft.moveTo(0, waveY0 - normInY0 * targetCos[Math.round((targetCos.length * 1.5 - offset0 * 0.5) % targetCos.length)]);
   for (let i = 0; i <= viewLength; i += 3) {
-    ctxFft.lineTo(i * iToX, waveY0 - normInY0 * targetCos[(targetCos.length + i - offset0) * 0.5  % targetCos.length]);
+    ctxFft.lineTo(i * iToX, waveY0 - normInY0 * targetCos[Math.round((targetCos.length * 1.5 + (i - offset0) * 0.5)  % targetCos.length)]);
   }
   ctxFft.stroke();
   //2倍
-  const offset2 = Math.round(zeroPos[1] - zeroPos[1]);
   ctxFft.strokeStyle = "#f33";//色指定
   ctxFft.lineWidth = 1;//太さ
   ctxFft.beginPath();
-  ctxFft.moveTo(0, waveY0 - normInY2 * targetCos[(targetCos.length - offset2) * 2  % targetCos.length]);
+  ctxFft.moveTo(0, waveY0 - normInY2 * targetCos[Math.round((targetCos.length * 1.5 - offset2 * 2) % targetCos.length)]);
   for (let i = 0; i <= viewLength; i += 3) {
-    ctxFft.lineTo(i * iToX, waveY0 - normInY2 * targetCos[(targetCos.length + i - offset2) * 2  % targetCos.length]);
+    ctxFft.lineTo(i * iToX, waveY0 - normInY2 * targetCos[Math.round((targetCos.length * 1.5 + (i - offset2) * 2) % targetCos.length)]);
   }
   ctxFft.stroke();
 
@@ -5906,9 +5909,9 @@ function drawWave() {
   ctxFft.strokeStyle = "#990";//色指定
   ctxFft.lineWidth = 1;//太さ
   ctxFft.beginPath();
-  ctxFft.moveTo(0, waveY0 - normInY1 * targetCos[0]);
+  ctxFft.moveTo(0, waveY0 - normInY1 * targetCos[Math.round((targetCos.length * 1.5 - offset1) % targetCos.length)]);
   for (let i = 0; i <= viewLength; i += 3) {
-    ctxFft.lineTo(i * iToX, waveY0 - normInY1 * targetCos[i % targetCos.length]);
+    ctxFft.lineTo(i * iToX, waveY0 - normInY1 * targetCos[Math.round((targetCos.length * 1.5 + (i - offset1)) % targetCos.length)]);
   }
   ctxFft.stroke();
 
