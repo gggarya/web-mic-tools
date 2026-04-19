@@ -1791,6 +1791,11 @@ function onMove(e) {
         }
         break;
       case "wave":
+        if (gesture.axis === "x") {
+          panWaveOffset(e);
+          if (!rafId) draw();
+        } else if (gesture.axis === "y") {
+        }
         break;
     }
   } else if (gesture.mode === 'pinch') {
@@ -2088,6 +2093,19 @@ function panHistoryViewLine() {
   if (HistoryViewOffset < 0) HistoryViewOffset = 0;
   const drawHeightInImage = (spectrumHistoryH - waveWindowH - 1) / HistoryZoomRate;//描画の高さ
   if (HistoryViewOffset + drawHeightInImage > historyCanvas.height) HistoryViewOffset = historyCanvas.height - drawHeightInImage;
+}
+function panWaveOffset(e) {
+//let targetSampleLength = Math.round(ctxSampleRate / targetFreq);
+//let waveViewOffset = 0;//表示オフセット
+//  const offsetCtrIndex = Math.round(timeDomain.length * 0.5 + waveViewOffset);
+  const [p] = gesture.pointers.values();
+  const dx = (p.x - gesture.start.pt.x) * dpr;
+  const dt = dx * targetSampleLength * 3 / fftCanvas.width;
+  gesture.start.pt.x = p.x;
+  waveViewOffset -= dt;
+  const limit = Math.round((timeDomain.length - targetSampleLength * 3) * 0.5);
+  waveViewOffset = Math.max(-limit, Math.min(limit, waveViewOffset));//値セット
+//表示用のrect処理が欲しいかも
 }
 
 function doubleTap(e) {//ダブルタップ
@@ -5846,7 +5864,7 @@ function drawDecibelLine() {//FFT線図領域の横線
   }
   ctx.restore();
 }
-function drawWave() {
+function drawWave() {//波形表示
 //let targetFreq = targetFreqDefault;//波形表示のターゲット周波数
 //let targetSampleLength = Math.round(ctxSampleRate / targetFreq);
 //let targetSin = null;
@@ -5882,9 +5900,9 @@ function drawWave() {
   const normInY0 = norm[0] * valueToY;
   const normInY1 = norm[1] * valueToY;
   const normInY2 = norm[2] * valueToY;
-  const offset0 = zeroPos[0] - zeroPosWithMaxNorm;
-  const offset1 = zeroPos[1] - zeroPosWithMaxNorm;
-  const offset2 = zeroPos[2] - zeroPosWithMaxNorm;
+  const offset0 = zeroPos[0] - zeroPosWithMaxNorm - waveViewOffset;
+  const offset1 = zeroPos[1] - zeroPosWithMaxNorm - waveViewOffset;
+  const offset2 = zeroPos[2] - zeroPosWithMaxNorm - waveViewOffset;
 
   //0.5倍
   ctxFft.strokeStyle = "#6af";//色指定
