@@ -1867,6 +1867,7 @@ function onMove(e) {
         break;
       case "wave":
         if (gesture.start.axisIsFreq) {//横方向のピンチ
+          const pts = [...gesture.pointers.values()];
           const d1 = Math.abs(pts[0].x - pts[1].x);
           const scale = Math.pow(gesture.start.distance / d1, 1);
           gesture.start.distance = d1;
