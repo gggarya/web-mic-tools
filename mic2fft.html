@@ -792,16 +792,19 @@ let goertzelStIndex = Math.max(0, Math.min(timeDomain.length - goertzelLength,
 let goertzelEndIndex = goertzelStIndex + goertzelLength;
 let goertzelCos = Math.cos(2 * Math.PI / targetSampleLength);
 let goertzelSin = Math.sin(2 * Math.PI / targetSampleLength);
-const slidingDftSampleNum = [32, 32, 32];//サンプルの数
-const slidingDftRevolutionNum = [2, 4, 6];//回転する数
-const slidingDftFreq = [1000, 4000, 8000];//ターゲット周波数
-const slidingDftIsVisible = [false, true, true];//表示するか
-const slidingDftColor = ["#f6f", "#ee0", "#0ee"];//色
+let slidingDftSampleLength = 38;
+const slidingDftSampleNum = [slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength];//サンプルの数
+const slidingDftRevolutionNum = [2, 4, 6, 8];//回転する数
+const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
+const slidingDftIsVisible = [false, true, true, true];//表示するか
+const slidingDftColor = ["#ff4d4d", "#4dff4d", "#8d8dff", "#cdcdff"];//色
 const slidingDftSin = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftCos = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftWindow = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftRe = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftIm = slidingDftSampleNum.map(n => new Float32Array(n));
+const slidingDftValue = slidingDftRevolutionNum.map(() => new Float32Array(waveViewLength));  
+
 
 function makeWaveViewCoeff () {//表示幅、dft幅、それらインデックス系の再計算
   const baseW = 2 * Math.PI / targetSampleLength;
@@ -828,6 +831,7 @@ function makeWaveViewCoeff () {//表示幅、dft幅、それらインデック�
   slidingDftSampleNum.forEach((n, i) => {
     if (n === 0) return;
     slidingDftFreq[i] = ctxSampleRate * slidingDftRevolutionNum[i] / n;
+    slidingDftValue[i] = new Float32Array(waveViewLength);
     slidingDftSin[i] = new Float32Array(n);
     slidingDftCos[i] = new Float32Array(n);
     slidingDftWindow[i] = new Float32Array(n);
@@ -4111,7 +4115,8 @@ function animateByCtx(now) {//アニメーションループ
   //fps計算
   const longTimeAgo = previousNow[previousNowIndex];
   previousNow[previousNowIndex] = now;//fps確認用
-  previousNowIndex = (previousNowIndex + 1) % previousNow.length;
+  previousNowIndex = (previousNowIndex + 1);// % previousNow.length;
+  if (previousNowIndex >= previousNow.length) previousNowIndex -= previousNow.length;
   const fps = 1000 / (now - longTimeAgo) * previousNow.length;
   infoRect.textContent = `fps : ${fps.toFixed(1)}`; 
   infoRect.classList.remove("fadeout");
@@ -4468,10 +4473,12 @@ function makeLpc1R () {//Rを作る
     for (let j = 0; j < lpc1DownSamplePitch; j++) ds += timeDomain[i + j];//ダウンサンプル作成
     lpc1R[0] += ds * ds;
     for (let j = 1; j <= lpc1Order; j++) {
-      const dsIndexJ = (dsIndex - (j - 1) + lpc1DSBuffer.length) % lpc1DSBuffer.length;;
+      let dsIndexJ = (dsIndex - (j - 1) + lpc1DSBuffer.length);// % lpc1DSBuffer.length;
+      if (dsIndexJ >= lpc1DSBuffer.length) dsIndexJ -= lpc1DSBuffer.length;
       lpc1R[j] += lpc1DSBuffer[dsIndexJ] * ds;
     }
-    dsIndex = (1 + dsIndex) % lpc1DSBuffer.length;
+    dsIndex = (1 + dsIndex);// % lpc1DSBuffer.length;
+    if (dsIndex >= lpc1DSBuffer.length) dsIndex -= lpc1DSBuffer.length;
     lpc1DSBuffer[dsIndex] = ds;
   }
 }
@@ -4543,9 +4550,10 @@ function targetFreqFourier() {//タイムドメインデータをターゲット
       z1 = z0;
     }
     const invLength = 2 / goertzelLength;
-    const real = (z1 - goertzelCos * z2);
-    const imag = (-goertzelSin * z2);
-    norm[1] = Math.hypot(real * invGoertzelLength * 2, imag * invGoertzelLength * 2);
+    const real = (z1 - goertzelCos * z2) * invGoertzelLength * 2;
+    const imag = (-goertzelSin * z2) * invGoertzelLength * 2;
+//    norm[1] = Math.hypot(real * invGoertzelLength * 2, imag * invGoertzelLength * 2);
+    norm[1] = Math.sqrt(real * real + imag * imag);
     const rad = Math.atan2(imag, real);
     const shifted = rad + Math.PI;//描画のゼロ位置を出したいので回転する
     zeroPos[1] = (targetSampleLength * shifted * inv2PI);//float
@@ -5520,7 +5528,8 @@ function drawPeakText (viewSpline) {
   }
 }
 function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描画
-  HistoryWriteLine = (HistoryWriteLine + 1) % historyCanvas.height;//書く前に一個下にずらす
+  HistoryWriteLine = (HistoryWriteLine + 1);// % historyCanvas.height;//書く前に一個下にずらす
+  if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
   const y = HistoryWriteLine;
   for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
 
@@ -5577,7 +5586,8 @@ function updateFilter(ctx) {//画像フィルタを適用する
 function makeSpectrumHistory (now, viewSpline) {//ヒストリー領域の描画。fft線図のyを用いたもの
   if (!Number.isFinite(spectro1LineY[0])) return;//値が入っていなければ飛ばす
 
-  HistoryWriteLine = (HistoryWriteLine + 1) % historyCanvas.height;//書く前に一個下にずらす
+  HistoryWriteLine = (HistoryWriteLine + 1);// % historyCanvas.height;//書く前に一個下にずらす
+  if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
   const y = HistoryWriteLine;
   for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
 
@@ -5991,6 +6001,8 @@ function drawWave() {//波形表示
 
 function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   const dftPath = slidingDftRevolutionNum.map(() => new Path2D());
+  const dftSampleNum = slidingDftSampleNum[0];
+  const dftSampleNumHalf = dftSampleNum * 0.5;
 
   for (let i = 0; i < slidingDftSampleNum.length; i++) {
     for (let m = 0; m < slidingDftSampleNum[i]; m++) {//ReとImクリア
@@ -5998,72 +6010,140 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       slidingDftIm[i][m] = 0;
     }
   }
-  const xOffset = Math.round(slidingDftSampleNum[0] * 0.5);//描画位置と端末との差
-  const valueToYinThisFreq = 2 * 2 * valueToY / slidingDftSampleNum[0];
-  {
-    let w = 0;
-    let j = Math.max(0, zeroIndex + xOffset - slidingDftSampleNum[0]);//開始点
-    const jEnd = Math.min(timeDomain.length, endIndex + xOffset + 1);//終了点 + 1
-    let k = 0;
-    while (k < slidingDftSampleNum[0]) {//とりあえず１回転
-      for (let i = 0; i < slidingDftSampleNum.length; i++) {
-        const tmpRe = timeDomain[j] * slidingDftCos[i][w];
-        const tmpIm = timeDomain[j] * slidingDftSin[i][w];
-        const half_slidingDftSampleNum = slidingDftSampleNum[0] * 0.5;
-        for (let m = 0; m < half_slidingDftSampleNum; m++) {//ReとImクリア
-          const n = (w + m) % slidingDftSampleNum[i];
-          const m2 = slidingDftSampleNum[0] - m - 1;
-          const n2 = (w + m2) % slidingDftSampleNum[i];
-          const WindowedRe = tmpRe * slidingDftWindow[i][m];//mとm2の窓が同じ前提
-          const WindowedIm = tmpIm * slidingDftWindow[i][m];
-          slidingDftRe[i][n] += WindowedRe;
-          slidingDftIm[i][n] += WindowedIm;
-          if (n !== n2) {
-            slidingDftRe[i][n2] += WindowedRe;
-            slidingDftIm[i][n2] += WindowedIm;
-          }
-        }
-      }
-      w = (w + 1) % slidingDftSampleNum[0];
-      j++;
-      k++;
-    }//1回転終わり
-
-    //開始点を設定
+  const xOffset = Math.round(dftSampleNumHalf);//描画位置と端末との差
+  const valueToYinThisFreq = 4 * valueToY / dftSampleNum;//窓分２とdft分２で×４
+  const jEnd = Math.min(timeDomain.length, endIndex + xOffset + 1);//終了点 + 1
+  let j = Math.max(0, zeroIndex + xOffset - dftSampleNum);//開始点
+  let dftSquareSum = 0;
+  let dftSquareMax = 0;
+  const dftSquareLength = jEnd - j - xOffset;
+  let w = 0;
+  let k = 0;
+  while (k < dftSampleNum) {//とりあえず１回転
     for (let i = 0; i < slidingDftSampleNum.length; i++) {
-      dftPath[i].moveTo((j - 1 - xOffset - zeroIndex) * iToX, waveY0 - Math.hypot(slidingDftRe[i][w], slidingDftIm[i][w]) * valueToYinThisFreq);
-    }
-    //メインループ
-    while (j < jEnd) {
-      const difference = timeDomain[j] - timeDomain[j - slidingDftSampleNum[0]];
-      for (let i = 0; i < slidingDftSampleNum.length; i++) {
-        const tmpRe = difference * slidingDftCos[i][w];
-        const tmpIm = difference * slidingDftSin[i][w];
-        const half_slidingDftSampleNum = slidingDftSampleNum[0] * 0.5;
-        for (let m = 0; m < half_slidingDftSampleNum; m++) {//ReとImクリア
-          const n = (w + m) % slidingDftSampleNum[i];
-          const m2 = slidingDftSampleNum[0] - m - 1;
-          const n2 = (w + m2) % slidingDftSampleNum[i];
-          const WindowedRe = tmpRe * slidingDftWindow[i][m];//mとm2の窓が同じ前提
-          const WindowedIm = tmpIm * slidingDftWindow[i][m];
-          slidingDftRe[i][n] += WindowedRe;
-          slidingDftIm[i][n] += WindowedIm;
-          if (n !== n2) {
-            slidingDftRe[i][n2] += WindowedRe;
-            slidingDftIm[i][n2] += WindowedIm;
-          }
+      const tmpRe = timeDomain[j] * slidingDftCos[i][w];
+      const tmpIm = timeDomain[j] * slidingDftSin[i][w];
+      for (let m = 0; m < dftSampleNumHalf; m++) {//ReとImクリア
+        let n = w + m;
+        if (n >= dftSampleNum) n -= dftSampleNum;
+        const m2 = dftSampleNum - m - 1;
+        let n2 = w + m2;
+        if (n2 >= dftSampleNum) n2 -= dftSampleNum;
+        const WindowedRe = tmpRe * slidingDftWindow[i][m];//mとm2の窓が同じ前提
+        const WindowedIm = tmpIm * slidingDftWindow[i][m];
+        slidingDftRe[i][n] += WindowedRe;
+        slidingDftIm[i][n] += WindowedIm;
+        if (n !== n2) {
+          slidingDftRe[i][n2] += WindowedRe;
+          slidingDftIm[i][n2] += WindowedIm;
         }
-        dftPath[i].lineTo((j - xOffset - zeroIndex) * iToX, waveY0 - Math.hypot(slidingDftRe[i][w], slidingDftIm[i][w]) * valueToYinThisFreq);
       }
-      w = (w + 1) % slidingDftSampleNum[0];
-      j++;
     }
+    w = w + 1;
+    if (w >= dftSampleNum) w -= dftSampleNum;
+    j++;
+    k++;
+  }//1回転終わり
+   //開始点を設定
+  for (let i = 0; i < slidingDftSampleNum.length; i++) {
+    const squareSum = slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w];
+    const IndexOnView = Math.max(0, Math.min(waveViewLength - 1, j - 1 - xOffset - zeroIndex));
+    slidingDftValue[i][IndexOnView] = squareSum;
+    dftSquareSum += squareSum;
+    if (dftSquareMax < squareSum) dftSquareMax = squareSum;
+    dftPath[i].moveTo(IndexOnView * iToX, waveY0 - Math.sqrt(squareSum) * valueToYinThisFreq);
+  }
+  //メインループ
+  while (j < jEnd) {
+    const difference = timeDomain[j] - timeDomain[j - dftSampleNum];
+    for (let i = 0; i < slidingDftSampleNum.length; i++) {
+      const tmpRe = difference * slidingDftCos[i][w];
+      const tmpIm = difference * slidingDftSin[i][w];
+      for (let m = 0; m < dftSampleNumHalf; m++) {//ReとImクリア
+        let n = w + m;
+        if (n >= dftSampleNum) n -= dftSampleNum;
+        const m2 = dftSampleNum - m - 1;
+        let n2 = w + m2;
+        if (n2 >= dftSampleNum) n2 -= dftSampleNum;
+        const WindowedRe = tmpRe * slidingDftWindow[i][m];//mとm2の窓が同じ前提
+        const WindowedIm = tmpIm * slidingDftWindow[i][m];
+        slidingDftRe[i][n] += WindowedRe;
+        slidingDftIm[i][n] += WindowedIm;
+        if (n !== n2) {
+          slidingDftRe[i][n2] += WindowedRe;
+          slidingDftIm[i][n2] += WindowedIm;
+        }
+      }
+      const squareSum = slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w];
+      const IndexOnView = Math.max(0, Math.min(waveViewLength - 1, j - xOffset - zeroIndex));
+      slidingDftValue[i][IndexOnView] = squareSum;
+      dftSquareSum += squareSum;
+      if (dftSquareMax < squareSum) dftSquareMax = squareSum;
+      dftPath[i].lineTo(IndexOnView * iToX, waveY0 - Math.sqrt(squareSum) * valueToYinThisFreq);
+    }
+    w = w + 1;
+    if (w >= dftSampleNum) w -= dftSampleNum;
+    j++;
   }
   //描画
-  ctxFft.lineWidth = 1;//太さ
+  ctxFft.lineWidth = 0.8;//太さ
   for (let i = 0; i < slidingDftSampleNum.length; i++) {
     ctxFft.strokeStyle = slidingDftColor[i];//色指定
     ctxFft.stroke(dftPath[i]);
+  }
+  dftSquareSum /= dftSquareLength;
+  dftSquareSum = Math.sqrt(dftSquareSum * 2);
+  dftSquareMax = Math.sqrt(dftSquareMax) ;
+//  ctxFft.fillStyle = "#f88";//色指定
+//  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
+//  const invDftSquareMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
+  const invDftSquareMax = 1;
+for (let j = 0; j < waveViewLength; j++) {
+//const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
+    const gein1 = slidingDftFreq[1] / slidingDftFreq[0];
+    const gein2 = slidingDftFreq[2] / slidingDftFreq[0];
+    const gein3 = slidingDftFreq[3] / slidingDftFreq[0];
+
+    let r = Math.min( slidingDftValue[0][j] * invDftSquareMax);
+    let g = Math.min( slidingDftValue[1][j] * invDftSquareMax * gein1);
+    let b = Math.min( Math.sqrt(slidingDftValue[2][j] * slidingDftValue[2][j] * gein2 * gein2
+     + slidingDftValue[3][j] * slidingDftValue[3][j] * gein3 * gein3) * invDftSquareMax);
+    const tmpRgbMax = Math.max(r, g, b);
+    if (tmpRgbMax > 1e-12) {
+      const invtmpRgbMax = 1 / tmpRgbMax;
+      r *= invtmpRgbMax;
+      g *= invtmpRgbMax;
+      b *= invtmpRgbMax;
+    }
+    const rgbMax = Math.max(r, g, b);
+    const rgbMin = Math.min(r, g, b);
+    const rgbRange = rgbMax - rgbMin;
+    if (rgbRange !== 0) {
+      let h;
+      let s = 0;
+      let l = (rgbMax + rgbMin) / 2;
+        switch (rgbMax) {
+        case r:
+          h = (g - b) / rgbRange + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / rgbRange + 2;
+          break;
+        case b:
+          h = (r - g) / rgbRange + 3.5;
+          break;
+      }
+      h *= 60; // 0〜360度
+      s = rgbRange / (1 - Math.abs(2 * l - 1)) * 100;
+      l *= 100;
+      ctxFft.fillStyle = `hsl(${h}, ${s}%, 65%)`;
+    } else {
+      ctxFft.fillStyle = `#000`;
+    }
+
+//const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+//    ctxFft.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+    ctxFft.fillRect(j * iToX, 0, iToX + 1, 8);
   }
 
 }
