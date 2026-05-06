@@ -796,6 +796,7 @@ let slidingDftSampleLength = 38;
 const slidingDftSampleNum = [slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength];//サンプルの数
 const slidingDftRevolutionNum = [2, 4, 6, 8];//回転する数
 const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
+const slidingDftGain = [1000, 4000, 8000, 8000];//ターゲット周波数によるゲイン
 const slidingDftIsVisible = [false, true, true, true];//表示するか
 const slidingDftColor = ["#ff4d4d", "#4dff4d", "#8d8dff", "#cdcdff"];//色
 const slidingDftSin = slidingDftSampleNum.map(n => new Float32Array(n));
@@ -831,6 +832,7 @@ function makeWaveViewCoeff () {//表示幅、dft幅、それらインデック�
   slidingDftSampleNum.forEach((n, i) => {
     if (n === 0) return;
     slidingDftFreq[i] = ctxSampleRate * slidingDftRevolutionNum[i] / n;
+    slidingDftGain[i] = slidingDftFreq[i] / slidingDftFreq[0];//ターゲット周波数によるゲイン
     slidingDftValue[i] = new Float32Array(waveViewLength);
     slidingDftSin[i] = new Float32Array(n);
     slidingDftCos[i] = new Float32Array(n);
@@ -6046,11 +6048,12 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   }//1回転終わり
    //開始点を設定
   for (let i = 0; i < slidingDftSampleNum.length; i++) {
-    const squareSum = slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w];
+    const squareSum = (slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w]);
+    const squareSumWithGain = squareSum * slidingDftGain[i] * slidingDftGain[i];
     const IndexOnView = Math.max(0, Math.min(waveViewLength - 1, j - 1 - xOffset - zeroIndex));
-    slidingDftValue[i][IndexOnView] = squareSum;
-    dftSquareSum += squareSum;
-    if (dftSquareMax < squareSum) dftSquareMax = squareSum;
+    slidingDftValue[i][IndexOnView] = squareSumWithGain;
+    dftSquareSum += squareSumWithGain;
+    if (dftSquareMax < squareSumWithGain) dftSquareMax = squareSumWithGain;
     dftPath[i].moveTo(IndexOnView * iToX, waveY0 - Math.sqrt(squareSum) * valueToYinThisFreq);
   }
   //メインループ
@@ -6074,11 +6077,12 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
           slidingDftIm[i][n2] += WindowedIm;
         }
       }
-      const squareSum = slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w];
+      const squareSum = (slidingDftRe[i][w] * slidingDftRe[i][w] + slidingDftIm[i][w] * slidingDftIm[i][w]);
+      const squareSumWithGain = squareSum * slidingDftGain[i] * slidingDftGain[i];
       const IndexOnView = Math.max(0, Math.min(waveViewLength - 1, j - xOffset - zeroIndex));
-      slidingDftValue[i][IndexOnView] = squareSum;
-      dftSquareSum += squareSum;
-      if (dftSquareMax < squareSum) dftSquareMax = squareSum;
+      slidingDftValue[i][IndexOnView] = squareSumWithGain;
+      dftSquareSum += squareSumWithGain;
+      if (dftSquareMax < squareSumWithGain) dftSquareMax = squareSumWithGain;
       dftPath[i].lineTo(IndexOnView * iToX, waveY0 - Math.sqrt(squareSum) * valueToYinThisFreq);
     }
     w = w + 1;
@@ -6093,22 +6097,18 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   }
   dftSquareSum /= dftSquareLength;
   dftSquareSum = Math.sqrt(dftSquareSum * 2);
-  dftSquareMax = Math.sqrt(dftSquareMax) ;
+  dftSquareMax = Math.sqrt(dftSquareMax);
 //  ctxFft.fillStyle = "#f88";//色指定
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
 //  const invDftSquareMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
   const invDftSquareMax = 1;
 for (let j = 0; j < waveViewLength; j++) {
-//const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
-    const gein1 = slidingDftFreq[1] / slidingDftFreq[0];
-    const gein2 = slidingDftFreq[2] / slidingDftFreq[0];
-    const gein3 = slidingDftFreq[3] / slidingDftFreq[0];
 
-    let r = Math.min( slidingDftValue[0][j] * invDftSquareMax);
-    let g = Math.min( slidingDftValue[1][j] * invDftSquareMax * gein1);
-    let b = Math.min( Math.sqrt(slidingDftValue[2][j] * slidingDftValue[2][j] * gein2 * gein2
-     + slidingDftValue[3][j] * slidingDftValue[3][j] * gein3 * gein3) * invDftSquareMax);
+    let r = Math.sqrt(slidingDftValue[0][j]);
+    let g = Math.sqrt(slidingDftValue[1][j]);
+    let b = Math.sqrt(slidingDftValue[2][j] + slidingDftValue[3][j]);
     const tmpRgbMax = Math.max(r, g, b);
+    const normL = Math.pow(tmpRgbMax / (dftSquareMax > 1e-12 ? dftSquareMax : 1), 0.8);
     if (tmpRgbMax > 1e-12) {
       const invtmpRgbMax = 1 / tmpRgbMax;
       r *= invtmpRgbMax;
@@ -6136,7 +6136,7 @@ for (let j = 0; j < waveViewLength; j++) {
       h *= 60; // 0〜360度
       s = rgbRange / (1 - Math.abs(2 * l - 1)) * 100;
       l *= 100;
-      ctxFft.fillStyle = `hsl(${h}, ${s}%, 65%)`;
+      ctxFft.fillStyle = `hsl(${h}, ${s}%, ${normL * 80}%)`;
     } else {
       ctxFft.fillStyle = `#000`;
     }
