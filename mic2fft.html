@@ -5949,6 +5949,7 @@ function drawMinY() {//最も上の点を描画
     stI++;
   }
   if (stI >= minDrawY.length) return;
+  if (minDrawY[stI] < 0) minDrawY[stI] = 0;
 
   ctxFft.save();
   if (stI === minDrawY.length - 1) {
@@ -5959,6 +5960,7 @@ function drawMinY() {//最も上の点を描画
     ctxFft.strokeStyle = "#6af";//色指定
     ctxFft.moveTo(stI, fftViewZeroY + minDrawY[stI]);
     for (let i = stI + 1; i < minDrawY.length; i++) {
+      if (minDrawY[i] < 0) minDrawY[i] = 0;
       if (minDrawY[i] !== Infinity) ctxFft.lineTo(i, fftViewZeroY + minDrawY[i]);
     }
     ctxFft.stroke();
