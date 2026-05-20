@@ -383,14 +383,14 @@
 </div>
 
 <div id="popupViewWaveMenu" class="menu hidden">
-  <div data-action="targetFreq">モニタ周波数入力　<span>🔢</span></div>
-  <div data-action="fps4Wave">最大fps設定　<span>🔢</span></div>
+  <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
+  <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
 </div>
 <div id="popupViewHistoryMenu" class="menu hidden">
   <div data-action="colorMap">カラーマップ設定　<span>›</span></div>
   <div data-action="historyIsLpc">LPCのにする</div>
   <div data-action="filterIfRafIdIs">動作時も色補正</div>
-  <div data-action="fps4History">最大fps設定　<span>🔢</span></div>
+  <div data-action="fps4History">最大fps　<span>🔢</span></div>
   <div data-action="filterReset">色補正をリセット</div>
 </div>
 <div id="popupViewFftMenu" class="menu hidden">
@@ -398,7 +398,7 @@
   <div data-action="tilt">傾き補正など　<span>›</span></div>
   <div data-action="refLine">参考線の設定　<span>›</span></div>
   <div data-action="popupLpcMenu">LPC設定　<span>›</span></div>
-  <div data-action="fps4Fft">最大fps設定　<span>🔢</span></div>
+  <div data-action="fps4Fft">最大fps　<span>🔢</span></div>
   <div data-action="resetDrawMinY">最大dBリセット</div>
 </div>
 <div id="popupPlayMenu" class="menu hidden"><!--▶-->
@@ -2583,6 +2583,7 @@ function showTiltMenu(x, y) {//チルトメニュー表示
   tiltMenu.querySelectorAll('div').forEach(item => {
     item.classList.add('checked');
   });
+  tiltMenu.querySelector('[data-action="999"]').innerHTML = `数値入力：${Math.round(baseSlopePerOct * 100) / 100} <span>🔢</span>`;
   fitMenuInViewportAndRemoveHide(tiltMenu);
   tiltMenu.querySelectorAll('div').forEach(item => {
     if (Number(item.dataset.action) === baseSlopePerOct) item.classList.add('checked');
@@ -2611,6 +2612,7 @@ function showSmoothingMenu(x, y) {//スムージングメニュー表示
     if (Number(item.dataset.action) === fftSmoothingTimeConstantSetting) item.classList.add('checked');
     else item.classList.remove('checked');
   });
+  smoothingMenu.querySelector('[data-action="999"]').innerHTML = `数値入力：${Math.round(fftSmoothingTimeConstantSetting * 1000) / 1000} <span>🔢</span>`;
   fitMenuInViewportAndRemoveHide(smoothingMenu);
 }
 function showWaveSizeMenu(x, y) {//サイズメニュー表示
@@ -2672,6 +2674,7 @@ function showLabelUnitMenu(x, y) {//単位メニュー表示
   fitMenuInViewportAndRemoveHide(labelUnitMenu);
 }
 function showPeakMenu(x, y) {//ピークメニュー表示
+  peakMenu.querySelector('[data-action="scanRange"]').innerHTML = `検出範囲：${Math.round(fftPeakScanStFreq)}～${Math.round(fftPeakScanEndFreq)}Hz　 <span>›</span>`;
   menuLocateAndCheckONAndFit(peakMenu, x, y);
   peakMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//まず外す
@@ -2692,6 +2695,7 @@ function showRefLineMenu(x, y) {//参考線メニュー表示
   });
 }
 function showColorMapMenu(x, y) {//カラーマップメニュー表示
+  colorMapMenu.querySelector('[data-action="contrastInput"]').innerHTML = `ｺﾝﾄﾗｽﾄ：${Math.round(spectrumContrast * 100) / 100} <span>🔢</span>`;
   menuLocateAndCheckONAndFit(colorMapMenu, x, y);
   colorMapMenu.style.left = `${parseFloat(colorMapMenu.style.left) - colorMapCanvas.width * invDpr}px`;
   colorMapMenu.querySelectorAll('div').forEach(item => {
@@ -2727,6 +2731,8 @@ function showPopupPlayMenu(x, y) {//プレイメニュー表示
     if (item.dataset.action === nowColorMap) item.classList.add('checked');//有効の時は✔
     if (item.dataset.action === "colorMapVisible" && colorMapVisible) item.classList.add('checked');//有効の時は✔
   });
+  popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
+  popupPlayMenu.querySelector('[data-action="fftSmoothing"]').innerHTML = `変動の平滑化：${Math.round(fftSmoothingTimeConstantSetting * 1000) / 1000} <span>›</span>`;
   fitMenuInViewportAndRemoveHide(popupPlayMenu);
 }
 function showPopupLockMenu(x, y) {//メニュー表示
@@ -2771,6 +2777,8 @@ function showPopupViewWaveMenu(x, y) {//メニュー表示
   const rect = popupViewWaveMenu.getBoundingClientRect();
   popupViewWaveMenu.style.left = `${x}px`;
   popupViewWaveMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
+  popupViewWaveMenu.querySelector('[data-action="targetFreq"]').innerHTML = `トリガ：${Math.round(targetFreq)}Hz <span>🔢</span>`;
+  popupViewWaveMenu.querySelector('[data-action="fps4Wave"]').innerHTML = `最大fps：${fps4Wave} <span>🔢</span>`;
   fitMenuInViewportAndRemoveHide(popupViewWaveMenu);//✔した状態でフィット
 }
 function showPopupViewHistoryMenu(x, y) {//メニュー表示
@@ -2780,6 +2788,8 @@ function showPopupViewHistoryMenu(x, y) {//メニュー表示
   popupViewHistoryMenu.style.left = `${x}px`;
   popupViewHistoryMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   popupViewHistoryMenu.querySelector('[data-action="filterIfRafIdIs"]').classList.add('checked');
+  popupViewHistoryMenu.querySelector('[data-action="fps4History"]').innerHTML = `最大fps：${fps4History} <span>🔢</span>`;
+
   fitMenuInViewportAndRemoveHide(popupViewHistoryMenu);//✔した状態でフィット
 
   if (filterIfRafIdIs) popupViewHistoryMenu.querySelector('[data-action="filterIfRafIdIs"]').classList.add('checked');
@@ -2792,6 +2802,7 @@ function showPopupViewFftMenu(x, y) {//メニュー表示
   const rect = popupViewFftMenu.getBoundingClientRect();
   popupViewFftMenu.style.left = `${x}px`;
   popupViewFftMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
+  popupViewFftMenu.querySelector('[data-action="fps4Fft"]').innerHTML = `最大fps：${fps4Fft} <span>🔢</span>`;
   fitMenuInViewportAndRemoveHide(popupViewFftMenu);//✔した状態でフィット
 }
 function showPopupPeakScanRangeMenu(x, y) {//メニュー表示
@@ -2800,6 +2811,8 @@ function showPopupPeakScanRangeMenu(x, y) {//メニュー表示
   const rect = popupPeakScanRangeMenu.getBoundingClientRect();
   popupPeakScanRangeMenu.style.left = `${x}px`;
   popupPeakScanRangeMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
+  popupPeakScanRangeMenu.querySelector('[data-action="fftPeakScanStFreq"]').innerHTML = `${Math.round(fftPeakScanStFreq)}Hz～ <span>🔢</span>`;
+  popupPeakScanRangeMenu.querySelector('[data-action="fftPeakScanEndFreq"]').innerHTML = `～${Math.round(fftPeakScanEndFreq)}Hz <span>🔢</span>`;
   fitMenuInViewportAndRemoveHide(popupPeakScanRangeMenu);//✔した状態でフィット
 }
 function showPopupEchoCanMenu(x, y) {//メニュー表示
@@ -2811,6 +2824,9 @@ function showPopupEchoCanMenu(x, y) {//メニュー表示
   });
 }
 function showPopupLpcMenu(x, y) {//メニュー表示
+  popupLpcMenu.querySelector('[data-action="lpc1DrawOffset"]').innerHTML = `表示ｵﾌｾｯﾄ：${lpc1DrawOffset} <span>🔢</span>`;
+  popupLpcMenu.querySelector('[data-action="lpc1DownSamplePitch"]').innerHTML = `LPC 間引き：${lpc1DownSamplePitch} <span>🔢</span>`;
+  popupLpcMenu.querySelector('[data-action="lpc1Order"]').innerHTML = `LPC 次数：${lpc1Order} <span>🔢</span>`;
   menuLocateAndCheckONAndFit(popupLpcMenu, x, y);
   popupLpcMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
@@ -3610,7 +3626,7 @@ popupViewFftMenu.addEventListener('click', async (e) => {//ポップアップメ
       showPopupLpcMenu(subMenuX, e.clientY);
       break;
     case 'fps4Fft':
-      keyInputDivSetting.labelTxt = "中段　最大FPS";
+      keyInputDivSetting.labelTxt = "下段　最大FPS";
       keyInputDivSetting.labelSubTxt = "";
       keyInputDivSetting.nowValue = fps4Fft;
       keyInputDivSetting.undoValue = fps4Fft;
