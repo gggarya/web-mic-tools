@@ -1226,6 +1226,8 @@ let lpcSelected = false;
 let fftSelected = true;
 let maxLpcSelected = false;
 let maxFftSelected = false;
+let snapAlphaDefault = 0.6;//透明度
+let snapAlpha = snapAlphaDefault;//透明度
 
 
 //ロック
@@ -6856,7 +6858,7 @@ function draw(now) {//全画面を作図
 
     if (true) {//スナップショットの描画
       ctxFft.save();
-      ctxFft.globalAlpha = 1.0;//アルファ
+      ctxFft.globalAlpha = snapAlpha;//アルファ
       ctxFft.globalCompositeOperation = "source-over";//上書き
 
       ctxFft.drawImage(
