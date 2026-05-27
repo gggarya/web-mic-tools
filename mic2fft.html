@@ -1828,7 +1828,6 @@ function onMove(e) {
 
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
-//  if (!gesture.axis) {if (Math.abs(dx) > Math.abs(dy)) gesture.axis = "x"; else gesture.axis = "y"};
   if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
     if (pressTimer) {
       clearTimeout(pressTimer);//長押しキャンセル
@@ -1950,17 +1949,17 @@ function onMove(e) {
           if (!rafId) draw();
         }
         break;
-      case "colorMap":
+      case "colorMap"://カラーマップ
         panSpectrumContrast();
         if (!rafId) draw();
         break;
-      case "fftL":
+      case "fftL"://スナップショットの透明度
         const rectStXfftL = levelMeterVisible ? levelCanvas.width : 0;
         updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
         panFftSnapAlpha();
         if (!rafId) draw();
         break;
-      case "fftR":
+      case "fftR"://傾き補正
         const rectStXfftR = fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2;
         updateDragRect(dragRect, rectStXfftR, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
         panTilt();
@@ -2155,7 +2154,7 @@ function panHistoryVLAlpha() {//ヒストリーの縦線の透明度を変える
   historyVLAlpha += dx * 1.5;
   if (historyVLAlpha > 1) historyVLAlpha = 1;
   if (historyVLAlpha < 0) historyVLAlpha = 0;
-  updateFlyInfo(`縦線 不透明度\n${historyVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`縦線 不透明度\n${historyVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panHistoryHLAlpha() {//ヒストリーの縦線の透明度を変える
   const [p] = gesture.pointers.values();
@@ -2164,7 +2163,7 @@ function panHistoryHLAlpha() {//ヒストリーの縦線の透明度を変える
   historyHLAlpha -= dy * 1.5;
   if (historyHLAlpha > 1) historyHLAlpha = 1;
   if (historyHLAlpha < 0) historyHLAlpha = 0;
-  updateFlyInfo(`横線 不透明度\n${historyHLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`横線 不透明度\n${historyHLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panFftVLAlpha() {//FFTの縦線の透明度を変える
   const [p] = gesture.pointers.values();
@@ -2173,7 +2172,7 @@ function panFftVLAlpha() {//FFTの縦線の透明度を変える
   fftVLAlpha += dx * 1.5;
   if (fftVLAlpha > 1) fftVLAlpha = 1;
   if (fftVLAlpha < 0) fftVLAlpha = 0;
-  updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panFftSnapAlpha() {//スナップショットの透明度を変える
   const [p] = gesture.pointers.values();
@@ -2182,7 +2181,7 @@ function panFftSnapAlpha() {//スナップショットの透明度を変える
   snapAlpha -= dy * 1.5;
   if (snapAlpha > 1) snapAlpha = 1;
   if (snapAlpha < 0) snapAlpha = 0;
-  updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panSeparator1() {//上側の区切り線の移動
   const playButtonRect = overlayPlay.getBoundingClientRect();
@@ -2249,7 +2248,7 @@ function panTilt() {//傾きの変更
   if (baseSlopePerOct < -30) baseSlopePerOct = -30; 
   makeDecibelWeightAtX();//重み配列の更新
   drawFftOverLay();//グリッド線を更新
-  updateFlyInfo(`傾き補正\n${baseSlopePerOct.toFixed(2)} dB/Oct`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`傾き補正\n${baseSlopePerOct.toFixed(2)} dB/Oct`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panSpectrumContrast() {//コントラスト変更
   if (colorLockIs && panZoomLockIs) return;//ロック
@@ -2274,7 +2273,7 @@ function panPeakScanEnd(e) {
   const pointBin = Math.max(0, Math.min(Math.floor(pointFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1));//インデックスでいうと？
   fftPeakScanEndBin = Math.max(fftPeakScanStBin, pointBin);//走査開始点よりは大きくする
   fftPeakScanEndFreq = fftPeakScanEndBin * fftBinFreq;
-  updateFlyInfo(`ピーク走査周波数(上)\n${fftPeakScanEndFreq.toFixed(2)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`ピーク走査周波数(上)\n${fftPeakScanEndFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
   if (!rafId) makePeakList();//ピークリスト更新
 }
 function panPeakScanSt(e) {
@@ -2288,7 +2287,7 @@ function panPeakScanSt(e) {
   const pointBin = Math.max(0, Math.min(Math.floor(pointFreq * invFftBinFreq), fftSizeSetting * 0.5 - 1));//インデックスでいうと？
   fftPeakScanStBin = Math.min(fftPeakScanEndBin, pointBin);//走査終了点よりは小さくする
   fftPeakScanStFreq = fftPeakScanStBin * fftBinFreq;
-  updateFlyInfo(`ピーク走査周波数(下)\n${fftPeakScanStFreq.toFixed(2)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`ピーク走査周波数(下)\n${fftPeakScanStFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
   if (!rafId) makePeakList();//ピークリスト更新
 }
 function panTargetFreq(e) {
@@ -2304,7 +2303,7 @@ function panTargetFreq(e) {
   dragRect2.style.backgroundColor = "hsla(60, 100%, 50%, 0.7)";
   dragRect2.style.borderColor = "hsla(60, 100%, 50%, 0.2)";         
   updateDragRect(dragRect2, targetX - rectW, fftViewZeroY, rectW + rectW, fftViewH);//操作エリアの表示
-  updateFlyInfo(`トリガ周波数\n${targetFreq.toFixed(2)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+  updateFlyInfo(`トリガ周波数\n${targetFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panCopyHueRotate() {//ヒストリーコピー時の色を変える
   const [p] = gesture.pointers.values();
@@ -2384,55 +2383,93 @@ function doubleTap(e) {//ダブルタップ
   const tmpQtrWidth = Math.max(0, fftCanvas.width * 0.5 - HIT_RANGE * 2) * 0.5;//約1/4
 
     switch (getAreaName(e.clientX * dpr, e.clientY * dpr, waveWindowH, spectrumHistoryH)) {
-      case "fftL":
-        {
-          const rectStXfftL = levelMeterVisible ? levelCanvas.width : 0;
-          updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
-        }
+
+      case "freqRuler"://下端の周波数線##################################################################
+        updateDragRect(dragRect, leftButtonRight + HIT_RANGE * 2, buttonTop
+                          , rightButtonLeft - leftButtonRight - HIT_RANGE * 4
+                          , fftCanvas.height - buttonTop);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        snapAlpha = snapAlphaDefault;
+        targetFreq = targetFreqDefault;//波形表示のターゲット周波数
+        updateFlyInfo(`トリガ周波数\n${targetFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) draw();
         break;
+      case "freqRulerL"://下端の周波数線の左端
+        updateDragRect(dragRect, 0, buttonTop
+                        , leftButtonRight + HIT_RANGE * 2
+                        , fftCanvas.height - buttonTop);//操作エリアの表示
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        updateFlyInfo(`ピーク走査周波数(下)\n${fftPeakScanStFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        break;
+      case "freqRulerR"://下端の周波数線の右端
+        updateDragRect(dragRect, rightButtonLeft - HIT_RANGE * 2, buttonTop
+                        , fftCanvas.width - rightButtonLeft + HIT_RANGE * 2
+                        , fftCanvas.height - buttonTop);//操作エリアの表示
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        updateFlyInfo(`ピーク走査周波数(上)\n${fftPeakScanEndFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        break;
 
-      case "fftR"://チルトをデフォルトに戻す
+      case "fftL"://スナップ透明度##############################################################################
+        updateDragRect(dragRect, levelMeterVisible ? levelCanvas.width : 0, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        snapAlpha = snapAlphaDefault;
+        updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        if (!rafId) draw();
+        break;
+      case "fftR"://チルトをデフォルトに戻す######################################################################
         if (baseSlopePerOct > 30) return;//単純なチルトじゃなかったら無効      
         if (tiltLockIs && panZoomLockIs) return;//横方向
         updateDragRect(dragRect, fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2
                       , spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout') });;//表示したらすぐ消す
         });
         baseSlopePerOct = 0;//デフォルトのゼロに戻す。
         fftBaseVisible = false;//ゼロなので線を消す
         drawFftOverLay();//グリッド線を更新
+        updateFlyInfo(`傾き補正\n${baseSlopePerOct.toFixed(2)} dB/Oct`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) draw();
         break;
-      case "colorMap"://コントラストをデフォルトに戻す
+      case "colorMap"://コントラストをデフォルトに戻す#############################################################
         if (colorLockIs && panZoomLockIs) return;//ロック
         spectrumContrast = 0;
         makeColorMap();
         makeColorMapCanvas();
+        updateFlyInfo(`コントラスト\n${spectrumContrast.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) draw();
         break;
-      case "fft"://FFT範囲をデフォルトに戻す
+      case "fft"://FFT範囲をデフォルトに戻す#######################################################################
         updateDragRect(dragRect, HIT_RANGE * 2, spectrumHistoryH + HIT_RANGE * 2
                     , fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 4
                     , buttonTop - spectrumHistoryH - HIT_RANGE * 2);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-
         if (!panZoomLockFreqIs || !panZoomLockIs) {//横方向
           viewMinFreq = viewMinFreqDefault;
           viewMaxFreq = viewMaxFreqDefault;
@@ -2446,43 +2483,37 @@ function doubleTap(e) {//ダブルタップ
           if (!rafId) draw();
         }
         updateFlyInfo(`${viewMinFreq.toFixed(0)} ～ ${viewMaxFreq.toFixed(0)} Hz\n${viewMinDecivel.toFixed(0)} ～ ${viewMaxDecivel.toFixed(0)} dB`
-        , fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+        , fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            flyInfo.classList.remove("active");
-            flyInfo.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
-
         break;
-      case "separator1lwr":
+      case "separator1lwr"://####################################################################################################
       case "separator1lwrCenter":
         updateDragRect(dragRect, HIT_RANGE * 2, waveWindowH
           , fftCanvas.width - HIT_RANGE * 4, HIT_RANGE * 2);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         copyHueRotate = 0;//色合い
         if (!rafId) draw();
 
         break;
-      case "separator2upr":
+      case "separator2upr"://ヒストリーの縦線透明度############################################################################
       case "separator2uprCenter":
         updateDragRect(dragRect, HIT_RANGE * 2, spectrumHistoryH - HIT_RANGE * 2
           , fftCanvas.width - HIT_RANGE * 4, HIT_RANGE * 2);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         historyVLAlpha = historyVLAlphaDefault;
+        updateFlyInfo(`縦線 不透明度\n${historyVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         break;
-      case "separator2lwr"://FFT線図エリアのグリッド透明度
+      case "separator2lwr"://FFT線図エリアのグリッド透明度##############################################################################
       case "separator2lwrCenter"://FFT線図エリアのグリッド透明度
         {
           const rectStXfftL = HIT_RANGE * 2 + (levelMeterVisible ? levelCanvas.width : 0);
@@ -2490,72 +2521,61 @@ function doubleTap(e) {//ダブルタップ
           updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, rectStXfftR - rectStXfftL, HIT_RANGE * 2);//操作エリアの表示
         }
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         fftVLAlpha = fftVLAlphaDefault;
+        updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) draw();
         break;
-      case "historyMRR":
+      case "historyMRR"://###########################################################################################
         updateDragRect(dragRect, fftCanvas.width * 0.5 + tmpQtrWidth, waveWindowH + HIT_RANGE * 2
                       , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 4);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         copyContrast = 100;//コントラスト
         if (!rafId) draw();
         break;
-      case "historyMRL":
+      case "historyMRL"://############################################################################################
         updateDragRect(dragRect, fftCanvas.width * 0.5, waveWindowH + HIT_RANGE * 2
                       , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 4);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         copySaturate = 100;//彩度
         if (!rafId) draw();
         break;
-      case "historyML":
+      case "historyML"://##############################################################################################
         updateDragRect(dragRect, HIT_RANGE * 2, waveWindowH + HIT_RANGE * 2
                       , fftCanvas.width * 0.5 - HIT_RANGE * 2, spectrumHistoryH - waveWindowH - HIT_RANGE * 4);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-
         HistoryZoomRate = HistoryZoomRateDefault;
         HistoryViewOffset = 0;
         if (!rafId) draw();
         break;
-      case "historyR":
+      case "historyR"://##############################################################################################
         updateDragRect(dragRect, fftCanvas.width - HIT_RANGE * 2, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         copyBrightness = 100;
         if (!rafId) draw();
         break;
-      case "historyL":
+      case "historyL"://ヒストリー横線透明度###############################################################################
         updateDragRect(dragRect, 0, waveWindowH, HIT_RANGE * 2, spectrumHistoryH - waveWindowH);//操作エリアの表示
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragRect.classList.remove("active");
-            dragRect.classList.add('fadeout');//表示したらすぐ消す
-          });
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         historyHLAlpha = historyHLAlphaDefault;
+        updateFlyInfo(`横線 不透明度\n${historyHLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         break;
     }
