@@ -649,7 +649,8 @@
 
 色々なところで反応を予定。
 
-あとこの辺にマニュアルへのリンクを追加予定
+あとこの辺にマニュアルへの
+リンクを追加予定
 
 
 </pre>
@@ -5128,7 +5129,7 @@ function drawXScale () {//周波数基準の縦の線を描く
 }
 function drawHzScale (TopY, uprTxtIs) {
   const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
-  const uprTxtY = TopY + 3 * dpr;//上側テキストの上端
+  const uprTxtY = TopY + 4 * dpr;//上側テキストの上端
   const divColor1 = "#bbb";//線の色
   const divColor2 = "#888";//線の色
   const divColor3 = "#666";//線の色
@@ -5269,6 +5270,7 @@ function drawHzScale (TopY, uprTxtIs) {
 }
 function drawRpmScale (TopY) {
   const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const uprTxtY = TopY + 4 * dpr;//上側テキストの上端
   const divColor1 = "#bbb";//線の色
   const divColor2 = "#888";//線の色
   const divColor3 = "#666";//線の色
@@ -5295,7 +5297,7 @@ function drawRpmScale (TopY) {
         ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
         if (uprTxtIs) {
           ctx.textBaseline = "top";
-          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+          ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, uprTxtY);
         }
         ctx.fillStyle = divColor1;
       }
@@ -5330,7 +5332,7 @@ function drawRpmScale (TopY) {
           ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, uprTxtY);
           }
         }
         if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
@@ -5366,7 +5368,7 @@ function drawRpmScale (TopY) {
           ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor5;
@@ -5382,7 +5384,7 @@ function drawRpmScale (TopY) {
           ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, TopY + 2);
+            ctx.fillText(`${i.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor5;
@@ -5394,7 +5396,7 @@ function drawRpmScale (TopY) {
           ctx.fillText(`${i}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i}`, x, TopY + 2);
+            ctx.fillText(`${i}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor3;
@@ -5412,6 +5414,7 @@ function drawRpmScale (TopY) {
 }
 function drawSecScale (TopY) {
   const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const uprTxtY = TopY + 4 * dpr;//上側テキストの上端
   const divColor1 = "#bbb";//線の色
   const divColor2 = "#888";//線の色
   const divColor3 = "#666";//線の色
@@ -5440,7 +5443,7 @@ function drawSecScale (TopY) {
         ctx.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
         if (uprTxtIs) {
           ctx.textBaseline = "top";
-          ctx.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
+          ctx.fillText(`${Number(i.toFixed(5))}`, x, uprTxtY);
         }
         ctx.fillStyle = divColor1;
       }
@@ -5474,7 +5477,7 @@ function drawSecScale (TopY) {
           ctx.fillText(`${Number(i.toFixed(5))}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${Number(i.toFixed(5))}`, x, TopY + 2);
+            ctx.fillText(`${Number(i.toFixed(5))}`, x, uprTxtY);
           }
         }
         if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
@@ -5522,7 +5525,7 @@ function drawSecScale (TopY) {
         ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
         if (uprTxtIs) {
           ctx.textBaseline = "top";
-          ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
+          ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, uprTxtY);
         }
         ctx.fillStyle = divColor2;
       } else {
@@ -5533,7 +5536,7 @@ function drawSecScale (TopY) {
           ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, divBottom - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, TopY + 2);
+            ctx.fillText(`${Number(iInv1000.toFixed(8))}`, x, uprTxtY);
           }
         }
         if (i % (divFreq * 10) < divFreq * 0.5) ctx.fillStyle = divColor2;
