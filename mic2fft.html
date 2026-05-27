@@ -5128,6 +5128,7 @@ function drawXScale () {//周波数基準の縦の線を描く
 }
 function drawHzScale (TopY, uprTxtIs) {
   const ctx = fftOverLayCtx;//どこに描くかの設定。オーバレイに描く
+  const uprTxtY = TopY + 3 * dpr;//上側テキストの上端
   const divColor1 = "#bbb";//線の色
   const divColor2 = "#888";//線の色
   const divColor3 = "#666";//線の色
@@ -5150,7 +5151,7 @@ function drawHzScale (TopY, uprTxtIs) {
         ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
         if (uprTxtIs) {
           ctx.textBaseline = "top";
-          ctx.fillText(`${i}`, x, TopY + 4);
+          ctx.fillText(`${i}`, x, uprTxtY);
         }
         ctx.fillStyle = divColor1;
       }
@@ -5186,7 +5187,7 @@ function drawHzScale (TopY, uprTxtIs) {
           ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i}`, x, TopY + 4);
+            ctx.fillText(`${i}`, x, uprTxtY);
           }
         }
         if (i >= nextDecade) { nextDecade *= 10; subDecade *= 10; subSubDecade *= 10; subSubDecade5 *= 10 }
@@ -5222,7 +5223,7 @@ function drawHzScale (TopY, uprTxtIs) {
           ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i}`, x, TopY + 4);
+            ctx.fillText(`${i}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor5;
@@ -5238,7 +5239,7 @@ function drawHzScale (TopY, uprTxtIs) {
           ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i}`, x, TopY + 4);
+            ctx.fillText(`${i}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor5;
@@ -5250,7 +5251,7 @@ function drawHzScale (TopY, uprTxtIs) {
           ctx.fillText(`${i}`, x, fftOverlayCanvas.height - 2);
           if (uprTxtIs) {
             ctx.textBaseline = "top";
-            ctx.fillText(`${i}`, x, TopY + 4);
+            ctx.fillText(`${i}`, x, uprTxtY);
           }
         }
         ctx.fillStyle = divColor3;
