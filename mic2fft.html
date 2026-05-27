@@ -2103,6 +2103,8 @@ function panFft() {//平行移動
   if (!panZoomLockFreqIs || !panZoomLockIs) panFftFreq();//横方向
   if (!panZoomLockDecibelIs || !panZoomLockIs) panFftDecibel();//縦方向
   if (!panZoomLockFreqIs || !panZoomLockDecibelIs || !panZoomLockIs) updateViewParams();//画面更新
+  updateFlyInfo(`${viewMinFreq.toFixed(0)} ～ ${viewMaxFreq.toFixed(0)} Hz\n${viewMinDecivel.toFixed(0)} ～ ${viewMaxDecivel.toFixed(0)} dB`
+  , fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
 }
 function panFftFreq() {//平行移動,横方向
   const [p] = gesture.pointers.values();
@@ -2259,6 +2261,7 @@ function panSpectrumContrast() {//コントラスト変更
   if (spectrumContrast < - spectrumContrastMax) spectrumContrast = - spectrumContrastMax; 
   makeColorMap();
   makeColorMapCanvas();
+  updateFlyInfo(`コントラスト\n${spectrumContrast.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
 }
 function panPeakScanEnd(e) {
   const pointX = e.clientX * dpr;
@@ -2442,6 +2445,15 @@ function doubleTap(e) {//ダブルタップ
           updateViewParams();//パラメ変更
           if (!rafId) draw();
         }
+        updateFlyInfo(`${viewMinFreq.toFixed(0)} ～ ${viewMaxFreq.toFixed(0)} Hz\n${viewMinDecivel.toFixed(0)} ～ ${viewMaxDecivel.toFixed(0)} dB`
+        , fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            flyInfo.classList.remove("active");
+            flyInfo.classList.add('fadeout');//表示したらすぐ消す
+          });
+        });
+
         break;
       case "separator1lwr":
       case "separator1lwrCenter":
@@ -2592,6 +2604,7 @@ function zoomFrequency(x, scale) {
     viewMaxFreqLog2 = Math.log2(viewMaxFreq);
   }
   updateViewParams();
+  updateFlyInfo(`${viewMinFreq.toFixed(0)} ～ ${viewMaxFreq.toFixed(0)} Hz`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
   if (!rafId) draw();
 }
 function zoomVertical(y, scale) {
@@ -2609,6 +2622,7 @@ function zoomVertical(y, scale) {
     viewMinDecivel = viewMinDecivelLimit;//下
   }
   updateViewParams();
+  updateFlyInfo(`${viewMinDecivel.toFixed(0)} ～ ${viewMaxDecivel.toFixed(0)} dB`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2))
   if (!rafId) draw();
 }
 function zoomHistoryVertical(y, scale) {
