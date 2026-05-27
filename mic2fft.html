@@ -1852,7 +1852,7 @@ function onMove(e) {
           if (!rafId) draw();
         } else if (gesture.axis === "y" && areaName === "separator1lwrCenter") {
           panSeparator1();//縦方向はセパレート位置調整
-        } else if (areaName !== "separator1lwrCenter") {//縦方向でセパレートからズレてる
+        } else if (gesture.axis === "y" && areaName !== "separator1lwrCenter") {//縦方向でセパレートからズレてる
           panHistoryViewLine()
           if (!rafId) draw();
         }
@@ -1865,7 +1865,7 @@ function onMove(e) {
           panHistoryVLAlpha();//横はヒストリーの縦線の透明度
           if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
         } else if (gesture.axis === "y" && areaName === "separator2uprCenter") panSeparator2();//縦方向はセパレート位置調整
-        else {//縦方向でセパレートからズレてる
+        else  if (gesture.axis === "y" && areaName !== "separator2uprCenter") {//縦方向でセパレートからズレてる
           panHistoryViewLine()
           if (!rafId) draw();
         }
@@ -1880,7 +1880,7 @@ function onMove(e) {
           if (!rafId) draw();
         } else if (gesture.axis === "y" && areaName === "separator2lwrCenter") {
           panSeparator2();//縦方向はセパレート位置調整
-        } else if (areaName !== "separator2lwrCenter") {//縦方向でセパレートからズレてる
+        } else if (gesture.axis === "y" && areaName !== "separator2lwrCenter") {//縦方向でセパレートからズレてる
           panFft();//FFT領域の移動
           if (!rafId) draw();
         }
