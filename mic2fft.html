@@ -729,8 +729,9 @@
     </div>
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 2px; margin-bottom: 2px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 0px; padding: 0px; white-space: nowrap;">
-      <div data-action="clearAll" class="inputButton" style="justify-content: center; width: 10ch;"><span>全消去</span></div>
-      <div data-action="capture" class="inputButton" style="justify-content: center; width: 10ch;"><span>転写実行</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center; width: 2ch;"><span>⤺</span></div>
+      <div data-action="clearAll" class="inputButton" style="justify-content: center; width: 8ch;"><span>全消去</span></div>
+      <div data-action="capture" class="inputButton" style="justify-content: center; width: 8ch;"><span>転写実行</span></div>
     </div>
 </div>
 
@@ -760,17 +761,28 @@ colorMapCtx.globalCompositeOperation = "source-over";//上書き
 const levelCanvas = document.createElement("canvas");//レベルメーター用
 const levelCtx = levelCanvas.getContext("2d");
 levelCtx.globalCompositeOperation = "source-over";//上書き
-const fftOverlayCanvas = document.createElement("canvas");//FFT線図オーバレイ、グリッド用
-const fftOverLayCtx = fftOverlayCanvas.getContext("2d");
-fftOverLayCtx.globalCompositeOperation = "source-over";//上書き
-const fftSnapCanvas = document.createElement("canvas");//FFT線図コピー用
-const fftSnapCtx = fftSnapCanvas.getContext("2d");
-fftSnapCtx.globalCompositeOperation = "source-over";//上書き
-const backupCanvas = document.createElement("canvas");//サイズ変更時の退避用用
+
+const waveHVLCanvas = document.createElement("canvas");//waveグリッド用
+const waveHVLCtx = waveHVLCanvas.getContext("2d");
+waveHVLCtx.globalCompositeOperation = "source-over";//上書き
+
+const backupCanvas = document.createElement("canvas");//サイズ変更時の退避用
 const backupCtx = backupCanvas.getContext("2d");
 backupCtx.globalCompositeOperation = "source-over";//上書き
 backupCtx.imageSmoothingEnabled = false;//中間色を作るかどうかの設定
 backupCanvas.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+
+const fftOverlayCanvas = document.createElement("canvas");//FFT線図オーバレイ、グリッド用
+const fftOverLayCtx = fftOverlayCanvas.getContext("2d");
+fftOverLayCtx.globalCompositeOperation = "source-over";//上書き
+
+const fftSnapCanvas = document.createElement("canvas");//FFTスナップショット用
+const fftSnapCtx = fftSnapCanvas.getContext("2d");
+fftSnapCtx.globalCompositeOperation = "source-over";//上書き
+const fftSnapUndoCanvas = document.createElement("canvas");//FFTスナップショット用
+const fftSnapUndoCtx = fftSnapUndoCanvas.getContext("2d");
+fftSnapUndoCtx.globalCompositeOperation = "source-over";//上書き
+fftSnapUndoCanvas.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
 
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
@@ -1214,7 +1226,6 @@ let maxFftSelected = false;
 let snapAlphaDefault = 0.8;//透明度
 let snapAlpha = snapAlphaDefault;//透明度
 
-
 //ロック
 let panZoomLockIs = false;//画面のパンとズームをロックする
 let panZoomLockFreqIs = true;//周波数方向
@@ -1387,7 +1398,6 @@ function makeColorMapCanvas () {//カラーマップのスケール作成
 //色
 const bgColorRed = "#600";//赤部分の背景色
 
-
 const snapPalette = [//スナップショット用カラーパレット
 "#00D0FF",  // シアン
 "#FF8C00",  // オレンジ
@@ -1402,7 +1412,6 @@ const snapPalette = [//スナップショット用カラーパレット
 "#00E05A",  // 緑
 "#FFB000"  // 琥珀
 ]
-
 
 function resizeCanvas() {//キャンバスサイズの変更関数
 //  dpr = window.devicePixelRatio || 1;//
@@ -1487,6 +1496,12 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   }
 
   updateViewParams();
+
+  //wave領域グリッドサイズ変更
+  if (waveHVLCanvas.width !== w || waveHVLCanvas.height !== waveWindowH) {
+    waveHVLCanvas.width = w;
+    waveHVLCanvas.height = waveWindowH;
+  }
 
   colorMapCanvas.height = h - spectrumHistoryH - 1;
   levelCanvas.height = colorMapCanvas.height;
@@ -3124,6 +3139,8 @@ function checkPopupSnapDiv() {
   else popupSnapDiv.querySelector('[data-action="maxFFT"]').classList.remove("selected");
   if (maxLpcSelected) popupSnapDiv.querySelector('[data-action="maxLPC"]').classList.add("selected");
   else popupSnapDiv.querySelector('[data-action="maxLPC"]').classList.remove("selected");
+  if (fftSnapUndoCanvas.width === 0) popupSnapDiv.querySelector('[data-action="undo"]').classList.add("hidden");
+  else popupSnapDiv.querySelector('[data-action="undo"]').classList.remove("hidden");
 }
 
 
@@ -4271,11 +4288,25 @@ function snapDivClick(e) {
         inputDivPushedAction = action;
         popupSnapDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.add("pushed");
       }
+      fftSnapUndoCanvas.width = fftSnapCanvas.width;
+      fftSnapUndoCanvas.height = fftSnapCanvas.height;
+      fftSnapUndoCtx.clearRect(0, 0, fftSnapUndoCanvas.width, fftSnapUndoCanvas.height);//一つ前のを残しておっく
+      fftSnapUndoCtx.drawImage(fftSnapCanvas, 0, 0);//一つ前のを残しておく
+      popupSnapDiv.querySelector('[data-action="undo"]').classList.remove("hidden");//undoボタン有効
       if (fftSelected) snapFftLine();
       if (lpcSelected) snapLpc1Line();
       if (maxFftSelected) snapMinY();
       if (maxLpcSelected) snapMinLpcY();
       if (!rafId) draw();
+      break;
+    case 'undo'://undo
+      if (fftSnapUndoCanvas.width !== 0) {//undo用キャンバスがあったら
+        fftSnapCtx.clearRect(0, 0, fftSnapCanvas.width, fftSnapCanvas.height);//一つ前のを残しておっく
+        fftSnapCtx.drawImage(fftSnapUndoCanvas, 0, 0);//一つ前のを残しておく
+        fftSnapUndoCanvas.width = 0;
+        popupSnapDiv.querySelector('[data-action="undo"]').classList.add("hidden");//undoボタン無効
+      }
+
       break;
     default://数値の処理
       const keyNum = Number(action);
@@ -6496,6 +6527,32 @@ function drawMinLpcY() {//最も上の点を描画
   }
   ctxFft.restore();
 }
+function drawParcor1Line() {//LPC線図用
+  ctxFft.save();
+  ctxFft.strokeStyle = "#f8f";//色指定
+  ctxFft.beginPath();
+  ctxFft.lineWidth = 2;//線の密度で太さを変える
+
+  const stFreq = ctxSampleRate / lpc1DownSamplePitch;
+  const yPerParcor = fftViewH * 0.5;
+  const yParcorZero = fftViewZeroY + yPerParcor;
+
+  let i = 1;
+  while (stFreq / i > viewMaxFreq && i <= lpc1Order) {//画面外ならインデックスを進める
+    i++;
+  }
+  if (i > lpc1Order) return;//表示範囲になければ終わる
+  if (i !== 1) i--;//画面外から描きたいので一個戻る
+  ctxFft.moveTo(freqToX(stFreq / i), yParcorZero + lpc1Parcor[i] * yPerParcor);
+  i++;
+  while (stFreq / i > viewMinFreq && i <= lpc1Order) {//画面内ならループ
+    ctxFft.lineTo(freqToX(stFreq / i), yParcorZero + lpc1Parcor[i] * yPerParcor);
+    i++;
+  }
+  if (i <= lpc1Order) ctxFft.lineTo(freqToX(stFreq / i), yParcorZero + lpc1Parcor[i] * yPerParcor);//画面外のもう一点
+  ctxFft.stroke();
+  ctxFft.restore();
+}
 
 function drawFftOverLay() {
   fftOverLayCtx.clearRect(0, 0, fftOverlayCanvas.width, fftOverlayCanvas.height);//全消し
@@ -6764,6 +6821,8 @@ for (let j = 0; j < waveViewLength; j++) {
 
 }
 
+
+
 function snapFftLine() {//FFT線作図
 
   fftSnapCtx.save();
@@ -7017,6 +7076,8 @@ function draw(now) {//全画面を作図
       ctxFft.restore();
     }
 
+  if (false) drawParcor1Line();//parcor描画
+
   } else {//fftの線を描画しない。でも、ヒストリーやら最も上になった線の数値は更新したい。
     noDrawFftLine();//fftの線
   }
@@ -7054,6 +7115,13 @@ function draw(now) {//全画面を作図
   ctxFft.fillRect(fftCanvas.width * 0.5 - 11, waveWindowH + 1, 3, 1);
   ctxFft.fillRect(fftCanvas.width * 0.5 - 2, waveWindowH + 1, 3, 1);
   ctxFft.fillRect(fftCanvas.width * 0.5 + 7, waveWindowH + 1, 3, 1);
+  ctxFft.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.1})`;
+  ctxFft.fillRect(fftCanvas.width * 0.5 - 11, spectrumHistoryH, 3, 1);
+  ctxFft.fillRect(fftCanvas.width * 0.5 - 2, spectrumHistoryH, 3, 1);
+  ctxFft.fillRect(fftCanvas.width * 0.5 + 7, spectrumHistoryH, 3, 1);
+  ctxFft.fillRect(fftCanvas.width * 0.5 - 11, waveWindowH, 3, 1);
+  ctxFft.fillRect(fftCanvas.width * 0.5 - 2, waveWindowH, 3, 1);
+  ctxFft.fillRect(fftCanvas.width * 0.5 + 7, waveWindowH, 3, 1);
 
 //  infoRect.textContent = `${gesture.pointers.size}`; 
 //  infoRect.textContent = `${now}`; 
