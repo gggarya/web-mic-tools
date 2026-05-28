@@ -6695,6 +6695,11 @@ function drawWaveGrid() {//波形領域のグリッド描画
   const waveX0 = waveHVLCanvas.width * 0.5 | 0;//waveのゼロ
   const viewTimeLengthHalf = waveViewLength / ctxSampleRate * 500;//mSec
   const minDecade = Math.pow(10, Math.floor(Math.log10(viewTimeLengthHalf)));
+  const fontSize = 15 * Math.pow(dpr, 0.3);
+  waveHVLCtx.font = `${fontSize}px JetBrains Mono, Fira Code, monospace`;
+  ctxFft.globalCompositeOperation = "source-over";//上書きモード
+  waveHVLCtx.textBaseline = "top";
+//    waveHVLCtx.fillStyle = `rgb(${80}, ${200}, ${255})`;
 
   waveHVLCtx.clearRect(0, 0, waveHVLCanvas.width, waveHVLCanvas.height);//クリア
 
@@ -6703,6 +6708,13 @@ function drawWaveGrid() {//波形領域のグリッド描画
     const offsetX = minDecade * 5 / viewTimeLengthHalf * waveX0;
     waveHVLCtx.fillRect(waveX0 - offsetX, 0, 1, waveHVLCanvas.height);//縦線
     waveHVLCtx.fillRect(waveX0 + offsetX, 0, 1, waveHVLCanvas.height);//縦線
+
+    waveHVLCtx.fillStyle = "#aaa";
+    const labelText = `+${minDecade * 5}m`;
+    const labelTextWidth = ctxFft.measureText(labelText).width * 0.5;
+    waveHVLCtx.fillText(labelText, waveX0 - offsetX - labelTextWidth, 15);
+    waveHVLCtx.fillText(`-${minDecade * 5}m`, waveX0 + offsetX - labelTextWidth, 15);
+
   } else if (minDecade * 1.5 > viewTimeLengthHalf) {//1本しか入らない
     waveHVLCtx.fillStyle = "#888";
     const offsetX = minDecade * 0.5 / viewTimeLengthHalf * waveX0;
@@ -6710,6 +6722,13 @@ function drawWaveGrid() {//波形領域のグリッド描画
     waveHVLCtx.fillRect(waveX0 + offsetX, 0, 1, waveHVLCanvas.height);//縦線
     waveHVLCtx.fillRect(waveX0 - offsetX * 2, 0, 1, waveHVLCanvas.height);//縦線
     waveHVLCtx.fillRect(waveX0 + offsetX * 2, 0, 1, waveHVLCanvas.height);//縦線
+
+    waveHVLCtx.fillStyle = "#aaa";
+    const labelText = `+${minDecade}m`;
+    const labelTextWidth = ctxFft.measureText(labelText).width * 0.5;
+    waveHVLCtx.fillText(labelText, waveX0 - offsetX * 2 - labelTextWidth, 15);
+    waveHVLCtx.fillText(`-${minDecade}m`, waveX0 + offsetX * 2 - labelTextWidth, 15);
+
   } else {
     const offsetX0 = minDecade / viewTimeLengthHalf * waveX0;
     let offsetX = offsetX0;
@@ -6719,6 +6738,12 @@ function drawWaveGrid() {//波形領域のグリッド描画
       waveHVLCtx.fillRect(waveX0 + offsetX, 0, 1, waveHVLCanvas.height);//縦線
       offsetX += offsetX0;
     }
+
+    waveHVLCtx.fillStyle = "#aaa";
+    const labelText = `+${minDecade}m`;
+    const labelTextWidth = ctxFft.measureText(labelText).width * 0.5;
+    waveHVLCtx.fillText(labelText, waveX0 - offsetX0 - labelTextWidth, 15);
+    waveHVLCtx.fillText(`-${minDecade}m`, waveX0 + offsetX0 - labelTextWidth, 15);
 
   }
   waveHVLCtx.fillStyle = "#aaa";
