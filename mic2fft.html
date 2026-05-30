@@ -1802,15 +1802,24 @@ fftCanvas.addEventListener("wheel", e => {
     case "fft"://FFT線図領域
     case "fftL"://FFT線図領域
     case "fftR"://FFT線図領域
-      if (e.shiftKey) {// Shift + ホイール
-        const scale = Math.exp(-e.deltaY * 0.001);    
-        zoomVertical(e.offsetY * dpr, scale);
-      } else {// 通常ホイール
-        const scale = Math.exp(-e.deltaY * 0.001);    
-        zoomFrequency(e.offsetX * dpr, scale);
+      if (panZoomLockFreqIs && panZoomLockDecibelIs && panZoomLockIs) {//縦横がロックされているなら
+        updateFlyInfo(`ロック中`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+      } else {
+        if (e.shiftKey) {// Shift + ホイール
+          const scale = Math.exp(-e.deltaY * 0.001);    
+          zoomVertical(e.offsetY * dpr, scale);
+        } else {// 通常ホイール
+          const scale = Math.exp(-e.deltaY * 0.001);    
+          zoomFrequency(e.offsetX * dpr, scale);
+        }
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
       }
       break;
-
     case "historyL":
     case "historyR":
     case "historyMRR":
@@ -2039,8 +2048,15 @@ function onMove(e) {
         if (!rafId) draw();
         break;
       case "fft":
-        panFft();//FFT領域の移動
-        if (!rafId) draw();
+        if (panZoomLockFreqIs && panZoomLockDecibelIs && panZoomLockIs) {//縦横がロックされているなら
+//          updateViewParams();//画面更新
+          updateFlyInfo(`ロック中`
+          , fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+
+        } else {
+          panFft();//FFT領域の移動
+          if (!rafId) draw();
+        }
         break;
       case "historyMRR":
         updateDragRect(dragRect, fftCanvas.width * 0.5 + tmpQtrWidth, waveWindowH + HIT_RANGE * 2
@@ -2116,9 +2132,12 @@ function onMove(e) {
       case "fftL"://FFT線図領域
       case "fftR"://FFT線図領域
       case "fft":
-        pinch();//二つ指
+        if (panZoomLockFreqIs && panZoomLockDecibelIs && panZoomLockIs) {//縦横がロックされているなら
+          updateFlyInfo(`ロック中`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        } else {
+          pinch();//二つ指
+        }
         break;
-
       case "historyL":
       case "historyR":
       case "historyMRR":
