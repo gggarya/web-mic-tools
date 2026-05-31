@@ -432,6 +432,7 @@
   width: 100%;
   text-align: center;
   appearance: none;
+}
 </style>
 </head>
 <body>
@@ -703,41 +704,6 @@
   <div data-action="lpc1Order">LPC 次数<span>🔢</span></div>
 </div>
 
-<div id="popupInputDiv" class="inputBox hidden">
-    <div id="inputTitle"></div>
-    <div style="border: 0px solid #555; margin: 0px; padding: 0px; align-items: center; justify-content: center;">
-      <div id="inputSubTitle"></div>
-    </div>
-    <div style="display: flex; align-items: center; justify-content: right; border: 0px solid #555; margin: 0px; padding: 0;">
-      <div data-action="-" class="inputButton" style="justify-content: center;"><span>+/-</span></div>
-      <div id="inputDisplay">0</div>
-    </div>
-    <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-      <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
-      <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
-      <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
-      <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-      <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
-      <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
-      <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
-      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-      <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
-      <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
-      <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
-      <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
-    </div>
-    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px; white-space: nowrap;">
-      <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
-      <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
-      <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
-      <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
-    </div>
-</div>
 <div id="popupSnapDiv" class="inputBox hidden">
     <div style="display: flex; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div class="divTitle">スナップショット</div>
@@ -835,6 +801,41 @@
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="freq3" class="infomationRow">txt</div>
+    </div>
+</div>
+<div id="popupInputDiv" class="inputBox hidden">
+    <div id="inputTitle"></div>
+    <div style="border: 0px solid #555; margin: 0px; padding: 0px; align-items: center; justify-content: center;">
+      <div id="inputSubTitle"></div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: right; border: 0px solid #555; margin: 0px; padding: 0;">
+      <div data-action="-" class="inputButton" style="justify-content: center;"><span>+/-</span></div>
+      <div id="inputDisplay">0</div>
+    </div>
+    <hr style="border: 0.5px solid #555; width: 100%; margin-top: 7px; margin-bottom: 2px;">
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
+      <div data-action="7" class="inputButton" style="justify-content: center;"><span>7</span></div>
+      <div data-action="8" class="inputButton" style="justify-content: center;"><span>8</span></div>
+      <div data-action="9" class="inputButton" style="justify-content: center;"><span>9</span></div>
+      <div data-action="AC" class="inputButton" style="justify-content: center;"><span>AC</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
+      <div data-action="4" class="inputButton" style="justify-content: center;"><span>4</span></div>
+      <div data-action="5" class="inputButton" style="justify-content: center;"><span>5</span></div>
+      <div data-action="6" class="inputButton" style="justify-content: center;"><span>6</span></div>
+      <div data-action="undo" class="inputButton" style="justify-content: center;"><span>⤺</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
+      <div data-action="1" class="inputButton" style="justify-content: center;"><span>1</span></div>
+      <div data-action="2" class="inputButton" style="justify-content: center;"><span>2</span></div>
+      <div data-action="3" class="inputButton" style="justify-content: center;"><span>3</span></div>
+      <div data-action="home" class="inputButton" style="justify-content: center;"><span>↺</span></div>
+    </div>
+    <div style="border: 0px solid #555; margin: 0px 2px; margin-bottom: 2px; padding: 0px; white-space: nowrap;">
+      <div data-action="0" class="inputButton" style="justify-content: center;"><span>0</span></div>
+      <div data-action="." class="inputButton" style="justify-content: center;"><span>.</span></div>
+      <div data-action="bs" class="inputButton" style="justify-content: center;"><span>&#x232B;</span></div><!--bs-->
+      <div data-action="enter" class="inputButton" style="justify-content: center;"><span>&#x23CE;</span></div><!--enter-->
     </div>
 </div>
 
@@ -1013,6 +1014,7 @@ let goertzelCos = Math.cos(2 * Math.PI / targetSampleLength);
 let goertzelSin = Math.sin(2 * Math.PI / targetSampleLength);
 let slidingDftSampleLength = 38;
 const slidingDftSampleNum = [slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength];//サンプルの数
+const slidingDftRevolutionNumDefault = [2, 4, 6, 8];//回転する数
 const slidingDftRevolutionNum = [2, 4, 6, 8];//回転する数
 const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
 const slidingDftGain = [1000, 4000, 8000, 8000];//ターゲット周波数によるゲイン
@@ -1029,93 +1031,7 @@ let waveLAlphaDefault = 0.8;//FFT線表示のグリッドの透明度
 let waveLAlpha = waveLAlphaDefault;//FFT線表示のグリッドの透明度
 
 
-function makeWaveViewCoeff () {//表示幅、dft幅、それらインデックス系の再計算
-  const baseW = 2 * Math.PI / targetSampleLength;
-  invWaveViewLength = 1 / waveViewLength;
-  waveViewStIndex = Math.max(0, Math.min(timeDomain.length - waveViewLength, 
-                    Math.floor((timeDomain.length - waveViewLength) * 0.5 + waveViewOffset)));
-  waveViewEndIndex = waveViewStIndex + waveViewLength;
-  goertzelLength = Math.min(Math.floor(timeDomain.length / targetSampleLength), 
-                    Math.max(1, Math.round(waveViewLength / targetSampleLength))) * targetSampleLength;
-  invGoertzelLength = 1 / goertzelLength;
-  goertzelStIndex = Math.max(0, Math.min(timeDomain.length - goertzelLength, 
-                    Math.floor((timeDomain.length - goertzelLength) * 0.5 + waveViewOffset)));
-  goertzelEndIndex = goertzelStIndex + goertzelLength;
-  goertzelCos = Math.cos(baseW);
-  goertzelSin = Math.sin(baseW);
-
-  //ゴーツェルの係数作成
-  targetCoeff[0] = 2 * Math.cos(baseW * 0.5);
-  for (let i = 1; i < targetCoeff.length; i++) {
-    targetCoeff[i] = 2 * Math.cos(baseW * i);
-  }
-
-  //スライド式DFTの係数作成
-  slidingDftSampleNum.forEach((n, i) => {
-    if (n === 0) return;
-    slidingDftFreq[i] = ctxSampleRate * slidingDftRevolutionNum[i] / n;
-    slidingDftGain[i] = slidingDftFreq[i] / slidingDftFreq[0];//ターゲット周波数によるゲイン
-    slidingDftValue[i] = new Float32Array(waveViewLength);
-    slidingDftSin[i] = new Float32Array(n);
-    slidingDftCos[i] = new Float32Array(n);
-    slidingDftWindow[i] = new Float32Array(n);
-    slidingDftRe[i] = new Float32Array(n);
-    slidingDftIm[i] = new Float32Array(n);
-    const w = Math.PI * 2 * slidingDftRevolutionNum[i] / n;
-    for (let j = 0; j < n; j++) {
-      slidingDftSin[i][j] = Math.sin(w * j);
-      slidingDftCos[i][j] = Math.cos(w * j);
-      slidingDftWindow[i][j] = 0.5 * (1 - Math.cos(2 * Math.PI * (j + 0.5) / n));
-    }
-  });
-  makeTargetSin();
-}
-makeWaveViewCoeff();
-function makeTargetSin() {
-  targetCos = new Float32Array(targetSampleLength);//コサイン
-  const sampleToRad = 2 * Math.PI / targetSampleLength;
-  const rotSin = Math.sin(sampleToRad);
-  const rotCos = Math.cos(sampleToRad);
-  targetCos[0] = 1;
-  targetCos[1] = rotCos;
-  targetCos[targetSampleLength - 1] = rotCos;
-  const endIndex = Math.floor(targetSampleLength * 0.5);
-  if (targetSampleLength % 2 === 0) {//πの位置があるとき
-    targetCos[endIndex] = -1;
-  }
-  let previousTargetSin = rotSin;//一個前のsin
-  for (let i = 2; i <= endIndex; i++) {
-    let targetSinI = 0;
-    if (i % 20 === 0) {//定期的にちゃんと計算する
-      const w = i * sampleToRad;
-      targetSinI = Math.sin(w);
-      targetCos[i] = Math.cos(w);
-    } else {//それ以外は回転因子ですませる
-      targetSinI = targetCos[i - 1] * rotSin + previousTargetSin * rotCos;
-      targetCos[i] = targetCos[i - 1] * rotCos - previousTargetSin * rotSin;
-    }
-    previousTargetSin = targetSinI;
-    targetCos[targetSampleLength - i] = targetCos[i];//共役部分
-  }
-}
 const wavelet8 = new Float32Array(8).fill(0);//ゼロクロス捜査用
-function makeWavelet8 () {//ウェーブレット作成
-  const cos8 =  new Float32Array(8).fill(0);//トリガー用
-  let sum = 0;
-  for (let i = 0; i < 8; i++) {
-    const j = i + 0.5;
-    const w0 = j * Math.PI * 0.25;//π/8
-    const w1 = j * Math.PI * 0.125;//π/4
-    cos8[i] = Math.cos(w0);
-    wavelet8[i] = cos8[i] * (1 + Math.cos(w1));
-    sum += wavelet8[i];
-  }
-  if (sum > 1e-12) for (let i = 0; i < 8; i++) wavelet8[i] -= sum * 0.125;//合計が大きくズレていたら補正する
-  sum = 0;
-  for (let i = 0; i < 8; i++) sum += wavelet8[i] * cos8[i];
-  for (let i = 0; i < 8; i++) wavelet8[i] /= sum;
-}
-makeWavelet8();
 
 //ヒストリー表示用
 let spectrumHistoryRate = 0.6;//二つ目の区切り線の位置
@@ -1633,6 +1549,94 @@ document.addEventListener("visibilitychange", () => {//表示状態が変わっ�
   }
 });
 
+function makeWaveViewCoeff () {//表示幅、dft幅、それらインデックス系の再計算
+  const baseW = 2 * Math.PI / targetSampleLength;
+  invWaveViewLength = 1 / waveViewLength;
+  waveViewStIndex = Math.max(0, Math.min(timeDomain.length - waveViewLength, 
+                    Math.floor((timeDomain.length - waveViewLength) * 0.5 + waveViewOffset)));
+  waveViewEndIndex = waveViewStIndex + waveViewLength;
+  goertzelLength = Math.min(Math.floor(timeDomain.length / targetSampleLength), 
+                    Math.max(1, Math.round(waveViewLength / targetSampleLength))) * targetSampleLength;
+  invGoertzelLength = 1 / goertzelLength;
+  goertzelStIndex = Math.max(0, Math.min(timeDomain.length - goertzelLength, 
+                    Math.floor((timeDomain.length - goertzelLength) * 0.5 + waveViewOffset)));
+  goertzelEndIndex = goertzelStIndex + goertzelLength;
+  goertzelCos = Math.cos(baseW);
+  goertzelSin = Math.sin(baseW);
+
+  //ゴーツェルの係数作成
+  targetCoeff[0] = 2 * Math.cos(baseW * 0.5);
+  for (let i = 1; i < targetCoeff.length; i++) {
+    targetCoeff[i] = 2 * Math.cos(baseW * i);
+  }
+
+  //スライド式DFTの係数作成
+  slidingDftSampleNum.forEach((n, i) => {
+    if (n === 0) return;
+    slidingDftFreq[i] = ctxSampleRate * slidingDftRevolutionNum[i] / n;
+    slidingDftGain[i] = slidingDftFreq[i] / slidingDftFreq[0];//ターゲット周波数によるゲイン
+    slidingDftValue[i] = new Float32Array(waveViewLength);
+    slidingDftSin[i] = new Float32Array(n);
+    slidingDftCos[i] = new Float32Array(n);
+    slidingDftWindow[i] = new Float32Array(n);
+    slidingDftRe[i] = new Float32Array(n);
+    slidingDftIm[i] = new Float32Array(n);
+    const w = Math.PI * 2 * slidingDftRevolutionNum[i] / n;
+    for (let j = 0; j < n; j++) {
+      slidingDftSin[i][j] = Math.sin(w * j);
+      slidingDftCos[i][j] = Math.cos(w * j);
+      slidingDftWindow[i][j] = 0.5 * (1 - Math.cos(2 * Math.PI * (j + 0.5) / n));
+    }
+  });
+  makeTargetSin();
+  drawWaveGrid();//波形領域のグリッド更新
+}
+makeWaveViewCoeff();
+makeWavelet8();
+function makeTargetSin() {
+  targetCos = new Float32Array(targetSampleLength);//コサイン
+  const sampleToRad = 2 * Math.PI / targetSampleLength;
+  const rotSin = Math.sin(sampleToRad);
+  const rotCos = Math.cos(sampleToRad);
+  targetCos[0] = 1;
+  targetCos[1] = rotCos;
+  targetCos[targetSampleLength - 1] = rotCos;
+  const endIndex = Math.floor(targetSampleLength * 0.5);
+  if (targetSampleLength % 2 === 0) {//πの位置があるとき
+    targetCos[endIndex] = -1;
+  }
+  let previousTargetSin = rotSin;//一個前のsin
+  for (let i = 2; i <= endIndex; i++) {
+    let targetSinI = 0;
+    if (i % 20 === 0) {//定期的にちゃんと計算する
+      const w = i * sampleToRad;
+      targetSinI = Math.sin(w);
+      targetCos[i] = Math.cos(w);
+    } else {//それ以外は回転因子ですませる
+      targetSinI = targetCos[i - 1] * rotSin + previousTargetSin * rotCos;
+      targetCos[i] = targetCos[i - 1] * rotCos - previousTargetSin * rotSin;
+    }
+    previousTargetSin = targetSinI;
+    targetCos[targetSampleLength - i] = targetCos[i];//共役部分
+  }
+}
+function makeWavelet8 () {//ウェーブレット作成
+  const cos8 =  new Float32Array(8).fill(0);//トリガー用
+  let sum = 0;
+  for (let i = 0; i < 8; i++) {
+    const j = i + 0.5;
+    const w0 = j * Math.PI * 0.25;//π/8
+    const w1 = j * Math.PI * 0.125;//π/4
+    cos8[i] = Math.cos(w0);
+    wavelet8[i] = cos8[i] * (1 + Math.cos(w1));
+    sum += wavelet8[i];
+  }
+  if (sum > 1e-12) for (let i = 0; i < 8; i++) wavelet8[i] -= sum * 0.125;//合計が大きくズレていたら補正する
+  sum = 0;
+  for (let i = 0; i < 8; i++) sum += wavelet8[i] * cos8[i];
+  for (let i = 0; i < 8; i++) wavelet8[i] /= sum;
+}
+
 resizeCanvas();//まず一回サイズを合わせておく
 
 function updateViewParams() {//画面サイズやサンプルレート、fftサイズ変更など
@@ -1675,8 +1679,8 @@ function updateViewParams() {//画面サイズやサンプルレート、fftサ�
   }
   makeSinCosOrderArray(sinW1, cosW1, lpc1Order, lpc1DownSamplePitch);//周波数特性計算用sincos計算 
   updateLwrSepareteArea();//FFT線図領域のサイズ更新
-
   makePeakList ();//ピーク検出。範囲が変わるなら表示再検出
+  drawWaveGrid();//波形領域のグリッド更新
 }
 
 function updateLwrSepareteArea() {//FFT線図領域のサイズが変わったらこれを呼ぶ。縦方向の変更の時にはこれだけ呼ぶ
@@ -3367,10 +3371,6 @@ function showPopupSdftDiv(x, y) {
   fitMenuInViewportAndRemoveHide(popupSdftDiv);//表示
 }
 function checkPopupSdftDiv() {
-
-//      <div data-action="windowSize" class="numDisplay" style="width: 5ch;">0</div>
-//      <div data-action="windowFreq" class="infomationRow">txt</div>
-
   popupSdftDiv.querySelector('[data-action="windowSize"]').textContent = slidingDftSampleLength;
 
     popupSdftDiv.querySelector('[data-action="windowFreq"]').textContent = 
@@ -3402,7 +3402,6 @@ function checkPopupSdftDiv() {
         minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " Hz";
     }
   }
-
 }
 
 //メニュー非表示
@@ -3503,7 +3502,7 @@ menu.addEventListener('click', async (e) => {//ポップアップメニューク
         if (!rafId) targetFreqFourier();//タイムドメインをターゲット周波数でDFT
         if (!rafId) draw();
       };
-      showPopupInputDiv(e.clientX, e.clientY)
+      showPopupInputDiv(e.clientX, e.clientY);
       hideMenu();
       break;
     case 'colorMap':
@@ -4368,7 +4367,7 @@ popupLpcMenu.addEventListener('click', async (e) => {//ポップアップメニ�
           }
         }
       };
-      showPopupInputDiv(e.clientX - 120 - colorMapCanvas.width, e.clientY - 120)
+      showPopupInputDiv(e.clientX - 120 - colorMapCanvas.width, e.clientY - 120);
       hidePopupLpcMenu();
       break;
   }
@@ -4688,6 +4687,7 @@ function popupSnapDivOnUp(e) {
   }
 }
 function sdftDivClick(e) {
+  e.stopPropagation();
   const action = e.target.dataset.action;
   if (!action) return;
 
@@ -4697,8 +4697,40 @@ function sdftDivClick(e) {
       break;
 
     default://数値の処理
+      if (/^visible\d+$/.test(action)) {//visibleのon/off
+        const sdftIndex = Number(action.slice(7));
+        slidingDftIsVisible[sdftIndex] = !slidingDftIsVisible[sdftIndex];
+      } else if (/^bin\d+$/.test(action)) {//ビン番号
+        const sdftIndex = Number(action.slice(3));
+        keyInputDivSetting.labelTxt = "ビン番号";
+        keyInputDivSetting.labelSubTxt = "目標窓周波数";
+        keyInputDivSetting.nowValue = slidingDftRevolutionNum[sdftIndex];
+        keyInputDivSetting.undoValue = slidingDftRevolutionNum[sdftIndex];
+        keyInputDivSetting.homeValue = slidingDftRevolutionNumDefault[sdftIndex];
+        keyInputDivSetting.uprLimit = Math.floor(slidingDftSampleLength * 0.5);
+        keyInputDivSetting.lwrLimit = 2;
+        keyInputDivSetting.digit = 0;
+        keyInputDivSetting.onConfirm = (value) => {
+          slidingDftRevolutionNum[sdftIndex] = Math.floor(value);
+          makeWaveViewCoeff();
+          checkPopupSdftDiv();
+          if (!rafId) draw();
+        };
+
+        
+        showPopupInputDiv(e.clientX, e.clientY);
+      } else if (/^color\d+$/.test(action)) {//色
+        const sdftIndex = Number(action.slice(5));
+      } else if (/^fleq\d+$/.test(action)) {//周波数
+        const sdftIndex = Number(action.slice(4));
+      } else {
+        const keyNum = Number(action);
+      }
+
   }
-  checkPopupInputDiv();
+  checkPopupSdftDiv();
+  drawWaveGrid();//波形領域のグリッド更新
+  if (!rafId) draw();
 }
 popupSdftDiv.addEventListener('pointerdown', async (e) => {
   sdftDivClick(e);
