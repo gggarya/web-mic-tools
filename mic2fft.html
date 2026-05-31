@@ -849,6 +849,18 @@
 <!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
 <script>
 
+const canTransformPath = (() => {//トランスフォームパスが使えるかのフラグ
+    try {
+        const p0 = new Path2D();
+        const p1 = new Path2D();
+        p1.addPath(p0, new DOMMatrix());
+        return true;
+    }
+    catch {
+        return false;
+    }
+})();
+
 //オブジェクトやら
 const fftCanvas = document.getElementById("fftWindow");//メインウィンド
 const ctxFft = fftCanvas.getContext("2d");//描画コンテキスト
@@ -7320,9 +7332,26 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     ctxFft.save();
     const yScale = dftSampleNum * 0.125 * waveY0 / valueToY / dftMax[i];
     ctxFft.translate(offsetX, waveY0 + waveY0 - waveY0 * yScale); // 縦移動
-    ctxFft.scale(1, yScale);      // Y方向のみ拡大縮小
-    ctxFft.lineWidth = slidingDftWidth[i] / Math.pow(yScale, 0.9) * dpr;//太さ
-    ctxFft.stroke(dftPath[i]);
+    if (canTransformPath) {
+      const scaledPath = new Path2D();
+      scaledPath.addPath(
+          dftPath[i],
+          new DOMMatrix([
+              1, 0,
+              0, yScale,
+              0, 0
+          ])
+      );
+//DOMMatrix([a, b, c, d, e, f])
+//x' = a*x + c*y + e
+//y' = b*x + d*y + f
+      ctxFft.lineWidth = slidingDftWidth[i] * dpr;//太さ
+      ctxFft.stroke(scaledPath);
+    } else {
+      ctxFft.scale(1, yScale);      // Y方向のみ拡大縮小
+      ctxFft.lineWidth = slidingDftWidth[i] / Math.pow(yScale, 0.9) * dpr;//太さ
+      ctxFft.stroke(dftPath[i]);
+    }
     ctxFft.restore();
   }
 
