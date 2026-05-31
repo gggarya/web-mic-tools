@@ -1002,7 +1002,8 @@ const targetCoeff = new Float32Array(3).fill(0);
 let waveMinRange = Math.pow(10, -60 / 20);//波形の最小のレンジ
 let waveViewOffset = 0;//表示オフセット。中心をずらす量。マイナスもある
 let waveViewCenterPhase = 0;//表示の中心の位相×ターゲットlength
-let waveViewLength = targetSampleLength * 3;//表示する長さ
+let waveViewLengthDefault = targetSampleLength * 3;//表示する長さ
+let waveViewLength = waveViewLengthDefault;//表示する長さ
 let invWaveViewLength = 1 / waveViewLength;
 let waveViewStIndex = Math.max(0, Math.min(timeDomain.length - waveViewLength, 
                       Math.floor((timeDomain.length - waveViewLength) * 0.5 + waveViewOffset)));
@@ -6774,7 +6775,6 @@ function drawFftLine() {//FFT線作図
 //    if (isNaN(minDrawY[i | 0])) minDrawY[i | 0] = Infinity;//開始時にスプライン部分がNaNになっていることがある。それをここでリセット
   }
 
-
   ctxFft.stroke();
   ctxFft.save();
 //  ctxFft.lineWidth = 0.85;
@@ -6790,7 +6790,6 @@ function drawFftLine() {//FFT線作図
   if (!isNaN(tmpLineStY)) minDrawY[splineEndX | 0] = Math.min(minDrawY[splineEndX | 0], tmpLineStY);
 //  if (isNaN(minDrawY[splineEndX | 0])) minDrawY[splineEndX | 0] = Infinity;//開始時にスプライン部分がNaNになっていることがある。それをここでリセット
   for (let i = splineEndIndex - viewMinBinIndex; i < fftResultSub.length; i++) {//直線描画ループ
-
     const tmpFreq = (i + viewMinBinIndex) * fftBinFreq;
     const tmpX = freqToX(tmpFreq);
     const y = (viewMaxDecivel - fftResultSub[i] - getXWeightingDb(tmpX | 0)) * YPerDecivel;
@@ -7098,6 +7097,16 @@ function drawWave() {//波形表示
   ctxFft.lineTo(waveViewLength * iToX, waveY0 + normInY1 * targetCos[Math.round((targetCos.length + (waveViewLength - offset1)) % targetCos.length)]);
   ctxFft.stroke();
 
+  drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX);
+
+
+//      ctxFft.lineWidth = Math.pow(stepLineNum / vLineCounter, 0.5);//線の密度で太さを変える
+//let waveViewLength = waveViewLengthDefault;//表示する長さ
+
+  //線幅設定
+  if (waveViewLength <= waveViewLengthDefault) ctxFft.lineWidth = 1;
+  else ctxFft.lineWidth = Math.pow(waveViewLengthDefault / waveViewLength, 0.2);
+
   //タイムドメインデータ表示
   ctxFft.strokeStyle = "#fff";//色指定
   ctxFft.beginPath();
@@ -7114,7 +7123,6 @@ function drawWave() {//波形表示
   }
   ctxFft.stroke();
 
-  drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX);
 
   ctxFft.restore();
 }
@@ -7297,8 +7305,6 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
 
     
   }
-
-
 
   //描画
   for (let i = 0; i < slidingDftSampleNum.length; i++) {
