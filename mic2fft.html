@@ -4076,8 +4076,8 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
         });
         if (!rafId) draw();
       };
-      showPopupInputDiv(menuRect.left, menuRect.bottom + 130)
-      hideMenu();
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupViewWaveMenu();
       break;
     case 'fps4Wave':
       keyInputDivSetting.labelTxt = "上段　最大FPS";
@@ -4093,11 +4093,12 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
         timeStep4Wave = 1000 / fps4Wave;//波形領域の表示用
         nextDrawTime4Wave = performance.now();//波形領域の表示用
       };
-      showPopupInputDiv(menuRect.left, menuRect.bottom + 130)
-      hideMenu();
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupViewWaveMenu();
       break;
     case 'sdftSetting':
       showPopupSdftDiv(subMenuX, e.clientY);
+      hidePopupViewWaveMenu();
       break;
   }
 });
@@ -4137,8 +4138,8 @@ popupViewHistoryMenu.addEventListener('click', async (e) => {//ポップアッ�
         timeStep4History = 1000 / fps4History;//波形領域の表示用
         nextDrawTime4History = performance.now();//波形領域の表示用
       };
-      showPopupInputDiv(menuRect.left, menuRect.bottom + 130)
-      hideMenu();
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupViewHistoryMenu();
       break;
     case 'filterReset':
       copyContrast = 100;//コントラスト
@@ -4184,8 +4185,8 @@ popupViewFftMenu.addEventListener('click', async (e) => {//ポップアップメ
         timeStep4Fft = 1000 / fps4Fft;//波形領域の表示用
         nextDrawTime4Fft = performance.now();//波形領域の表示用
       };
-      showPopupInputDiv(menuRect.left, menuRect.bottom + 130)
-      hideMenu();
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupViewFftMenu();
       break;
     case 'snapMenu':
       showPopupSnapDiv(subMenuX, e.clientY);
