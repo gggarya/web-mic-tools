@@ -463,7 +463,7 @@
 <div id="popupViewWaveMenu" class="menu hidden">
   <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
   <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
-  <div data-action="sdftSetting">SDFT設定</div>
+  <div data-action="sdftSetting">SDFT設定　<span>↗</span></div>
 </div>
 <div id="popupViewHistoryMenu" class="menu hidden">
   <div data-action="colorMap">カラーマップ設定　<span>›</span></div>
@@ -478,7 +478,10 @@
   <div data-action="refLine">参考線の設定　<span>›</span></div>
   <div data-action="popupLpcMenu">LPC設定　<span>›</span></div>
   <div data-action="fps4Fft">最大fps　<span>🔢</span></div>
-  <div data-action="snapMenu">スナップショット</div>
+  <div data-action="snapMenu">
+    <span data-action="snapMenu" style="display: flax; transform: scaleX(0.75); transform-origin: left; width: 5ch;">スナップショット</span>
+    　<span>↗</span>
+  </div>
   <div data-action="resetDrawMinY">最大線リセット</div>
 </div>
 <div id="popupPlayMenu" class="menu hidden"><!--▶-->
@@ -4195,7 +4198,8 @@ popupViewFftMenu.addEventListener('click', async (e) => {//ポップアップメ
       hidePopupViewFftMenu();
       break;
     case 'snapMenu':
-      showPopupSnapDiv(subMenuX, e.clientY);
+      showPopupSnapDiv(e.clientX, e.clientY);
+      hidePopupViewFftMenu();
       break;
     case 'resetDrawMinY':
       for (let i = 0; i < minDrawY.length; i++) {minDrawY[i] = Infinity; minDrawLpcY[i] = Infinity;}
@@ -7374,8 +7378,6 @@ for (let j = 0; j < waveViewLength; j++) {
   }
 
 }
-
-
 
 function snapFftLine() {//FFT線作図
   fftSnapCtx.lineJoin = "round";//角丸
