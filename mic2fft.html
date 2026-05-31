@@ -7317,7 +7317,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     const yScale = dftSampleNum * 0.125 * waveY0 / valueToY / dftMax[i];
     ctxFft.translate(offsetX, waveY0 + waveY0 - waveY0 * yScale); // 縦移動
     ctxFft.scale(1, yScale);      // Y方向のみ拡大縮小
-    ctxFft.lineWidth = slidingDftWidth[i] / yScale * dpr;//太さ
+    ctxFft.lineWidth = slidingDftWidth[i] * dpr;//太さ
     ctxFft.stroke(dftPath[i]);
     ctxFft.restore();
   }
