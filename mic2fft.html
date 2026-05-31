@@ -421,7 +421,7 @@
 }
 .infomationRow {
   display: inline-block;
-  background: #000;
+  background: #222;
   border: 1px solid #444;
   border-top: 1px solid #111;
   border-left: 1px solid #111;
@@ -761,7 +761,7 @@
     </div>
     <div style="display: flex; align-items: center; justify-content: right; border: 0px solid #555; margin: 0px; padding: 0;">
       窓サイズ
-      <div data-action="windowSize" class="numDisplay" style="width: 5ch;">0</div>
+      <div data-action="windowSize" class="numDisplay" style="width: 5ch; cursor: pointer;">0</div>
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="windowFreq" class="infomationRow">txt</div>
@@ -769,7 +769,7 @@
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 3px; margin-bottom: 3px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="color0" class="colorButton"></div>
-      <div data-action="bin0" class="numDisplay" style="width: 3ch;">0</div>
+      <div data-action="bin0" class="numDisplay" style="width: 3ch; cursor: pointer;">0</div>
       <div data-action="visible0" data-action="FFT" class="inputButton" style="justify-content: center; width: 5ch;"><span>表示</span></div>
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
@@ -778,7 +778,7 @@
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 2px; margin-bottom: 2px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="color1" class="colorButton"></div>
-      <div data-action="bin1" class="numDisplay" style="width: 3ch;">0</div>
+      <div data-action="bin1" class="numDisplay" style="width: 3ch; cursor: pointer;">0</div>
       <div data-action="visible1" data-action="FFT" class="inputButton" style="justify-content: center; width: 5ch;"><span>表示</span></div>
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
@@ -787,7 +787,7 @@
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 3px; margin-bottom: 3px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="color2" class="colorButton"></div>
-      <div data-action="bin2" class="numDisplay" style="width: 3ch;">0</div>
+      <div data-action="bin2" class="numDisplay" style="width: 3ch; cursor: pointer;">0</div>
       <div data-action="visible2" data-action="FFT" class="inputButton" style="justify-content: center; width: 5ch;"><span>表示</span></div>
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
@@ -796,7 +796,7 @@
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 3px; margin-bottom: 3px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div data-action="color3" class="colorButton"></div>
-      <div data-action="bin3" class="numDisplay" style="width: 3ch;">0</div>
+      <div data-action="bin3" class="numDisplay" style="width: 3ch; cursor: pointer;">0</div>
       <div data-action="visible3" data-action="FFT" class="inputButton" style="justify-content: center; width: 5ch;"><span>表示</span></div>
     </div>
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
@@ -804,7 +804,10 @@
     </div>
 </div>
 <div id="popupInputDiv" class="inputBox hidden">
-    <div id="inputTitle"></div>
+    <div style="display: flex; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
+      <div id="inputTitle"></div>
+      <div data-action="x" class="inputButton" style="justify-content: center; width: 1ch; height: 1.8ch; border-radius: 0%;"><span>×</span></div>
+    </div>
     <div style="border: 0px solid #555; margin: 0px; padding: 0px; align-items: center; justify-content: center;">
       <div id="inputSubTitle"></div>
     </div>
@@ -1012,7 +1015,8 @@ let goertzelStIndex = Math.max(0, Math.min(timeDomain.length - goertzelLength,
 let goertzelEndIndex = goertzelStIndex + goertzelLength;
 let goertzelCos = Math.cos(2 * Math.PI / targetSampleLength);
 let goertzelSin = Math.sin(2 * Math.PI / targetSampleLength);
-let slidingDftSampleLength = 38;
+let slidingDftSampleLengthDefault = 38;
+let slidingDftSampleLength = slidingDftSampleLengthDefault;
 const slidingDftSampleNum = [slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength, slidingDftSampleLength];//サンプルの数
 const slidingDftRevolutionNumDefault = [2, 4, 6, 8];//回転する数
 const slidingDftRevolutionNum = [2, 4, 6, 8];//回転する数
@@ -3461,7 +3465,7 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!popupEchoCanMenu.contains(e.target)) { hidePopupEchoCanMenu(); }
   if (!popupLpcMenu.contains(e.target)) { hidePopupLpcMenu(); }
 
-  if (!popupInputDiv.contains(e.target)) { hidePopupInputDiv();}
+//  if (!popupInputDiv.contains(e.target)) { hidePopupInputDiv();}
 }
 
 document.addEventListener('contextmenu', (e) => {
@@ -4097,7 +4101,7 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
       hidePopupViewWaveMenu();
       break;
     case 'sdftSetting':
-      showPopupSdftDiv(subMenuX, e.clientY);
+      showPopupSdftDiv(e.clientX, e.clientY);
       hidePopupViewWaveMenu();
       break;
   }
@@ -4383,6 +4387,9 @@ function inputDivClick(e) {
     popupInputDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.add("pushed");  
   }
   switch (action) {
+    case 'x'://ウィンドウを閉じる
+      hidePopupInputDiv();
+      break;
     case 'AC'://All Clear
       popupInputDisplay.textContent = "";//現在値を表示
       break;
@@ -4696,7 +4703,26 @@ function sdftDivClick(e) {
     case 'x'://ウィンドウを閉じる
       hidePopupSdftDiv();
       break;
-
+    case 'windowSize'://ウィンドウサイズ
+      {
+        keyInputDivSetting.labelTxt = "窓サイズ";
+        keyInputDivSetting.labelSubTxt = "窓周波数";
+        keyInputDivSetting.nowValue = slidingDftSampleLength;
+        keyInputDivSetting.undoValue = slidingDftSampleLength;
+        keyInputDivSetting.homeValue = slidingDftSampleLengthDefault;
+        keyInputDivSetting.uprLimit = ctxSampleRate;
+        keyInputDivSetting.lwrLimit = 2;
+        keyInputDivSetting.digit = 0;
+        keyInputDivSetting.onConfirm = (value) => {
+          slidingDftSampleLength = Math.floor(value);
+          for (let i = 0; i < slidingDftSampleNum.length; i++) slidingDftSampleNum[i] = slidingDftSampleLength;
+          makeWaveViewCoeff();
+          checkPopupSdftDiv();
+          if (!rafId) draw();
+        };
+        showPopupInputDiv(e.clientX, e.clientY);
+      }
+      break;
     default://数値の処理
       if (/^visible\d+$/.test(action)) {//visibleのon/off
         const sdftIndex = Number(action.slice(7));
@@ -4704,7 +4730,7 @@ function sdftDivClick(e) {
       } else if (/^bin\d+$/.test(action)) {//ビン番号
         const sdftIndex = Number(action.slice(3));
         keyInputDivSetting.labelTxt = "ビン番号";
-        keyInputDivSetting.labelSubTxt = "目標窓周波数";
+        keyInputDivSetting.labelSubTxt = "窓周波数ｘ？";
         keyInputDivSetting.nowValue = slidingDftRevolutionNum[sdftIndex];
         keyInputDivSetting.undoValue = slidingDftRevolutionNum[sdftIndex];
         keyInputDivSetting.homeValue = slidingDftRevolutionNumDefault[sdftIndex];
