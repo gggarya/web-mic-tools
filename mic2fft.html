@@ -5599,15 +5599,49 @@ function targetFreqFourier() {//タイムドメインデータをターゲット
     const invLength = 2 / goertzelLength;
     const real = (z1 - goertzelCos * z2) * invGoertzelLength * 2;
     const imag = (-goertzelSin * z2) * invGoertzelLength * 2;
-//    norm[1] = Math.hypot(real * invGoertzelLength * 2, imag * invGoertzelLength * 2);
     norm[1] = Math.sqrt(real * real + imag * imag);
     const rad = Math.atan2(imag, real);
     const shifted = rad + Math.PI;//描画のゼロ位置を出したいので回転する
     zeroPos[1] = (targetSampleLength * shifted * inv2PI);//float
   }
-  if (norm[1] * 5 < maxValue) {
-    
-  }
+
+  //ターゲット周波数成分が少なかったら
+  if (true || norm[1] * 5 < maxValue) {
+    const xHzLength = Math.round(targetSampleLength * 0.2 * 0.5);
+    let squareSum = timeDomain[goertzelStIndex] * timeDomain[goertzelStIndex];
+    for (i = 1; i < xHzLength; i++) {//初期値を計算
+      let j = goertzelStIndex - i;//前方用
+      if (j < 0) j = -j;//マイナスになってたら反射させる
+      squareSum += timeDomain[j] * timeDomain[j] + timeDomain[i] * timeDomain[i];
+    }
+    let z0 = 0;
+    let z1 = 0;
+    let z2 = 0;
+    for (let i = goertzelStIndex; i < goertzelEndIndex; i++) {
+      const sum = Math.sqrt(squareSum);
+      z0 = sum + targetCoeff[1] * z1 - z2;
+      z2 = z1;
+      z1 = z0;
+      let j = i - (xHzLength - 1);//除去側
+      if (j < 0) j = -j;//マイナスになってたら反射させる
+      squareSum -= timeDomain[j] * timeDomain[j];
+      if (squareSum < 0) {
+        squareSum = 0;
+      }
+      let k = i + xHzLength;//追加側
+      if (k >= timeDomain.length) k = timeDomain.length - (k - timeDomain.length) - 2;//はみ出してたら反射させる
+      squareSum += timeDomain[k] * timeDomain[k];
+    }
+    const invLength = 2 / goertzelLength;
+    const real = (z1 - goertzelCos * z2) * invGoertzelLength * 2;
+    const imag = (-goertzelSin * z2) * invGoertzelLength * 2;
+    norm[0] = Math.sqrt((real * real + imag * imag) / (xHzLength * 2 - 1));
+    const rad = Math.atan2(imag, real);
+    const shifted = rad + Math.PI;//描画のゼロ位置を出したいので回転する
+    zeroPos[0] = (targetSampleLength * shifted * inv2PI);//float
+
+  } else norm[0] = 0;
+//let targetSampleLength = Math.round(ctxSampleRate / targetFreq);
 
 }
 
@@ -7107,9 +7141,10 @@ function drawWave() {//波形表示
   ctxFft.drawImage(waveHVLCanvas, 0, 0);
   ctxFft.restore();
 
+  const zeroPosBigger = norm[1] > norm[0] ? zeroPos[1] : zeroPos[0];//でかい方でトリガをとる
   const waveY0 = waveWindowH * 0.5 | 0;//waveのゼロ
   const zeroIndex = Math.min(Math.floor(timeDomain.length - waveViewLength), Math.max(0, 
-                    waveViewStIndex + (rafId ? Math.round(zeroPos[1] - waveViewCenterPhase) : 0)));//開始点
+                    waveViewStIndex + (rafId ? Math.round(zeroPosBigger - waveViewCenterPhase) : 0)));//開始点
   const endIndex = Math.min(Math.ceil(zeroIndex + waveViewLength), timeDomain.length - 1);
   const iToX = fftCanvas.width * invWaveViewLength;
 
@@ -7136,6 +7171,25 @@ function drawWave() {//波形表示
   }
   ctxFft.lineTo(waveViewLength * iToX, waveY0 + normInY1 * targetCos[Math.round((targetCos.length + (waveViewLength - offset1)) % targetCos.length)]);
   ctxFft.stroke();
+
+//ターゲット波形表示0
+  if (norm[0] > norm[1]) {
+    const normInY0 = norm[0] * valueToY;
+    let offset0 = goertzelStIndex - zeroIndex + zeroPos[0];
+    while (offset0 < 0) offset0 += targetCos.length;
+    ctxFft.strokeStyle = "#990";//色指定
+    ctxFft.lineWidth = 2;//太さ
+    ctxFft.beginPath();
+    ctxFft.moveTo(0, waveY0 + normInY0 * targetCos[Math.round((targetCos.length - offset0) % targetCos.length)] - normInY0);
+    for (let i = 0; i <= waveViewLength; i += stepIndex) {
+      ctxFft.lineTo(i * iToX, waveY0 + normInY0 * targetCos[Math.round((targetCos.length + (i - offset0)) % targetCos.length)] - normInY0);
+    }
+    ctxFft.lineTo(waveViewLength * iToX, waveY0 + normInY0 * targetCos[Math.round((targetCos.length + (waveViewLength - offset0)) % targetCos.length)] - normInY0);
+    ctxFft.stroke();
+
+  }
+
+
 
   drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX);
 
