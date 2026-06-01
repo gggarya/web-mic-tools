@@ -7318,6 +7318,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   if (waveViewLength > waveViewLengthDefault) widthRate = Math.pow(waveViewLengthDefault / waveViewLength, 0.2);  
   ctxFft.save();
   for (let i = 0; i < slidingDftSampleNum.length; i++) {//ビンごとループ
+    if (!slidingDftIsVisible[i]) continue;//falseだったら次
     ctxFft.strokeStyle = slidingDftColor[i];//色指定
     ctxFft.lineWidth = slidingDftWidth[i] * dpr * widthRate;//太さ
     ctxFft.beginPath();
