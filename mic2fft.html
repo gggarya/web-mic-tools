@@ -707,7 +707,7 @@
   <div data-action="lpc1Order">LPC 次数<span>🔢</span></div>
 </div>
 
-<div id="popupSnapDiv" class="inputBox hidden">
+<div id="popupSnapDiv" class="inputBox hidden" style="--line-color: #ff0000">
     <div style="display: flex; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div class="divTitle">スナップショット</div>
       <div data-action="x" class="inputButton" style="justify-content: center; width: 1ch; height: 1.8ch; border-radius: 0%;"><span>×</span></div>
@@ -737,18 +737,18 @@
     </div>
     <hr style="border: 0px; width: 100%; margin-top: 2px; margin-bottom: 2px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-      <div data-action="width1" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 1px;"><span>　</span></div>
-      <div data-action="width2" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 2px;"><span>　</span></div>
-      <div data-action="width3" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 3px;"><span>　</span></div>
-      <div data-action="width5" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 5px;"><span>　</span></div>
-      <div data-action="width7" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 7px;"><span>　</span></div>
-      <div data-action="width10" class="colorButton" style="background: #000; justify-content: center; width: 3ch;
-          text-decoration: line-through; text-decoration-thickness: 10px;"><span>　</span></div>
+      <div data-action="width1" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 1px">　</span></div>
+      <div data-action="width2" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 2px">　</span></div>
+      <div data-action="width3" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 3px">　</span></div>
+      <div data-action="width5" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 5px">　</span></div>
+      <div data-action="width7" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 7px">　</span></div>
+      <div data-action="width10" class="colorButton" style="background: #000; justify-content: center; width: 3ch;">
+        <span style="background: var(--line-color); height: 10px">　</span></div>
     </div>
     <hr style="border: 0.5px solid #555; width: 100%; margin-top: 2px; margin-bottom: 2px;">
     <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 0px; padding: 0px; white-space: nowrap;">
@@ -3358,10 +3358,10 @@ function checkPopupSnapDiv() {
        else el.classList.remove("paletteSelected");
     }
   }
+  popupSnapDiv.style.setProperty('--line-color', snapPalette[snapPaletteSelected]);//線幅選択の色選択
   for (let i = 1; i <= 10; i++) {
     const el = popupSnapDiv.querySelector(`[data-action='width${i}']`);
     if (el instanceof HTMLElement) {
-       el.style.textDecorationColor = snapPalette[snapPaletteSelected];
        if (i === snapWidth) el.classList.add("paletteSelected");
        else el.classList.remove("paletteSelected");
     }
@@ -4584,8 +4584,9 @@ function snapDivClick(e) {
         inputDivPushedAction = action;
         popupSnapDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.add("pushed");
       }
-      fftSnapUndoCanvas.width = fftSnapCanvas.width;
-      fftSnapUndoCanvas.height = fftSnapCanvas.height;
+      if (fftSnapUndoCanvas.width !== fftSnapCanvas.width) fftSnapUndoCanvas.width = fftSnapCanvas.width;
+      if (fftSnapUndoCanvas.height !== fftSnapCanvas.height) fftSnapUndoCanvas.height = fftSnapCanvas.height;
+
       fftSnapUndoCtx.clearRect(0, 0, fftSnapUndoCanvas.width, fftSnapUndoCanvas.height);//一つ前のを残しておっく
       fftSnapUndoCtx.drawImage(fftSnapCanvas, 0, 0);//一つ前のを残しておく
       popupSnapDiv.querySelector('[data-action="undo"]').classList.remove("hidden");//undoボタン有効
@@ -7217,8 +7218,6 @@ function drawWaveGrid() {//波形領域のグリッド描画
 }
 
 function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
-  const dftPath = slidingDftRevolutionNum.map(() => new Path2D());
-  const dftPathLwr = slidingDftRevolutionNum.map(() => new Path2D());
   const dftSampleNum = slidingDftSampleNum[0];
   const dftSampleNumHalf = dftSampleNum * 0.5;
   const dftMax = new Float32Array(slidingDftSampleNum.length).fill(-Infinity);//最大値
@@ -7274,7 +7273,6 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     dftSquareSum += squareSumWithGain;
     if (dftSquareMax < squareSumWithGain) dftSquareMax = squareSumWithGain;
 
-    dftPath[i].moveTo(IndexOnView * iToX, waveY0 - sum * valueToYinThisFreq);
     if (dftMax[i] < sum) dftMax[i] = sum;
     if (dftMin[i] > sum) dftMin[i] = sum;
   }
@@ -7303,10 +7301,9 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       const sum = Math.sqrt(squareSum);
       const squareSumWithGain = squareSum * slidingDftGain[i] * slidingDftGain[i];
       const IndexOnView = Math.max(0, Math.min(waveViewLength - 1, j - xOffset - zeroIndex));
-      slidingDftValue[i][IndexOnView] = squareSumWithGain;
+      slidingDftValue[i][IndexOnView] = sum;//ルート後
       dftSquareSum += squareSumWithGain;
       if (dftSquareMax < squareSumWithGain) dftSquareMax = squareSumWithGain;
-      dftPath[i].lineTo(IndexOnView * iToX, waveY0 - sum * valueToYinThisFreq);
       if (dftMax[i] < sum) dftMax[i] = sum;
       if (dftMin[i] > sum) dftMin[i] = sum;
     }
@@ -7315,45 +7312,31 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     j++;
   }
 
-  //トリガ合わせ
-  let offsetX = 0;
-  const maxValue = waveY0 * 0.8 / valueToY;//タイムドメインデータの最大値を逆算
-  if (norm[1] * 5 < maxValue) {//生データの方のターゲット周波数成分が少なかったら
-
-    
-  }
-
   //描画
-  for (let i = 0; i < slidingDftSampleNum.length; i++) {
-    if (!slidingDftIsVisible[i]) continue;
-    ctxFft.lineWidth = slidingDftWidth[i] * dpr;//太さ
+  //線幅補正
+  let widthRate = 1;
+  if (waveViewLength > waveViewLengthDefault) widthRate = Math.pow(waveViewLengthDefault / waveViewLength, 0.2);  
+  ctxFft.save();
+  for (let i = 0; i < slidingDftSampleNum.length; i++) {//ビンごとループ
     ctxFft.strokeStyle = slidingDftColor[i];//色指定
-    ctxFft.stroke(dftPath[i]);
-    ctxFft.save();
-    const yScale = dftSampleNum * 0.125 * waveY0 / valueToY / dftMax[i];
-    ctxFft.translate(offsetX, waveY0 + waveY0 - waveY0 * yScale); // 縦移動
-    if (canTransformPath) {
-      const scaledPath = new Path2D();
-      scaledPath.addPath(
-          dftPath[i],
-          new DOMMatrix([
-              1, 0,
-              0, yScale,
-              0, 0
-          ])
-      );
-//DOMMatrix([a, b, c, d, e, f])
-//x' = a*x + c*y + e
-//y' = b*x + d*y + f
-      ctxFft.lineWidth = slidingDftWidth[i] * dpr;//太さ
-      ctxFft.stroke(scaledPath);
-    } else {
-      ctxFft.scale(1, yScale);      // Y方向のみ拡大縮小
-      ctxFft.lineWidth = slidingDftWidth[i] / Math.pow(yScale, 0.9) * dpr;//太さ
-      ctxFft.stroke(dftPath[i]);
+    ctxFft.lineWidth = slidingDftWidth[i] * dpr * widthRate;//太さ
+    ctxFft.beginPath();
+    ctxFft.moveTo(0, waveY0 - slidingDftValue[i][0] * valueToYinThisFreq);
+    for (let j = 1; j < waveViewLength; j++) {
+      ctxFft.lineTo(j * iToX, waveY0 - slidingDftValue[i][j] * valueToYinThisFreq);
     }
-    ctxFft.restore();
-  }
+    ctxFft.stroke();
+    const normalizeRate = waveY0 / dftMax[i] * 0.5;
+    ctxFft.beginPath();
+    ctxFft.moveTo(0, waveY0 * 2 - slidingDftValue[i][0] * normalizeRate);
+    for (let j = 1; j < waveViewLength; j++) {
+      ctxFft.lineTo(j * iToX, waveY0 * 2 - slidingDftValue[i][j] * normalizeRate);
+    }
+    ctxFft.stroke();
+  }//ビンごとループの終わり
+  ctxFft.restore();
+
+
 
   dftSquareSum /= dftSquareLength;
   dftSquareSum = Math.sqrt(dftSquareSum * 2);
@@ -7362,11 +7345,11 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
 //  const invDftSquareMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
   const invDftSquareMax = 1;
-for (let j = 0; j < waveViewLength; j++) {
+  for (let j = 0; j < waveViewLength; j++) {
 
-    let r = Math.sqrt(slidingDftValue[0][j]);
-    let g = Math.sqrt(slidingDftValue[1][j]);
-    let b = Math.sqrt(slidingDftValue[2][j] + slidingDftValue[3][j]);
+    let r = slidingDftValue[0][j] * slidingDftGain[0];
+    let g = slidingDftValue[1][j] * slidingDftGain[1];
+    let b = Math.sqrt((slidingDftValue[2][j] * slidingDftGain[2]) ** 2 + (slidingDftValue[3][j] * slidingDftGain[3]) ** 2);
     const tmpRgbMax = Math.max(r, g, b);
     const normL = Math.pow(tmpRgbMax / (dftSquareMax > 1e-12 ? dftSquareMax : 1), 0.8);
     if (tmpRgbMax > 1e-12) {
