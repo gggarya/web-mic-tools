@@ -463,7 +463,6 @@
   <div data-action="tilt">傾き補正など<span>›</span></div>
   <div data-action="refLine">参考線の表示<span>›</span></div>
 </div>
-
 <div id="popupViewWaveMenu" class="menu hidden">
   <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
   <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
@@ -496,7 +495,7 @@
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="fftSize">ＦＦＴサイズ<span>›</span></div>
   <div data-action="fftSmoothing">変動の平滑化　<span>›</span></div>
-  <div data-action="fftSmoothing">平均回数（未）<span>›</span></div>
+  <div data-action="fftAveNumSetting">平均回数　<span>🔢</span></div>
 </div>
 <div id="popupRepMenu" class="menu hidden"><!--☰-->
   <div data-action="popupViewMenu">‹　表示 設定</div>
@@ -1340,8 +1339,8 @@ let previousNowIndex = 0;
 
 //実行モード
 let fftMode = 0;//live, ave, trig
-let fftModeName = ["live", "average", "trigger"];
-let fftAveNumSettingDefault = 50;
+const fftModeName = ["live", "average", "trigger"];
+const fftAveNumSettingDefault = 50;
 let fftAveNumSetting = fftAveNumSettingDefault;
 let fftAveCountDown = 0;
 let fftStDelay = 500;//タップや無音区間の影響を避けるための開始時のディレイ
@@ -3236,6 +3235,10 @@ function showPopupPlayMenu(x, y) {//プレイメニュー表示
   });
   popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
   popupPlayMenu.querySelector('[data-action="fftSmoothing"]').innerHTML = `変動の平滑化：${Math.round(fftSmoothingTimeConstantSetting * 1000) / 1000} <span>›</span>`;
+  popupPlayMenu.querySelector('[data-action="fftAveNumSetting"]').innerHTML = `平均回数：${fftAveNumSetting} <span>🔢</span>`;
+
+//  <div data-action="fftAveNumSetting">平均回数　<span>🔢</span></div>
+
   fitMenuInViewportAndRemoveHide(popupPlayMenu);
   popupPlayMenu.querySelector(`[data-action="${fftModeName[fftMode]}"]`).classList.add('checked');
 }
@@ -3936,6 +3939,12 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       fftMode = 0;//live
       break;
     case 'average':
+      if (rafId && fftModeName[fftMode] !== "average") {//動いている最中にアベレージに変更した
+        const tmpNow = performance.now();
+        fftAveCountDown = fftAveNumSetting;//平均回数をセット
+        fftNextTime = tmpNow + fftStDelay;
+        fftInterval = fftSizeSetting / ctxSampleRate * 1000;//インターバルmSec
+      }
       fftMode = 1;//average
       break;
     case 'trigger':
@@ -3947,9 +3956,35 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
     case 'fftSmoothing':
       showSmoothingMenu(subMenuX, e.clientY);
       break;
+    case 'fftAveNumSetting':
+      keyInputDivSetting.labelTxt = "平均回数";
+      keyInputDivSetting.labelSubTxt = "";
+      keyInputDivSetting.nowValue = fftAveNumSetting;
+      keyInputDivSetting.undoValue = fftAveNumSetting;
+      keyInputDivSetting.homeValue = fftAveNumSettingDefault;
+      keyInputDivSetting.uprLimit = 10000;
+      keyInputDivSetting.lwrLimit = 1;
+      keyInputDivSetting.digit = 0;
+      keyInputDivSetting.onConfirm = (value) => {
+        fftAveNumSetting = value;//値セット
+        if (rafId && fftModeName[fftMode] === "average") {//動いている時に変えちゃった
+          if (fftAveCountDown > fftAveNumSetting) {//現在のカウントより小さくしちゃった
+            const tmpNow = performance.now();
+            fftNextTime = tmpNow + fftStDelay;
+            fftAveCountDown = fftAveNumSetting;//これで次回が初回になると思う
+          }
+        }
+      };
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupPlayMenu();
+      break;
     case 'input':
       showMicMenu(subMenuX, e.clientY);
       break;
+
+//let fftAveNumSettingDefault = 50;
+//let fftAveNumSetting = fftAveNumSettingDefault;
+
   }
   popupPlayMenu.querySelectorAll('div').forEach(item => {item.classList.remove('checked'); });//それ以外は外す
   popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
