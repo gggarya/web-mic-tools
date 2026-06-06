@@ -90,14 +90,6 @@
     font-size: 14px;
     line-height: 1;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  #overlayPlay.spinner::after {
-    animation: spin 0.8s linear infinite;
-  }
   #overlayLock {
     position: absolute;
     right: 28px;
@@ -226,6 +218,40 @@
     opacity: 0;
     transition: opacity 0.8s ease-out;
   }
+
+  #loadingDiv {
+    position: absolute;
+    left: 70px;
+    bottom: 19px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;      }
+
+  #loadingDiv span.spinner {
+    width: 1em;
+    height: 1em;
+
+    border: 0.15em solid #666;
+    border-top-color: #fff;
+    border-radius: 50%;
+
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  #loadingDiv.hidden {
+    display: none;
+  }
+
 
 
 .menu {
@@ -471,6 +497,7 @@
   <div id="overlayPlay" class="nudge allow-menu">▶</div>
   <div id="overlayLock" class="allow-menu"></div>
   <div id="overlayMenu" class="allow-menu">☰</div>
+
   <div id="dragRect" class="fadeoutObj"></div>
   <div id="dragRect2" class="fadeoutObj"></div>
   <div id="infoRect"></div>
@@ -478,6 +505,10 @@
    font-size: 20px; color: rgba(160, 220, 255, 1); white-space: pre-wrap; padding: 4px;"></div>
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
+<div id="loadingDiv" class="hidden">
+  <span class="spinner"></span>
+  <span id="loadingTxt"></span>
+</div>
 
 <div id="popupMenu" class="menu hidden">
   <div data-action="targetFreq">モニタ周波数入力　<span>🔢</span></div>
@@ -969,6 +1000,10 @@ const popupInputTitle = document.getElementById('inputTitle');
 const popupInputSubTitle = document.getElementById('inputSubTitle');
 const popupSnapDiv = document.getElementById('popupSnapDiv');
 const popupSdftDiv = document.getElementById('popupSdftDiv');
+const loadingDiv = document.getElementById('loadingDiv');
+const loadingTxt = document.getElementById('loadingTxt');
+
+
 
 //画面設定
 let dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
@@ -3963,7 +3998,7 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       fftMode = 0;//live
       overlayPlay.classList.remove("average");//A
       overlayPlay.classList.remove("trigger");//T
-      overlayPlay.classList.remove("spinner");//スピン
+      loadingDiv.classList.add("hidden");//テキスト
       break;
     case 'average':
       overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
@@ -3974,7 +4009,8 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
         fftAveCountDown = fftAveNumSetting;//平均回数をセット
         fftNextTime = tmpNow + fftStDelay;
         fftInterval = fftSizeSetting / ctxSampleRate * 1000;//インターバルmSec
-        overlayPlay.classList.add("spinner");//スピン
+        loadingDiv.classList.remove("hidden");//テキスト
+        loadingTxt.textContent = ``;
       }
       fftMode = 1;//average
       break;
@@ -3984,7 +4020,8 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       overlayPlay.classList.add("trigger");//T
       fftMode = 2;//trigger
       if (rafRunning || rafId !== null) {//再生中
-        overlayPlay.classList.add("spinner");//スピン
+        loadingDiv.classList.remove("hidden");//テキスト
+        loadingTxt.textContent = ``;
       }
       break;
     case 'fftSize':
@@ -5037,16 +5074,17 @@ overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
     pressTimer = null;
     if (rafRunning || rafId !== null) {//再生中
       stop();
-      overlayPlay.classList.remove("spinner");//スピン
+      loadingDiv.classList.add("hidden");//テキスト
     } else {//停止中
       start();
       switch (fftModeName[fftMode]) {
         case 'live':
-          overlayPlay.classList.remove("spinner");//スピン
+          loadingDiv.classList.add("hidden");//テキスト
           break;
         case 'average':
         case 'trigger':
-          overlayPlay.classList.add("spinner");//スピン
+          loadingDiv.classList.remove("hidden");//テキスト
+          loadingTxt.textContent = ``;
           break;
       }
 
@@ -5301,10 +5339,13 @@ function animateByCtx(now) {//アニメーションループ
         fftModeLive(now);
         fftNextTime = now + fftInterval;
         fftAveCountDown--;//平均数カウントダウンを進める
-        infoRect.textContent = `残り : ${fftAveCountDown}`; 
+        infoRect.textContent = `残り : ${fftAveCountDown}`;
+        loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
+
       } else {
         if (fftAveCountDown === fftAveNumSetting) {
           infoRect.textContent = `ディレイ : ${Math.round((fftNextTime - now))} mSec`; 
+          loadingTxt.textContent = `ディレイ : ${Math.round((fftNextTime - now))} mSec`;
         }
       }
       break;
@@ -5318,7 +5359,7 @@ function animateByCtx(now) {//アニメーションループ
   } else {
     stop();
     overlayPlay.textContent = "▶";
-    overlayPlay.classList.remove("spinner");//スピン
+    loadingDiv.classList.add("hidden");//テキスト
   }
 }
 function fftModeLive(now) {
