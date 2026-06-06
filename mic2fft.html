@@ -3292,6 +3292,7 @@ function showPopupPlayMenu(x, y) {//プレイメニュー表示
   popupPlayMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
   });
+  popupPlayMenu.querySelector('[data-action="average"]').innerHTML = `平均（${fftAveNumSetting}回）`;
   popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
   popupPlayMenu.querySelector('[data-action="fftSmoothing"]').innerHTML = `変動の平滑化：${Math.round(fftSmoothingTimeConstantSetting * 1000) / 1000} <span>›</span>`;
   popupPlayMenu.querySelector('[data-action="fftAveNumSetting"]').innerHTML = `平均回数：${fftAveNumSetting} <span>🔢</span>`;
@@ -3999,6 +4000,7 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       overlayPlay.classList.remove("average");//A
       overlayPlay.classList.remove("trigger");//T
       loadingDiv.classList.add("hidden");//テキスト
+      hidePopupPlayMenu();
       break;
     case 'average':
       overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
@@ -4013,6 +4015,7 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
         loadingTxt.textContent = ``;
       }
       fftMode = 1;//average
+      hidePopupPlayMenu();
       break;
     case 'trigger':
       overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
@@ -4023,6 +4026,7 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
         loadingDiv.classList.remove("hidden");//テキスト
         loadingTxt.textContent = ``;
       }
+      hidePopupPlayMenu();
       break;
     case 'fftSize':
       showSizeMenu(subMenuX, e.clientY);
@@ -5087,7 +5091,6 @@ overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
           loadingTxt.textContent = ``;
           break;
       }
-
     }
   } else {//タイマーが無い場合はタイマー側でメニューを出しているはずなので何もしない
   }
@@ -5360,6 +5363,7 @@ function animateByCtx(now) {//アニメーションループ
     stop();
     overlayPlay.textContent = "▶";
     loadingDiv.classList.add("hidden");//テキスト
+//    loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
   }
 }
 function fftModeLive(now) {
