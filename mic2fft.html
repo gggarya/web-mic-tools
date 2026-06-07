@@ -546,11 +546,12 @@
 <div id="popupPlayMenu" class="menu hidden"><!--▶-->
   <div data-action="live">連続</div>
   <div data-action="average">ｎ回平均</div>
-  <div data-action="trigger">１回のみトリガ（未）</div>
+  <div data-action="trigger">１回のみトリガ</div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="fftSize">ＦＦＴサイズ<span>›</span></div>
   <div data-action="fftSmoothing">変動の平滑化　<span>›</span></div>
   <div data-action="fftAveNumSetting">平均回数　<span>🔢</span></div>
+  <div data-action="fftTriggerdB">トリガー　<span>🔢</span></div>
 </div>
 <div id="popupRepMenu" class="menu hidden"><!--☰-->
   <div data-action="popupViewMenu">‹　表示 設定</div>
@@ -1079,7 +1080,8 @@ let targetCos = null;
 const norm = new Float32Array(3).fill(0);
 const zeroPos = new Float32Array(3).fill(0);
 const targetCoeff = new Float32Array(3).fill(0);
-let waveMinRange = Math.pow(10, -60 / 20);//波形の最小のレンジ
+let waveMinRangeDefaultDecibel = -60
+let waveMinRange = Math.pow(10, waveMinRangeDefaultDecibel / 20);//波形の最小のレンジ
 let waveViewOffset = 0;//表示オフセット。中心をずらす量。マイナスもある
 let waveViewCenterPhase = 0;//表示の中心の位相×ターゲットlength
 let waveViewLengthDefault = targetSampleLength * 3;//表示する長さ
@@ -1409,6 +1411,7 @@ let fftNextTime = 0;//開始時間
 let fftIntervalRate = 1.01;
 let fftInterval = 0;//インターバル
 let fftAveZeroBurstNotAllow = true;
+let fftTriggerdBDefault = -25;
 let fftTriggerdB = -25;
 let fftJustTriggerdB = -50;
 let fftTriggerDelayRate = 0.4;
@@ -2237,6 +2240,9 @@ function onMove(e) {
         panSpectrumContrast();
         if (!rafId) draw();
         break;
+      case "levelMeter"://レベルメーター
+        panTriggerLevel();
+        break;
       case "fftL"://スナップショットの透明度
         const rectStXfftL = levelMeterVisible ? levelCanvas.width : 0;
         updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
@@ -2573,7 +2579,25 @@ function panSpectrumContrast() {//コントラスト変更
   if (spectrumContrast < - spectrumContrastMax) spectrumContrast = - spectrumContrastMax; 
   makeColorMap();
   makeColorMapCanvas();
-  updateFlyInfo(`コントラスト\n${spectrumContrast.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5)
+  updateFlyInfo(`コントラスト\n${spectrumContrast.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+}
+function panTriggerLevel() {//トリガーレベル
+  let uprDecivel = 0;
+  let lwrDecivel = -80;
+  if (levelRangeIsSame) {
+    uprDecivel = viewMaxDecivel;
+    lwrDecivel = viewMinDecivel;
+  }
+  const meterDecivelRange = uprDecivel - lwrDecivel;
+  const [p] = gesture.pointers.values();
+  const pointerDecibel = uprDecivel - meterDecivelRange * (p.y - fftViewZeroY) / fftViewH;
+  fftTriggerdB = Math.round(Math.min(10, Math.max(-200, pointerDecibel)) * 10) * 0.1;
+
+  updateFlyInfo(`トリガレベル\n${fftTriggerdB.toFixed(1)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+
+  if (!rafId && fftModeName[fftMode] === 'trigger') {//停止中でトリガモードだったらレベル表示更新
+    loadingTxt.textContent = `トリガ : ${fftTriggerdB.toFixed(1)}dB`;
+  }
 }
 function panPeakScanEnd(e) {
   const pointX = e.clientX * dpr;
@@ -2790,6 +2814,17 @@ function doubleTap(e) {//ダブルタップ
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
         if (!rafId) draw();
+        break;
+      case "levelMeter"://レベルメーター#########################################################################
+        fftTriggerdB = fftTriggerdBDefault;
+
+        updateFlyInfo(`トリガレベル\n${fftTriggerdB.toFixed(1)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        if (!rafId && fftModeName[fftMode] === 'trigger') {//停止中でトリガモードだったらレベル表示更新
+          loadingTxt.textContent = `トリガ : ${fftTriggerdB.toFixed(1)}dB`;
+        }
         break;
       case "fft"://FFT範囲をデフォルトに戻す#######################################################################
         updateDragRect(dragRect, HIT_RANGE * 2, spectrumHistoryH + HIT_RANGE * 2
@@ -3305,8 +3340,7 @@ function showPopupPlayMenu(x, y) {//プレイメニュー表示
   popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
   popupPlayMenu.querySelector('[data-action="fftSmoothing"]').innerHTML = `変動の平滑化：${Math.round(fftSmoothingTimeConstantSetting * 1000) / 1000} <span>›</span>`;
   popupPlayMenu.querySelector('[data-action="fftAveNumSetting"]').innerHTML = `平均回数：${fftAveNumSetting} <span>🔢</span>`;
-
-//  <div data-action="fftAveNumSetting">平均回数　<span>🔢</span></div>
+  popupPlayMenu.querySelector('[data-action="fftTriggerdB"]').innerHTML = `トリガdB：${fftTriggerdB.toFixed(1)} <span>🔢</span>`;
 
   fitMenuInViewportAndRemoveHide(popupPlayMenu);
   popupPlayMenu.querySelector(`[data-action="${fftModeName[fftMode]}"]`).classList.add('checked');
@@ -4078,13 +4112,32 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       showPopupInputDiv(e.clientX, e.clientY);
       hidePopupPlayMenu();
       break;
+    case 'fftTriggerdB':
+      keyInputDivSetting.labelTxt = "トリガレベル";
+      keyInputDivSetting.labelSubTxt = "";
+      keyInputDivSetting.nowValue = fftTriggerdB;
+      keyInputDivSetting.undoValue = fftTriggerdB;
+      keyInputDivSetting.homeValue = fftTriggerdBDefault;
+      keyInputDivSetting.uprLimit = 10;
+      keyInputDivSetting.lwrLimit = -200;
+      keyInputDivSetting.digit = 1;
+      keyInputDivSetting.onConfirm = (value) => {
+        fftTriggerdB = value;//値セット
+
+        if (!rafId && fftModeName[fftMode] === 'trigger') {//停止中でトリガモードだったらレベル表示更新
+          loadingTxt.textContent = `トリガ : ${fftTriggerdB.toFixed(1)}dB`;
+        }
+      };
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupPlayMenu();
+      break;
+
+
+//  popupPlayMenu.querySelector('[data-action="fftTriggerdB"]').innerHTML = `トリガdB：${fftTriggerdB.toFixed(1)} <span>🔢</span>`;
+
     case 'input':
       showMicMenu(subMenuX, e.clientY);
       break;
-
-//let fftAveNumSettingDefault = 50;
-//let fftAveNumSetting = fftAveNumSettingDefault;
-
   }
   popupPlayMenu.querySelectorAll('div').forEach(item => {item.classList.remove('checked'); });//それ以外は外す
   popupPlayMenu.querySelector('[data-action="fftSize"]').innerHTML = `FFTｻｲｽﾞ：${fftSizeSetting} <span>›</span>`;
@@ -7677,14 +7730,12 @@ function drawWaveGrid() {//波形領域のグリッド描画
     const x = freqToX(ctxSampleRate / slidingDftSampleLength);
       waveHVLCtx.beginPath();
       waveHVLCtx.moveTo(x, waveHVLCanvas.height - 1);
-      waveHVLCtx.lineTo(x - 6 * dpr, waveHVLCanvas.height - 10 * dpr);
-      waveHVLCtx.lineTo(x + 6 * dpr, waveHVLCanvas.height - 10 * dpr);
+      waveHVLCtx.lineTo(x - 5 * dpr, waveHVLCanvas.height - 9 * dpr);
+      waveHVLCtx.lineTo(x + 5 * dpr, waveHVLCanvas.height - 9 * dpr);
 //      waveHVLCtx.closePath();
       waveHVLCtx.strokeStyle = "#ccc";//色指定
-      waveHVLCtx.lineWidth = 1;
+      waveHVLCtx.lineWidth = 2;
       waveHVLCtx.stroke();
-//      waveHVLCtx.fillStyle = "#aaa";
-//      waveHVLCtx.fill();
   }
 }
 
