@@ -577,6 +577,7 @@
   <div data-action="fft">‹　スペクトル</div>
   <div data-action="popupUnitMenu">‹　横軸 単位</div>
   <div data-action="popUpPeakMenu">‹　ピーク 設定</div>
+  <div data-action="separatorReset">　分割位置ﾘｾｯﾄ</div>
 </div>
 <div id="popupLockMenu" class="menu hidden"><!--🔒-->
 <!--  <div data-action="lockSeparator1">区切り(上)</div>
@@ -1071,7 +1072,8 @@ let lpc1DrawOffset = -10;
 //画面用
 //波形表示用wave
 const inv2PI = 1 / (2 * Math.PI);
-let waveWindowRate = 0.3;//一つ目の区切り線の位置
+const waveWindowRateDefault = 0.3;//一つ目の区切り線の位置
+let waveWindowRate = waveWindowRateDefault;//一つ目の区切り線の位置
 let waveWindowH = fftCanvas.height * waveWindowRate | 0;
 const targetFreqDefault = 200;
 let targetFreq = targetFreqDefault;//波形表示のターゲット周波数
@@ -1125,7 +1127,8 @@ let yin =  new Float32Array(asdf.length);
 const wavelet8 = new Float32Array(8).fill(0);//ゼロクロス捜査用
 
 //ヒストリー表示用
-let spectrumHistoryRate = 0.6;//二つ目の区切り線の位置
+const spectrumHistoryRateDefault = 0.6;//二つ目の区切り線の位置
+let spectrumHistoryRate = spectrumHistoryRateDefault;//二つ目の区切り線の位置
 let spectrumHistoryH = fftCanvas.height * spectrumHistoryRate | 0;
 let HistoryWriteLine = 0;//描画位置
 let HistoryViewOffset = 0;//描画位置のオフセット
@@ -2122,7 +2125,6 @@ function onMove(e) {
         if (gesture.axis === "x") {
           updateDragRect(dragRect, HIT_RANGE * 2, waveWindowH - HIT_RANGE * 2
           , fftCanvas.width - HIT_RANGE * 4, HIT_RANGE * 2);//操作エリアの表示
-          panWaveLAlpha();
           if (!rafId) draw();
         } else if (gesture.axis === "y" && areaName === "separator1uprCenter") {
           panSeparator1();//縦方向はセパレート位置調整
@@ -2164,7 +2166,7 @@ function onMove(e) {
           const rectStXfftL = HIT_RANGE * 2 + (levelMeterVisible ? levelCanvas.width : 0);
           const rectStXfftR = fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - HIT_RANGE * 2;
           updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, rectStXfftR - rectStXfftL, HIT_RANGE * 2);//操作エリアの表示
-          panFftVLAlpha();//FFTの線の透明度
+          panFftSnapAlpha();//スナップショットの透明度
           if (!rafId) draw();
         } else if (gesture.axis === "y" && areaName === "separator2lwrCenter") {
           panSeparator2();//縦方向はセパレート位置調整
@@ -2243,10 +2245,10 @@ function onMove(e) {
       case "levelMeter"://レベルメーター
         panTriggerLevel();
         break;
-      case "fftL"://スナップショットの透明度
+      case "fftL":
         const rectStXfftL = levelMeterVisible ? levelCanvas.width : 0;
         updateDragRect(dragRect, rectStXfftL, spectrumHistoryH, HIT_RANGE * 2, fftViewH);//操作エリアの表示
-        panFftSnapAlpha();
+        panFftVLAlpha();//FFTの線の透明度
         if (!rafId) draw();
         break;
       case "fftR"://傾き補正
@@ -2321,14 +2323,15 @@ function onMove(e) {
         break;
       case "wave":
         if (gesture.axis === "x") {
-//          if (rafId) {//動いていたら
-//            panTargetFreqOnWave(e);
-//          } else {
             panWaveOffset(e);
             if (!rafId) draw();
-//          }
         } else if (gesture.axis === "y") {
         }
+        break;
+      case "waveL":
+        updateDragRect(dragRect, 0, 0, HIT_RANGE * 2, waveWindowH);//操作エリアの表示
+        panWaveLAlpha();
+        if (!rafId) draw();
         break;
     }
   } else if (gesture.mode === 'pinch') {
@@ -2453,9 +2456,9 @@ function panFftDecibel() {//平行移動,横方向
 }
 function panWaveLAlpha() {//ヒストリーの縦線の透明度を変える
   const [p] = gesture.pointers.values();
-  const dx = (p.x - gesture.start.previousPt.x) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
-  gesture.start.previousPt.x = p.x;
-  waveLAlpha += dx * 1.5;
+  const dy = (p.y - gesture.start.previousPt.y) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
+  gesture.start.previousPt.y = p.y;
+  waveLAlpha -= dy * 1.5;
   if (waveLAlpha > 1) waveLAlpha = 1;
   if (waveLAlpha < 0) waveLAlpha = 0;
   updateFlyInfo(`縦横線 不透明度\n${waveLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
@@ -2480,18 +2483,18 @@ function panHistoryHLAlpha() {//ヒストリーの縦線の透明度を変える
 }
 function panFftVLAlpha() {//FFTの縦線の透明度を変える
   const [p] = gesture.pointers.values();
-  const dx = (p.x - gesture.start.previousPt.x) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
-  gesture.start.previousPt.x = p.x;
-  fftVLAlpha += dx * 1.5;
+  const dy = (p.y - gesture.start.previousPt.y) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
+  gesture.start.previousPt.y = p.y;
+  fftVLAlpha -= dy * 1.5;
   if (fftVLAlpha > 1) fftVLAlpha = 1;
   if (fftVLAlpha < 0) fftVLAlpha = 0;
   updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
 }
 function panFftSnapAlpha() {//スナップショットの透明度を変える
   const [p] = gesture.pointers.values();
-  const dy = (p.y - gesture.start.previousPt.y) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
-  gesture.start.previousPt.y = p.y;
-  snapAlpha -= dy * 1.5;
+  const dx = (p.x - gesture.start.previousPt.x) * dpr / Math.min(fftCanvas.width, fftCanvas.height);
+  gesture.start.previousPt.x = p.x;
+  snapAlpha += dx * 1.5;
   if (snapAlpha > 1) snapAlpha = 1;
   if (snapAlpha < 0) snapAlpha = 0;
   updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
@@ -2780,8 +2783,8 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        snapAlpha = snapAlphaDefault;
-        updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        fftVLAlpha = fftVLAlphaDefault;
+        updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
@@ -2901,8 +2904,8 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        fftVLAlpha = fftVLAlphaDefault;
-        updateFlyInfo(`縦横線 不透明度\n${fftVLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        snapAlpha = snapAlphaDefault;
+        updateFlyInfo(`スナップショット\n不透明度 ${snapAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
@@ -2951,6 +2954,30 @@ function doubleTap(e) {//ダブルタップ
         });
         historyHLAlpha = historyHLAlphaDefault;
         updateFlyInfo(`横線 不透明度\n${historyHLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        if (!rafId) drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        break;
+      case "wave"://波形表示エリア#######################################################################################
+        {//センターに戻して範囲もデフォルトに戻す
+          let dt = waveViewOffset;
+          while (dt < 0) dt += targetSampleLength;
+          waveViewCenterPhase = (waveViewCenterPhase + dt) % targetSampleLength;//表示ctrの位相をずらす
+          waveViewOffset = 0;//センターに戻す
+          waveViewLength = waveViewLengthDefault;//表示する長さ
+          makeWaveViewCoeff();
+          drawWaveGrid();
+          if (!rafId) draw();
+        }
+        break;
+      case "waveL"://波形表示エリア#######################################################################################
+        updateDragRect(dragRect, 0, 0, HIT_RANGE * 2, waveWindowH);//操作エリアの表示
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
+        });
+        waveLAlpha = waveLAlphaDefault;
+        updateFlyInfo(`縦横線 不透明度\n${waveLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
@@ -4296,14 +4323,27 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
       x = (menuRect.left > menuSubRect.width) ? menuRect.left - menuSubRect.width : 0;
       showPeakMenu(x, 0);
       break;
-/*      
-  <div data-action="wave">‹　波形</div>
-  <div data-action="history" style="justify-content: start;">‹　
-    <span style="display: flax; transform: scaleX(0.62); transform-origin: left; width: 5ch;">スペクトログラム</span>
-  </div>
-  <div data-action="fft">‹　スペクトル</div>
+    case 'separatorReset':
+      waveWindowRate = waveWindowRateDefault;//一つ目の区切り線の位置
+      spectrumHistoryRate = spectrumHistoryRateDefault;//二つ目の区切り線の位置
 
-*/
+      updateViewParams();
+      if (colorMapCanvas.height !== fftCanvas.height - spectrumHistoryH - 1) {
+        colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
+        levelCanvas.height = colorMapCanvas.height;
+        makeColorMapCanvas();
+      }
+      //wave領域グリッドサイズ変更
+      if (waveHVLCanvas.height !== waveWindowH) {
+        waveHVLCanvas.height = waveWindowH;
+        drawWaveGrid();
+      }  
+      if (!rafId) {
+        drawImageSpectrumHistory ();//アニメーションが動いていなければ書き直す
+        draw();
+      }
+      hidePopupViewMenu();
+      break;
   }
 });
 popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
@@ -7732,7 +7772,7 @@ function drawWaveGrid() {//波形領域のグリッド描画
       waveHVLCtx.moveTo(x, waveHVLCanvas.height - 1);
       waveHVLCtx.lineTo(x - 5 * dpr, waveHVLCanvas.height - 9 * dpr);
       waveHVLCtx.lineTo(x + 5 * dpr, waveHVLCanvas.height - 9 * dpr);
-//      waveHVLCtx.closePath();
+      waveHVLCtx.closePath();
       waveHVLCtx.strokeStyle = "#ccc";//色指定
       waveHVLCtx.lineWidth = 2;
       waveHVLCtx.stroke();
