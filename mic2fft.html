@@ -227,6 +227,7 @@
     align-items: center;
     gap: 0.3em;
 
+    pointer-events: none; /* 操作の邪魔しない */
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -506,7 +507,7 @@
 </div>
 <hr style="border: none;border-top: 0.5px solid #666;margin: 0 auto;">
 <div id="loadingDiv" class="hidden">
-  <span class="spinner"></span>
+  <span id="loadingSpinner" class="spinner"></span>
   <span id="loadingTxt"></span>
 </div>
 
@@ -1001,6 +1002,7 @@ const popupInputSubTitle = document.getElementById('inputSubTitle');
 const popupSnapDiv = document.getElementById('popupSnapDiv');
 const popupSdftDiv = document.getElementById('popupSdftDiv');
 const loadingDiv = document.getElementById('loadingDiv');
+const loadingSpinner = document.getElementById('loadingSpinner');
 const loadingTxt = document.getElementById('loadingTxt');
 
 
@@ -1404,7 +1406,14 @@ let fftAveNumSetting = fftAveNumSettingDefault;
 let fftAveCountDown = 0;
 let fftStDelay = 500;//タップや無音区間の影響を避けるための開始時のディレイ
 let fftNextTime = 0;//開始時間
+let fftIntervalRate = 1.01;
 let fftInterval = 0;//インターバル
+let fftAveZeroBurstNotAllow = true;
+let fftTriggerdB = -25;
+let fftJustTriggerdB = -50;
+let fftTriggerDelayRate = 0.4;
+let fftTriggerDelay = 0;//トリガかかってからのディレイ
+let fftTriggerStopTime = Infinity;//トリガかかってからのディレイ
 
 //カラーマップ
 let spectro1LineY = new Float32Array(fftCanvas.width).fill(0);//
@@ -4000,19 +4009,24 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       overlayPlay.classList.remove("average");//A
       overlayPlay.classList.remove("trigger");//T
       loadingDiv.classList.add("hidden");//テキスト
+      loadingTxt.textContent = ``;
+      fftAveCountDown = fftAveNumSetting;//平均回数をセット
       hidePopupPlayMenu();
       break;
     case 'average':
       overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
       overlayPlay.classList.add("average");//A
       overlayPlay.classList.remove("trigger");//T
+      loadingTxt.textContent = `0 / ${fftAveNumSetting}`;
+      loadingDiv.classList.remove("hidden");//テキスト
       if (rafId && fftModeName[fftMode] !== "average") {//動いている最中にアベレージに変更した
         const tmpNow = performance.now();
         fftAveCountDown = fftAveNumSetting;//平均回数をセット
         fftNextTime = tmpNow + fftStDelay;
-        fftInterval = fftSizeSetting / ctxSampleRate * 1000;//インターバルmSec
-        loadingDiv.classList.remove("hidden");//テキスト
-        loadingTxt.textContent = ``;
+        fftInterval = Math.round(fftSizeSetting * fftIntervalRate / ctxSampleRate * 1000);//インターバルmSec
+        loadingSpinner.classList.remove("hidden");//スピナー
+      } else {
+        loadingSpinner.classList.add("hidden");//スピナー
       }
       fftMode = 1;//average
       hidePopupPlayMenu();
@@ -4021,10 +4035,18 @@ popupPlayMenu.addEventListener('click', async (e) => {//ポップアップメニ
       overlayPlay.classList.remove("nudge");//読み込み時についている波紋を取り除く
       overlayPlay.classList.remove("average");//A
       overlayPlay.classList.add("trigger");//T
+      loadingTxt.textContent = `トリガ : ${fftTriggerdB.toFixed(1)}dB`;
+      loadingDiv.classList.remove("hidden");//テキスト
       fftMode = 2;//trigger
       if (rafRunning || rafId !== null) {//再生中
-        loadingDiv.classList.remove("hidden");//テキスト
-        loadingTxt.textContent = ``;
+        loadingSpinner.classList.remove("hidden");//スピナー
+        const tmpNow = performance.now();
+        fftAveCountDown = fftAveNumSetting;//平均回数をセット
+        fftNextTime = tmpNow + fftStDelay;
+        fftTriggerDelay =  Math.round(fftSizeSetting * fftTriggerDelayRate / ctxSampleRate * 1000);//トリガかかってからのディレイ
+        fftTriggerStopTime = Infinity;//トリガかかってからのディレイ
+      } else {
+        loadingSpinner.classList.add("hidden");//スピナー
       }
       hidePopupPlayMenu();
       break;
@@ -5078,17 +5100,30 @@ overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
     pressTimer = null;
     if (rafRunning || rafId !== null) {//再生中
       stop();
-      loadingDiv.classList.add("hidden");//テキスト
+      switch (fftModeName[fftMode]) {
+        case 'live':
+          loadingTxt.textContent = ``;
+          loadingDiv.classList.add("hidden");//テキスト
+          break;
+        case 'average':
+          loadingSpinner.classList.add("hidden");//スピナー
+        case 'trigger':
+          loadingSpinner.classList.add("hidden");//スピナー
+          break;
+      }
     } else {//停止中
       start();
       switch (fftModeName[fftMode]) {
         case 'live':
-          loadingDiv.classList.add("hidden");//テキスト
+          loadingTxt.textContent = ``;
           break;
         case 'average':
+          loadingSpinner.classList.remove("hidden");//スピナー
+          loadingTxt.textContent = `0 / ${fftAveNumSetting}`;
+          break;
         case 'trigger':
-          loadingDiv.classList.remove("hidden");//テキスト
-          loadingTxt.textContent = ``;
+          loadingSpinner.classList.remove("hidden");//スピナー
+          loadingTxt.textContent = `トリガ : ${fftTriggerdB.toFixed(1)}dB`;
           break;
       }
     }
@@ -5206,16 +5241,6 @@ async function start() {//ストリーム取得開始とアニメーションス
 
     source.connect(analyserNode);//アナライザーに接続
 
-
-
-//const freqData = new Uint8Array(analyser.frequencyBinCount);
-//analyser.getByteFrequencyData(freqData);
-
-//const timeData = new Uint8Array(analyser.fftSize);
-//analyser.getByteTimeDomainData(timeData);
-
-
-
     //トラック情報の取得
     const track = stream.getAudioTracks()[0];
     const settings = track.getSettings();
@@ -5231,12 +5256,10 @@ async function start() {//ストリーム取得開始とアニメーションス
     targetSampleLength = Math.round(ctxSampleRate / targetFreq);
     makeWaveViewCoeff();
 
-
     //指定した内容の取得
-    const constraints = track.getConstraints();
-
+//    const constraints = track.getConstraints();
     //選択肢
-    const capabilities = track.getCapabilities();
+//    const capabilities = track.getCapabilities();
 
     //デバイス情報
     devices = await navigator.mediaDevices.enumerateDevices();//デバイス群の取得
@@ -5272,18 +5295,17 @@ async function start() {//ストリーム取得開始とアニメーションス
         nextDrawTime4Fft = tmpNow + timeStep4Fft;//ｆｆｔ領域の表示用
         break;
       case 1://average
+      case 2://trigger
         fftAveCountDown = fftAveNumSetting;//平均回数をセット
         fftNextTime = tmpNow + fftStDelay;
-        fftInterval = (fftSizeSetting + 128) / ctxSampleRate * 1000;//インターバルmSec
+        fftInterval = Math.round(fftSizeSetting * fftIntervalRate / ctxSampleRate * 1000);//インターバルmSec
+        fftTriggerDelay =  Math.round(fftSizeSetting * fftTriggerDelayRate / ctxSampleRate * 1000);//トリガかかってからのディレイ
+        fftTriggerStopTime = Infinity;//トリガかかってからのディレイ
 
         secDivTime = fftNextTime;
         nextDrawTime4Wave = fftNextTime + timeStep4Wave;//波形領域の表示用
         nextDrawTime4History = fftNextTime + timeStep4History;//ヒストリー領域の表示用
         nextDrawTime4Fft = fftNextTime + timeStep4Fft;//ｆｆｔ領域の表示用
-        break;
-      case 2://trigger
-        fftAveCountDown = fftAveNumSetting;//平均回数をセット
-        fftNextTime = tmpNow + fftStDelay;
         break;
     }
     
@@ -5339,30 +5361,50 @@ function animateByCtx(now) {//アニメーションループ
       break;
     case 1://average
       if (fftNextTime < now) {
-        fftModeLive(now);
-        fftNextTime = now + fftInterval;
-        fftAveCountDown--;//平均数カウントダウンを進める
-        infoRect.textContent = `残り : ${fftAveCountDown}`;
-        loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
-
+        fftModeAve(now);
       } else {
         if (fftAveCountDown === fftAveNumSetting) {
-          infoRect.textContent = `ディレイ : ${Math.round((fftNextTime - now))} mSec`; 
-          loadingTxt.textContent = `ディレイ : ${Math.round((fftNextTime - now))} mSec`;
+          loadingTxt.textContent = `ディレイ : ${(Math.round((fftNextTime - now) * 0.01) * 0.1).toFixed(1)} Sec`;
         }
       }
       break;
     case 2://trigger
+      if (fftNextTime < now) {
+        fftModeLive(now);
+        if (fftTriggerStopTime === Infinity) {//未発火
+          if (levelPeak >= fftTriggerdB) {//トリガ発火
+            fftJustTriggerdB = levelPeak;
+            fftTriggerStopTime = now + fftTriggerDelay;
+            loadingSpinner.classList.add("hidden");//スピナーを隠す
+            loadingTxt.textContent = `トリガ : ${fftJustTriggerdB.toFixed(1)} >= ${fftTriggerdB.toFixed(1)}dB`;
+          } else {//トリガ未満
+            loadingTxt.textContent = `トリガ待ち : ${levelPeak.toFixed(1)} < ${fftTriggerdB.toFixed(1)}dB`;
+          }
+        } else {
+
+        }
+
+
+      } else {
+        loadingTxt.textContent = `ディレイ : ${(Math.round((fftNextTime - now) * 0.01) * 0.1).toFixed(1)} Sec`;
+      }
+
+//let fftAveZeroBurstNotAllow = true;
+//let fftTriggerdB = -50;
+//let fftTriggerdB = -50;
+//let fftTriggerDelayRate = 0;
+//let fftTriggerDelay = 0;//トリガかかってからのディレイ
+//let fftTriggerStopTime = 0;//トリガかかってからのディレイ
       break;
   }
 
 
-  if (fftAveCountDown > 0) {
+  if (fftMode === 0 || (fftMode === 1 && fftAveCountDown > 0) || (fftMode === 2 && fftTriggerStopTime > now)) {
     rafId = requestAnimationFrame(animateByCtx);//次のフレームで呼ぶ関数に自身を指定することでループする
   } else {
     stop();
     overlayPlay.textContent = "▶";
-    loadingDiv.classList.add("hidden");//テキスト
+    loadingSpinner.classList.add("hidden");//スピナー
 //    loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
   }
 }
@@ -5395,26 +5437,62 @@ function fftModeLive(now) {
 //  infoRect.classList.remove("fadeout");
 //  infoRect.classList.add("active");
 }
+function fftModeAve(now) {
+  //fps間引き
+  if (nextDrawTime4Wave > now) waveViewIsDirty = false;//描画しない
+  else {nextDrawTime4Wave += timeStep4Wave;}
+  if (nextDrawTime4History > now) historyViewIsDirty = false;//描画しない
+  else {nextDrawTime4History += timeStep4History;}
+  if (nextDrawTime4Fft > now) fftViewIsDirty = false;//描画しない
+  else {nextDrawTime4Fft += timeStep4Fft;}
 
+  const zeroLength = updateAnalyserData();//アナライザーからデータを取得して値を更新する
+  if (!fftAveZeroBurstNotAllow || zeroLength <= 10) {//ゼロが発生しても更新、またはゼロがないので更新
+    draw(now);
+    if (!fftAveZeroBurstNotAllow && zeroLength > 10) {//連続ゼロが発生したときにヒストリーの横軸に描画しておく
+      const noticeLength = (zeroLength * 0.1) | 0;
+      historyHLCtx.save();
+      historyHLCtx.fillStyle = "#0f0";
+      historyHLCtx.fillRect(0, HistoryWriteLine , noticeLength, 1);
+      historyHLCtx.restore();
+    }
+    fftNextTime = now + fftInterval;
+    fftAveCountDown--;//平均数カウントダウンを進める
+    loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
+  } else {//ゼロが発生したら更新しない
+
+  }
+
+  //fps計算
+  const longTimeAgo = previousNow[previousNowIndex];
+  previousNow[previousNowIndex] = now;//fps確認用
+  previousNowIndex = (previousNowIndex + 1);// % previousNow.length;
+  if (previousNowIndex >= previousNow.length) previousNowIndex -= previousNow.length;
+  const fps = 1000 / (now - longTimeAgo) * previousNow.length;
+  infoRect.textContent = `fps : ${fps.toFixed(1)}`; 
+}
 
 function updateAnalyserData() {//アナライザーからデータを取得して値を更新する
   if (!analyserNode) return//アナライザーノードが無かったら更新しない
-  if (fftAveCountDown === fftAveNumSetting) {//初回はそのまま使う。連続やトリガモードもここ
-    analyserNode.getFloatFrequencyData(fftResult);
-  } else {
-    analyserNode.getFloatFrequencyData(fftTmp);
-    const doneNum = fftAveNumSetting - fftAveCountDown;
-    const invAveNum = 1 / (doneNum + 1);
-    const doneRate = doneNum * invAveNum;
-    const tmpRate = invAveNum;
-    for (let i = 0; i < fftResult.length; i++) {
-      fftResult[i] = fftResult[i] * doneRate + fftTmp[i] * tmpRate;
-    }
-  }
-
 
   analyserNode.getFloatTimeDomainData(timeDomain);
   const zeroLength = makeLevelValue();//レベルメーター用の値を計算
+
+  if (fftAveCountDown === fftAveNumSetting) {//初回はそのまま使う。連続やトリガモードもここ。ゼロバーストは返し先で更新判定
+    analyserNode.getFloatFrequencyData(fftResult);
+  } else {
+    if (!fftAveZeroBurstNotAllow || zeroLength <= 10) {//ゼロバーストが許可orゼロバースとがない→更新
+      analyserNode.getFloatFrequencyData(fftTmp);
+      const doneNum = fftAveNumSetting - fftAveCountDown;
+      const invAveNum = 1 / (doneNum + 1);
+      const doneRate = doneNum * invAveNum;
+      const tmpRate = invAveNum;
+      for (let i = 0; i < fftResult.length; i++) {
+        fftResult[i] = fftResult[i] * doneRate + fftTmp[i] * tmpRate;
+      }
+    }
+  }
+
   averageFftResult (0.5);//平均とボトムを作成
   makeBottomResult();//ボトムライン作成
   makePeakList ();//ピーク検出。
@@ -5918,7 +5996,6 @@ function makeAsdf(stIndex) {//平均二乗差分関数
     }
   }
 }
-
 
 //描画系
 function drawXScale () {//周波数基準の縦の線を描く
@@ -7580,8 +7657,11 @@ function drawWaveGrid() {//波形領域のグリッド描画
   waveHVLCtx.fillRect(0, waveY0, waveHVLCanvas.width, 1);//中心線を描画
   waveHVLCtx.fillRect(waveX0, 0, 1, waveHVLCanvas.height);//縦線を描画
 
+  //周波数位置を示す▼の表示
+  let someSdftIdVisible = false;
   for (let i = 0; i < slidingDftIsVisible.length; i++) {
     if (slidingDftIsVisible[i]) {//表示するなら
+      someSdftIdVisible = true;
       const x = freqToX(slidingDftFreq[i]);
 
       waveHVLCtx.beginPath();
@@ -7592,6 +7672,19 @@ function drawWaveGrid() {//波形領域のグリッド描画
       waveHVLCtx.fillStyle = slidingDftColor[i];
       waveHVLCtx.fill();
     }
+  }
+  if (someSdftIdVisible) {//どれかしらが表示されていたら
+    const x = freqToX(ctxSampleRate / slidingDftSampleLength);
+      waveHVLCtx.beginPath();
+      waveHVLCtx.moveTo(x, waveHVLCanvas.height - 1);
+      waveHVLCtx.lineTo(x - 6 * dpr, waveHVLCanvas.height - 10 * dpr);
+      waveHVLCtx.lineTo(x + 6 * dpr, waveHVLCanvas.height - 10 * dpr);
+//      waveHVLCtx.closePath();
+      waveHVLCtx.strokeStyle = "#ccc";//色指定
+      waveHVLCtx.lineWidth = 1;
+      waveHVLCtx.stroke();
+//      waveHVLCtx.fillStyle = "#aaa";
+//      waveHVLCtx.fill();
   }
 }
 
