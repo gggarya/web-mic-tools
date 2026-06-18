@@ -5459,7 +5459,7 @@ overlayLock.addEventListener('contextmenu', (e) => {//ロックボタン右ク�
   showPopupLockMenu(e.clientX, e.clientY);
 });
 
-overlayMenu.addEventListener("pointerdown", (e) => {//ヘルプボタン
+overlayMenu.addEventListener("pointerup", (e) => {//ヘルプボタン
   e.stopPropagation();  
   showPopupRepMenu(e.clientX, e.clientY);
 }//, { once: true, capture: true }
