@@ -1878,6 +1878,7 @@ function updateFlyInfo(txt, x, y) {//半透明で消える四角の設定
 }
 
 //画面操作用
+let timeMemo = null;//色々時刻を記録する用
 let pressTimer = null;//長押しやダブルタップ判定用タイマー
 let startX = 0;
 let startY = 0;
@@ -3465,6 +3466,7 @@ function showPopupRepMenu(x, y) {//メニュー表示
   popupRepMenu.style.left = `${x}px`;
   popupRepMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
   fitMenuInViewportAndRemoveHide(popupRepMenu);//✔した状態でフィット
+  timeMemo = performance.now();
 }
 function showPopupViewMenu(x, y) {//メニュー表示
   popupViewMenu.style.visibility = "hidden";//まだ隠す
@@ -3633,9 +3635,6 @@ function checkPopupSnapDiv() {
   else popupSnapDiv.querySelector('[data-action="maxLPC"]').classList.remove("selected");
   if (fftSnapUndoCanvas.width === 0) popupSnapDiv.querySelector('[data-action="undo"]').classList.add("hidden");
   else popupSnapDiv.querySelector('[data-action="undo"]').classList.remove("hidden");
-
-
-
 
 }
 function showPopupSdftDiv(x, y) {
@@ -4296,6 +4295,7 @@ popupInputDiv.addEventListener('click', async (e) => {//ポップアップメニ
   hideByOuterDown (e);//他のメニューが開いていたら閉じる
 });
 popupRepMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
+  if (timeMemo + 200 > performance.now()) return;//表示されてから0.2sec以内のクリックは無効
   const action = e.target.dataset.action;
   if (!action) return;
   const menuRect = popupRepMenu.getBoundingClientRect();
