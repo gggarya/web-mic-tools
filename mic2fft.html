@@ -2533,7 +2533,8 @@ function panFftSnapAlpha() {//スナップショットの透明度を変える
 function panSeparator1() {//上側の区切り線の移動
   const playButtonRect = overlayPlay.getBoundingClientRect();
   const buttonTop = playButtonRect.top * dpr;
-  const maxRate = Math.max(0, buttonTop - HIT_RANGE) / fftCanvas.height;
+//  const maxRate = Math.max(0, buttonTop - HIT_RANGE) / fftCanvas.height;
+  const maxRate = 1;
 
   if (Separator1LockIs && panZoomLockIs) return;//ロック
   const [p] = gesture.pointers.values();
@@ -2563,7 +2564,8 @@ function panSeparator1() {//上側の区切り線の移動
 function panSeparator2() {//下側の区切り線の移動
   const playButtonRect = overlayPlay.getBoundingClientRect();
   const buttonTop = playButtonRect.top * dpr;
-  const maxRate = Math.min(0.95, buttonTop / fftCanvas.height);
+//  const maxRate = Math.min(0.95, buttonTop / fftCanvas.height);
+  const maxRate = 1;
   if (Separator2LockIs && panZoomLockIs) return;//ロック
   const [p] = gesture.pointers.values();
   spectrumHistoryRate = p.y * dpr / fftCanvas.height;
