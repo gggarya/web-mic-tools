@@ -937,6 +937,9 @@ const canTransformPath = (() => {//トランスフォームパスが使えるか
         return false;
     }
 })();
+const tapAfterWait = 300;
+
+
 
 //オブジェクトやら
 const fftCanvas = document.getElementById("fftWindow");//メインウィンド
@@ -1426,7 +1429,7 @@ const fftModeName = ["live", "average", "trigger"];
 const fftAveNumSettingDefault = 50;
 let fftAveNumSetting = fftAveNumSettingDefault;
 let fftAveCountDown = 0;
-const fftStDelayDefault = 500;//タップや無音区間の影響を避けるための開始時のディレイ
+const fftStDelayDefault = tapAfterWait;//タップや無音区間の影響を避けるための開始時のディレイ
 let fftStDelay = fftStDelayDefault;//タップや無音区間の影響を避けるための開始時のディレイ
 let fftNextTime = 0;//開始時間
 const fftIntervalRateDefault = 1.01;
@@ -4295,7 +4298,7 @@ popupInputDiv.addEventListener('click', async (e) => {//ポップアップメニ
   hideByOuterDown (e);//他のメニューが開いていたら閉じる
 });
 popupRepMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
-  if (timeMemo + 200 > performance.now()) return;//表示されてから0.2sec以内のクリックは無効
+  if (timeMemo + tapAfterWait > performance.now()) return;//表示されてからtapAfterWait以内のクリックは無効
   const action = e.target.dataset.action;
   if (!action) return;
   const menuRect = popupRepMenu.getBoundingClientRect();
