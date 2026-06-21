@@ -5588,12 +5588,13 @@ async function start() {//ストリーム取得開始とアニメーションス
       audioConstraints.deviceId = { exact: deviceId };//設定にデバイスを追加する
     }    
     //音声ストリーム取得
+  
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-//        audio: audioConstraints
+        audio: audioConstraints
       });
     } catch (e) {
-      throw new Error("GET_USER_MEDIA_FAILED");//指定マイクが無いなどで失敗。（exactなので）
+      throw new Error(`GET_USER_MEDIA_FAILED: ${e.name}`);//指定マイクが無いなどで失敗。（exactなので）
     }
     const source = audioCtx.createMediaStreamSource(stream);//ソース作成
 
