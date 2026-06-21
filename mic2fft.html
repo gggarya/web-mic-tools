@@ -767,7 +767,7 @@
 </pre>
   </div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
-  <div data-action="htmlDownLoad">⭳ このhtmlを保存 </div>
+  <div data-action="htmlDownLoad">💾 このhtmlを保存 </div>
 </div>
 <div id="popupLpcMenu" class="menu hidden" style="text-align: left;">
   <div data-action="lpc1IsVisible">LPCを表示</div>
@@ -5590,7 +5590,7 @@ async function start() {//ストリーム取得開始とアニメーションス
     //音声ストリーム取得
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints
+//        audio: audioConstraints
       });
     } catch (e) {
       throw new Error("GET_USER_MEDIA_FAILED");//指定マイクが無いなどで失敗。（exactなので）
