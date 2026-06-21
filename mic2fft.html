@@ -5596,8 +5596,8 @@ async function start() {//ストリーム取得開始とアニメーションス
     } catch (e) {
       throw new Error(`GET_USER_MEDIA_FAILED: ${e.name}`);//指定マイクが無いなどで失敗。（exactなので）
     }
-    const source = audioCtx.createMediaStreamSource(stream);//ソース作成
 
+    const source = audioCtx.createMediaStreamSource(stream);//ソース作成
     source.connect(analyserNode);//アナライザーに接続
 
     //トラック情報の取得
@@ -5621,7 +5621,12 @@ async function start() {//ストリーム取得開始とアニメーションス
 //    const capabilities = track.getCapabilities();
 
     //デバイス情報
-    devices = await navigator.mediaDevices.enumerateDevices();//デバイス群の取得
+    try {
+      devices = await navigator.mediaDevices.enumerateDevices();//デバイス群の取得
+    } catch (e) {
+      throw new Error(`デバイス取得失敗: ${e.name}`);//デバイス取得失敗
+    }
+
     const audioInputs = devices.filter(d => d.kind === "audioinput");//入力デバイス群に絞る
     //マイクメニューに選択肢を追加
     micMenu.innerHTML = "";//メニュー全消し
