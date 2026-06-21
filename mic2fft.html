@@ -5455,6 +5455,7 @@ overlayPlay.addEventListener('pointerup', (e) => {//再生ボタンを離した
           break;
       }
     } else {//停止中
+      infoRect.textContent = `start`; 
       start();
       switch (fftModeName[fftMode]) {
         case 'live':
