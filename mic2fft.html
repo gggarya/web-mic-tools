@@ -5676,11 +5676,11 @@ async function start() {//ストリーム取得開始とアニメーションス
 
   } catch (e) {
     if (e.message === "NO_MIC") {
-      alert("マイクが接続されていません");
+      alert(`マイクが接続されていません: ${e.name}`);
     } else if (e.message === "GET_USER_MEDIA_FAILED") {
-      alert("GET_USER_MEDIA_FAILED");
+      alert(`GET_USER_MEDIA_FAILED: ${e.name}`);
     } else {
-      alert("マイクを使用できません");
+      alert(`マイクを使用できません: ${e.name}`);
     }
   }
 }
