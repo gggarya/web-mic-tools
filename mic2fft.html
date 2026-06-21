@@ -5546,6 +5546,7 @@ async function downloadHtml() {
 
 
 async function start() {//ストリーム取得開始とアニメーションスタート
+  infoRect.textContent = `start`; 
   try {
     // 事前チェック
     const tmpDevices = await navigator.mediaDevices.enumerateDevices();
@@ -5558,6 +5559,8 @@ async function start() {//ストリーム取得開始とアニメーションス
     // audioContext取得
     if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
     else audioCtx = new AudioContext();//指定なし
+
+    infoRect.textContent = `audioContext取得:${audioCtx}`; 
 
 
     analyserNode = audioCtx.createAnalyser();//アナライザーノード作成
@@ -5576,6 +5579,9 @@ async function start() {//ストリーム取得開始とアニメーションス
       timeDomainRewindBuffer = [new Float32Array(fftSizeSetting), new Float32Array(fftSizeSetting)];
     }
 
+    infoRect.textContent = `createAnalyser:${analyserNode}`; 
+
+
     // ストリームのパラメータ設定
     const audioConstraints = {
       autoGainControl: false , voiceIsolation: false
@@ -5587,15 +5593,18 @@ async function start() {//ストリーム取得開始とアニメーションス
     if (deviceId && tmpAudioInputs.some(d => d.deviceId === deviceId)) {//デバイスが指定されていれば
       audioConstraints.deviceId = { exact: deviceId };//設定にデバイスを追加する
     }    
-    //音声ストリーム取得
   
-    try {
+    //音声ストリーム取得
+      try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: audioConstraints
       });
     } catch (e) {
       throw new Error(`GET_USER_MEDIA_FAILED: ${e.name}`);//指定マイクが無いなどで失敗。（exactなので）
     }
+
+    infoRect.textContent = `getUserMedia:${stream}`;
+
 
     const source = audioCtx.createMediaStreamSource(stream);//ソース作成
     source.connect(analyserNode);//アナライザーに接続
@@ -5615,18 +5624,16 @@ async function start() {//ストリーム取得開始とアニメーションス
     targetSampleLength = Math.round(ctxSampleRate / targetFreq);
     makeWaveViewCoeff();
 
+    infoRect.textContent = `getAudioTracks:${track}`;
+
+
     //指定した内容の取得
 //    const constraints = track.getConstraints();
     //選択肢
 //    const capabilities = track.getCapabilities();
 
     //デバイス情報
-    try {
-      devices = await navigator.mediaDevices.enumerateDevices();//デバイス群の取得
-    } catch (e) {
-      throw new Error(`デバイス取得失敗: ${e.name}`);//デバイス取得失敗
-    }
-
+    devices = await navigator.mediaDevices.enumerateDevices();//デバイス群の取得
     const audioInputs = devices.filter(d => d.kind === "audioinput");//入力デバイス群に絞る
     //マイクメニューに選択肢を追加
     micMenu.innerHTML = "";//メニュー全消し
@@ -5636,6 +5643,8 @@ async function start() {//ストリーム取得開始とアニメーションス
       item.textContent = mic.label + (mic.deviceId === deviceId ? "　←─ ★ selected" : "");
       micMenu.appendChild(item);
     });
+
+    infoRect.textContent = `enumerateDevices:${devices}`;
 
     //パラメ最新化
     updateViewParams();
@@ -5770,12 +5779,6 @@ function animateByCtx(now) {//アニメーションループ
         loadingTxt.textContent = `ディレイ : ${(Math.round((fftNextTime - now) * 0.01) * 0.1).toFixed(1)} Sec`;
       }
 
-//let fftAveZeroBurstNotAllow = true;
-//let fftTriggerdB = -50;
-//let fftTriggerdB = -50;
-//let fftTriggerDelayRate = 0;
-//let fftTriggerDelay = 0;//トリガかかってからのディレイ
-//let fftTriggerStopTime = 0;//トリガかかってからのディレイ
       break;
   }
 
@@ -5786,7 +5789,6 @@ function animateByCtx(now) {//アニメーションループ
     stop();
     overlayPlay.textContent = "▶";
     loadingSpinner.classList.add("hidden");//スピナー
-//    loadingTxt.textContent = `${fftAveNumSetting - fftAveCountDown} / ${fftAveNumSetting}`;
   }
 }
 function fftModeLive(now) {
