@@ -929,6 +929,16 @@
 <!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
 <script>
 
+if (
+  location.protocol === 'https:' &&
+  'serviceWorker' in navigator
+) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log('SW registered'))
+    .catch(err => console.error(err));
+}
+
+
 const canTransformPath = (() => {//トランスフォームパスが使えるかのフラグ
     try {
         const p0 = new Path2D();
