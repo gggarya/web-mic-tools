@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mic2fft-v0.1';
+const CACHE_NAME = 'mic2fft-v0.101';
 
 const FILES = [
   './',
