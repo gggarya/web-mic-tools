@@ -16,7 +16,8 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => response || fetch(event.request))
+//      .then(response => response || fetch(event.request))//キャッシュ優先
+      .catch(() => caches.match(event.request))//ネット有線
   );
 });
 
