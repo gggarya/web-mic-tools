@@ -930,7 +930,7 @@
 <script>
 
 //オフラインでも動くようにサービスワーカーという奴を登録する
-if (location.protocol === 'https:' && 'serviceWorker' in navigator) {//file://の場合はどうせサービスワーカー動かないらしいので登録しない
+if (location.protocol === 'https:' && 'serviceWorker' in navigator && false) {//file://の場合はどうせサービスワーカー動かないらしいので登録しない
   navigator.serviceWorker.register('./sw.js')
     .then(() => console.log('SW registered'))
     .catch(err => console.error(err));
