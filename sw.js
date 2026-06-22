@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mic2fft-v0.101';
+const CACHE_NAME = 'mic2fft-v0.102';
 
 const FILES = [
   './',
@@ -20,16 +20,14 @@ self.addEventListener('fetch', event => {
   );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
+    caches.open(CACHE_NAME).then(cache =>
+      cache.addAll([
+        '/web-mic-tools/mic2fft.html'
+      ])
     )
   );
+
+  self.skipWaiting();
 });
