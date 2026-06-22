@@ -1050,9 +1050,9 @@ let invDpr = 1 / dpr;
 let nextDrawTime4Wave = 0;//波形領域の表示用
 let nextDrawTime4History = 0;//ヒストリー領域の表示用
 let nextDrawTime4Fft = 0;//ｆｆｔ領域の表示用
-const fps4WaveDefault = 20;//波形領域の表示用
+const fps4WaveDefault = 15;//波形領域の表示用
 const fps4HistoryDefault = 999;//ヒストリー領域の表示用
-const fps4FftDefault = 30;//ｆｆｔ領域の表示用
+const fps4FftDefault = 20;//ｆｆｔ領域の表示用
 let fps4Wave = fps4WaveDefault;//波形領域の表示用
 let fps4History = fps4HistoryDefault;//ヒストリー領域の表示用
 let fps4Fft = fps4FftDefault;//ｆｆｔ領域の表示用
@@ -1692,6 +1692,8 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   if (!rafId) draw();
 }
 window.addEventListener("resize", resizeCanvas);//画面サイズが変わったらキャンバスサイズを変える
+window.visualViewport?.addEventListener('resize',resizeCanvas);
+
 window.addEventListener("pageshow", windowPageShow);//再表示されたら
 function windowPageShow() {
   if (!rafId) draw();
@@ -1798,6 +1800,9 @@ function makeWavelet8 () {//ウェーブレット作成
 }
 
 resizeCanvas();//まず一回サイズを合わせておく
+window.addEventListener('load', () => {
+  setTimeout(resizeCanvas, 500);
+});
 
 function updateViewParams() {//画面サイズやサンプルレート、fftサイズ変更など
   //周波数方向の更新
