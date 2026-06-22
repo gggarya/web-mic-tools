@@ -929,16 +929,14 @@
 <!--■□■□■□■□■□■ここからスクリプト■□■□■□■□■□■-->
 <script>
 
-if (
-  location.protocol === 'https:' &&
-  'serviceWorker' in navigator
-) {
+//オフラインでも動くようにサービスワーカーという奴を登録する
+if (location.protocol === 'https:' && 'serviceWorker' in navigator) {//file://の場合はどうせサービスワーカー動かないらしいので登録しない
   navigator.serviceWorker.register('./sw.js')
     .then(() => console.log('SW registered'))
     .catch(err => console.error(err));
 }
 
-
+//基本設定
 const canTransformPath = (() => {//トランスフォームパスが使えるかのフラグ
     try {
         const p0 = new Path2D();
@@ -950,8 +948,10 @@ const canTransformPath = (() => {//トランスフォームパスが使えるか
         return false;
     }
 })();
-const tapAfterWait = 300;
+const tapAfterWait = 300;//タップ後の影響を避けるためのディレイなど
 
+//色
+const bgColorRed = "#600";//赤部分の背景色
 
 
 //オブジェクトやら
@@ -1572,9 +1572,6 @@ function makeColorMapCanvas () {//カラーマップのスケール作成
     colorMapCtx.fillRect(0, colorMapCanvas.height - i - 1, colorMapCanvas.width, 1);
   }
 }
-
-//色
-const bgColorRed = "#600";//赤部分の背景色
 
 const snapPalette = [//スナップショット用カラーパレット
 "#00D0FF",  // シアン
@@ -4948,8 +4945,6 @@ popupSdftOffMenu.addEventListener('click', async (e) => {//ポップアップメ
   }
 });
 
-
-
 let inputDivPushedAction = null;
 function inputDivClick(e) {
   const action = e.target.dataset.action;
@@ -5557,7 +5552,7 @@ async function downloadHtml() {
 
 
 async function start() {//ストリーム取得開始とアニメーションスタート
-  infoRect.textContent = `start`; 
+  let phase4Debug = 0;
   try {
     // 事前チェック
     const tmpDevices = await navigator.mediaDevices.enumerateDevices();
@@ -5571,8 +5566,7 @@ async function start() {//ストリーム取得開始とアニメーションス
     if (sampleRateDevice) audioCtx = new AudioContext({sampleRate: sampleRateDevice});
     else audioCtx = new AudioContext();//指定なし
 
-    infoRect.textContent = `audioContext取得:${audioCtx}`; 
-
+    phase4Debug = 1;//フェーズ 
 
     analyserNode = audioCtx.createAnalyser();//アナライザーノード作成
     analyserNode.fftSize = fftSizeSetting;               // 32〜32768 の 2^n
@@ -5590,8 +5584,7 @@ async function start() {//ストリーム取得開始とアニメーションス
       timeDomainRewindBuffer = [new Float32Array(fftSizeSetting), new Float32Array(fftSizeSetting)];
     }
 
-    infoRect.textContent = `createAnalyser:${analyserNode}`; 
-
+    phase4Debug = 2;//フェーズ 
 
     // ストリームのパラメータ設定
     const audioConstraints = {
@@ -5614,8 +5607,7 @@ async function start() {//ストリーム取得開始とアニメーションス
       throw new Error(`GET_USER_MEDIA_FAILED: ${e.name}`);//指定マイクが無いなどで失敗。（exactなので）
     }
 
-    infoRect.textContent = `getUserMedia:${stream}`;
-
+    phase4Debug = 3;//フェーズ 
 
     const source = audioCtx.createMediaStreamSource(stream);//ソース作成
     source.connect(analyserNode);//アナライザーに接続
@@ -5635,7 +5627,7 @@ async function start() {//ストリーム取得開始とアニメーションス
     targetSampleLength = Math.round(ctxSampleRate / targetFreq);
     makeWaveViewCoeff();
 
-    infoRect.textContent = `getAudioTracks:${track}`;
+    phase4Debug = 4;//フェーズ 
 
 
     //指定した内容の取得
@@ -5655,7 +5647,7 @@ async function start() {//ストリーム取得開始とアニメーションス
       micMenu.appendChild(item);
     });
 
-    infoRect.textContent = `enumerateDevices:${devices}`;
+    phase4Debug = 5;//フェーズ 
 
     //パラメ最新化
     updateViewParams();
@@ -5701,11 +5693,11 @@ async function start() {//ストリーム取得開始とアニメーションス
 
   } catch (e) {
     if (e.message === "NO_MIC") {
-      alert(`マイクが接続されていません: ${e.name}`);
+      alert(`マイクが接続されていません(P${phase4Debug}): ${e.name}`);
     } else if (e.message === "GET_USER_MEDIA_FAILED") {
-      alert(`GET_USER_MEDIA_FAILED: ${e.name}`);
+      alert(`GET_USER_MEDIA_FAILED(P${phase4Debug}): ${e.name}`);
     } else {
-      alert(`マイクを使用できません: ${e.name}`);
+      alert(`マイクを使用できません(P${phase4Debug}): ${e.name}`);
     }
   }
 }
