@@ -1968,7 +1968,7 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
   const rightButtonLeft = lockButtonRect.left * dpr;
   const menuButtonBottom = menuButtonRect.bottom * dpr;
 
-  if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE) {//下の区切り線======================================
+  if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE && y > waveWindowHcomp) {//下の区切り線======================================
     if (y < spectrumHistoryHcomp) {//区切り線の上側
       if (x < HIT_RANGE) {//中段の左端
         return "historyL";
@@ -2644,6 +2644,11 @@ function panSeparator2() {//下側の区切り線の移動
   if (waveWindowRate > maxRate) waveWindowRate = maxRate;
   if (spectrumHistoryRate > maxRate) spectrumHistoryRate = maxRate;
   updateViewParams();
+  //wave領域グリッドサイズ変更
+  if (waveHVLCanvas.height !== waveWindowH) {
+    waveHVLCanvas.height = waveWindowH;
+    drawWaveGrid();
+  }  
   colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
   levelCanvas.height = colorMapCanvas.height;
   makeColorMapCanvas();
@@ -2857,6 +2862,10 @@ function panSdftFreq() {//平行移動,横方向
     slidingDftSampleLengthFloat = Math.max(2, Math.min((ctxSampleRate / sdftWindowFreq), ctxSampleRate));
   }
   slidingDftSampleLength = Math.round(slidingDftSampleLengthFloat);
+
+  let sdftWindowFreq = ctxSampleRate / slidingDftSampleLengthFloat;
+  updateFlyInfo(`SDFT 窓サイズ\n${slidingDftSampleLength.toFixed(0)} (${sdftWindowFreq.toFixed(0)}Hz)`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+
   for (let i = 0; i < slidingDftSampleNum.length; i++) slidingDftSampleNum[i] = slidingDftSampleLength;
   makeWaveViewCoeff();
   checkPopupSdftDiv();
@@ -3021,8 +3030,15 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        waveLAlpha = waveLAlphaDefault;//色合い
-        updateFlyInfo(`縦横線 不透明度\n${waveLAlpha.toFixed(2)}`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+        slidingDftSampleLength = slidingDftSampleLengthDefault;
+        slidingDftSampleLengthFloat = slidingDftSampleLengthDefault;
+        let sdftWindowFreq = ctxSampleRate / slidingDftSampleLengthFloat;
+        updateFlyInfo(`SDFT 窓サイズ\n${slidingDftSampleLength.toFixed(0)} (${sdftWindowFreq.toFixed(0)}Hz)`, fftCanvas.width * 0.5, fftCanvas.height * 0.5);
+
+        for (let i = 0; i < slidingDftSampleNum.length; i++) slidingDftSampleNum[i] = slidingDftSampleLength;
+        makeWaveViewCoeff();
+        checkPopupSdftDiv();
+        drawWaveGrid();//波形領域のグリッド更新
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
