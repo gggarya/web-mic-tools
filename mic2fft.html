@@ -1146,30 +1146,36 @@ CCSliders.forEach(slider=>{//色調補正のスライダーにイベント登録
 });
 
 function onPointerDownCCSlider(e){//色調補正スライダーのポインターダウン
-    activeSlider = e.currentTarget;
-    updateSliderCCSlider(e);
+  if (e.button === 2) return;//右クリックはcontextmenuでとるのでキャンセル
+  e.stopPropagation();  //下にあるキャンバスにイベントがいかないようにする
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  activeSlider = e.currentTarget;
+  activeSlider.setPointerCapture(e.pointerId);//範囲外に出てもこのキャンバスのイベントにする
+
+
+  updateSliderCCSlider(e);
 }
 function onPointerMoveCCSlider(e){//色調補正スライダーのポインター移動
-    if(!activeSlider) return;
+  if(!activeSlider) return;
 
-    updateSliderCCSlider(e);
+  updateSliderCCSlider(e);
 }
-function onPointerUpCCSlider(){//色調補正スライダーのポインターアップ
-
-    activeSlider = null;
+function onPointerUpCCSlider(e){//色調補正スライダーのポインターアップ
+  activeSlider.releasePointerCapture(e.pointerId);
+  activeSlider = null;
 }
 function updateSliderCCSlider(e){
 
-    const rect = activeSlider.getBoundingClientRect();
+  const rect = activeSlider.getBoundingClientRect();
 
-    let x = e.clientX - rect.left;
+  let x = e.clientX - rect.left;
 
-    x = Math.max(0, Math.min(rect.width, x));
+  x = Math.max(0, Math.min(rect.width, x));
 
-    const value = x / rect.width;
+  const value = x / rect.width;
 
-    activeSlider.querySelector(".thumb").style.left =
-        (value * 100) + "%";
+  activeSlider.querySelector(".thumb").style.left =
+      (value * 100) + "%";
 }
 
 
