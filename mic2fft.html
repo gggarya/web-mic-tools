@@ -9322,7 +9322,7 @@ function draw(now) {//全画面を作図
 
   //インフォメーションtxt
   let infoTxt = "";
-  infoTxt += `fps : ${animateFps.toFixed(1)}`;
+  infoTxt += `fps:${animateFps.toFixed(1).padStart(5, " ")}`;
   if (targetFreqVisible) {
     const rpmTxt = `${(60 * targetFreq).toLocaleString('ja-JP', { maximumFractionDigits: 0 })} rpm`;
     const targetNote = Math.round(freqToNote(targetFreq));
