@@ -5424,6 +5424,10 @@ function inputDivClick(e) {
   }
   switch (action) {
     case 'x'://ウィンドウを閉じる
+      if (inputDivPushedAction) {//押したボタンを戻す
+        popupInputDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.remove("pushed");  
+        inputDivPushedAction = null;
+      }
       hidePopupInputDiv();
       break;
     case 'AC'://All Clear
@@ -5571,6 +5575,10 @@ function snapDivClick(e) {
 
   switch (action) {
     case 'x'://ウィンドウを閉じる
+      if (inputDivPushedAction) {//押したボタンを戻す
+        popupSnapDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.remove("pushed");  
+        inputDivPushedAction = null;
+      }
       hidePopupSnapDiv();
       break;
     case 'maxLPC'://選択のトグル
@@ -5738,6 +5746,10 @@ function sdftDivClick(e) {
 
   switch (action) {
     case 'x'://ウィンドウを閉じる
+      if (inputDivPushedAction) {//押したボタンを戻す
+        popupSdftDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.remove("pushed");  
+        inputDivPushedAction = null;
+      }
       hidePopupSdftDiv();
       break;
     case 'windowSize'://ウィンドウサイズ
@@ -5903,6 +5915,10 @@ function CCorrectionDivClick(e) {
 
   switch (action) {
     case 'x'://ウィンドウを閉じる
+      if (inputDivPushedAction) {//押したボタンを戻す
+        popupCCorrectionDiv.querySelector(`[data-action="${inputDivPushedAction}"]`).classList.remove("pushed");  
+        inputDivPushedAction = null;
+      }
       hidePopupCCorrectionDiv();
       break;
     case 'copyInvert'://階調反転
