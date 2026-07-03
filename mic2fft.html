@@ -1392,13 +1392,13 @@ let fftSmoothingTimeConstantSetting = fftSmoothingTimeConstantSettingDefault;  /
 let fftMinDecibelsSetting = -90;
 let fftMaxDecibelsSetting = -20;
 let fftResult = new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果保存用バッファ
-const fftRewindBuffer = [new Float32Array(fftSizeSetting * 0.5), new Float32Array(fftSizeSetting * 0.5)];
+let fftRewindBuffer = [new Float32Array(fftSizeSetting * 0.5), new Float32Array(fftSizeSetting * 0.5)];
 let fftTmp = new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果一時保存用バッファ
 let fftAve = new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果移動平均用バッファ
 let fftBottom = new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果底用バッファ
 let fftView = new Float32Array(fftSizeSetting * 0.5).fill(-200);//表示用バッファ
 let timeDomain = new Float32Array(fftSizeSetting).fill(0);//表示用バッファ
-const timeDomainRewindBuffer = [new Float32Array(fftSizeSetting), new Float32Array(fftSizeSetting)];
+let timeDomainRewindBuffer = [new Float32Array(fftSizeSetting), new Float32Array(fftSizeSetting)];
 let fftBinFreq = ctxSampleRate / fftSizeSetting;//ビン周波数
 let invFftBinFreq = fftSizeSetting / ctxSampleRate;//ビン周波数の逆数
 
@@ -1455,7 +1455,7 @@ const slidingDftRevolutionNumDefault = [2, 4, 6, 8];//回転する数
 const slidingDftRevolutionNum = [2, 4, 6, 8];//回転する数
 const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
 const slidingDftGain = [1000, 4000, 8000, 8000];//ターゲット周波数によるゲイン
-const slidingDftIsVisible = [true, true, true, true];//表示するか
+const slidingDftIsVisible = [true, true, true, false];//表示するか
 const slidingDftColor = ["#ff4d4d", "#4dff4d", "#8d8dff", "#cdcdff"];//色
 const slidingDftWidth = [1.2, 0.8, 1.0, 0.8];//色
 const slidingDftSin = slidingDftSampleNum.map(n => new Float32Array(n));
@@ -2683,10 +2683,10 @@ function onMove(e) {
         updateDragRect(dragRect, fftCanvas.width * 0.5 + tmpQtrWidth, waveWindowH + HIT_RANGE
                       , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
         if (gesture.axis === "x") {
-          panCopyInvert();
+//          panCopyInvert();
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
-          panCopyContrast();
+//          panCopyContrast();
           if (!rafId) draw();
         }
         break;
@@ -2694,10 +2694,10 @@ function onMove(e) {
         updateDragRect(dragRect, fftCanvas.width * 0.5, waveWindowH + HIT_RANGE
                       , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
         if (gesture.axis === "x") {
-          panCopyInvert();
+//          panCopyInvert();
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
-          panCopySaturate();
+//          panCopySaturate();
           if (!rafId) draw();
         }
         break;
@@ -2705,7 +2705,7 @@ function onMove(e) {
         updateDragRect(dragRect, HIT_RANGE, waveWindowH + HIT_RANGE
                       , fftCanvas.width * 0.5 - HIT_RANGE, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
         if (gesture.axis === "x") {
-          panCopyLineInvert();
+//          panCopyLineInvert();
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
           panHistoryViewLine()
@@ -2715,17 +2715,17 @@ function onMove(e) {
       case "historyR":
         updateDragRect(dragRect, fftCanvas.width - HIT_RANGE, waveWindowH, HIT_RANGE, spectrumHistoryH - waveWindowH);//操作エリアの表示
         if (gesture.axis === "x") {
-          panCopyInvert();
+//          panCopyInvert();
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
-          panCopyBrightness();//明るさ変更
+//          panCopyBrightness();//明るさ変更
           if (!rafId) draw();
         }
         break;
       case "historyL":
         updateDragRect(dragRect, 0, waveWindowH, HIT_RANGE, spectrumHistoryH - waveWindowH);//操作エリアの表示
         if (gesture.axis === "x") {
-          panCopyLineInvert();
+//          panCopyLineInvert();
           if (!rafId) draw();
         } else if (gesture.axis === "y") {
           panHistoryHLAlpha();//ヒストリーの横線の透明度
@@ -3134,6 +3134,7 @@ function panCopyInvert() {//ヒストリーコピー時の色を反転
 function panCopyLineInvert() {//ヒストリーコピー時の色を変える
   if (gesture.start.copyLineInvert !== copyLineInvert) return;
   copyLineInvert = !copyLineInvert;
+  updateFlyInfo(`縦横線 反転\n${copyLineInvert}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
 }
 function panHistoryViewLine() {
   const [p] = gesture.pointers.values();
@@ -3364,7 +3365,10 @@ function doubleTap(e) {//ダブルタップ
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
         copyLineInvert = false;
-//        copyHueRotate = 0;//色合い
+        updateFlyInfo(`縦横線 反転\n${copyLineInvert}`, fftCanvas.width * 0.5, Math.min(200, fftCanvas.height * 0.2));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
+        });
         if (!rafId) draw();
 
         break;
@@ -3405,7 +3409,7 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        copyContrast = 100;//コントラスト
+//        copyContrast = 100;//コントラスト
         if (!rafId) draw();
         break;
       case "historyMRL"://############################################################################################
@@ -3414,7 +3418,7 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        copySaturate = 100;//彩度
+//        copySaturate = 100;//彩度
         if (!rafId) draw();
         break;
       case "historyML"://##############################################################################################
@@ -3432,7 +3436,7 @@ function doubleTap(e) {//ダブルタップ
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
-        copyBrightness = 100;
+//        copyBrightness = 100;
         if (!rafId) draw();
         break;
       case "historyL"://ヒストリー横線透明度###############################################################################
@@ -3571,7 +3575,6 @@ function zoomWaveViewTime(x, scale) {
   drawWaveGrid();
   if (!rafId) draw();
 }
-
 
 function snapshotView() {//一つ指の初期値
   const pts = [...gesture.pointers.values()];
@@ -4179,7 +4182,6 @@ function checkPopupCCorrectionDiv() {
   if (filterIfRafIdIs) popupCCorrectionDiv.querySelector('[data-action="filterIfRafIdIs"]').classList.add("selected");
   else popupCCorrectionDiv.querySelector('[data-action="filterIfRafIdIs"]').classList.remove("selected");
 }
-
 
 //メニュー非表示
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
@@ -6212,10 +6214,15 @@ async function start() {//ストリーム取得開始とアニメーションス
     phase4Debug = 1;//フェーズ 
 
     analyserNode = audioCtx.createAnalyser();//アナライザーノード作成
+    phase4Debug = 1.1;//フェーズ 
     analyserNode.fftSize = fftSizeSetting;               // 32〜32768 の 2^n
+    phase4Debug = 1.2;//フェーズ 
     analyserNode.smoothingTimeConstant = fftSmoothingTimeConstantSetting;  // 0.0〜1.0
+    phase4Debug = 1.3;//フェーズ 
     analyserNode.minDecibels = fftMinDecibelsSetting;
+    phase4Debug = 1.4;//フェーズ 
     analyserNode.maxDecibels = fftMaxDecibelsSetting;
+    phase4Debug = 1.5;//フェーズ 
     if (!fftResult || fftResult.length !== fftSizeSetting * 0.5) {
       fftResult = new Float32Array(fftSizeSetting * 0.5).fill(0);//結果保存用バッファ
       fftTmp = new Float32Array(fftSizeSetting * 0.5).fill(0);//結果保存用バッファ
@@ -6223,6 +6230,7 @@ async function start() {//ストリーム取得開始とアニメーションス
       fftBottom =  new Float32Array(fftSizeSetting * 0.5).fill(0);//結果移動平均用バッファ
       fftView =  new Float32Array(fftSizeSetting * 0.5).fill(-200);//結果移動平均用バッファ
       timeDomain = new Float32Array(fftSizeSetting).fill(0);//波形データ
+    phase4Debug = 1.9;//フェーズ 
       fftRewindBuffer = [new Float32Array(fftSizeSetting * 0.5), new Float32Array(fftSizeSetting * 0.5)];
       timeDomainRewindBuffer = [new Float32Array(fftSizeSetting), new Float32Array(fftSizeSetting)];
     }
@@ -9343,7 +9351,15 @@ function draw(now) {//全画面を作図
     }
 
     infoTxt += `ﾓﾆﾀ(${targetFreq.toFixed(0).padStart(4, " ")}Hz):${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB`;
+    if (waveWindowH !== 0) {//波形表示領域がある＝ゴーツェルの結果もある
+      infoTxt += `\n波形表示範囲:${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB`;
+      infoTxt += `\n波形表示範囲:${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB`;
+
+    }
   }
+
+
+//norm[1]
 
   infoRect.textContent = infoTxt; 
 //  infoRect.classList.remove("fadeout");
