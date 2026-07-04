@@ -9314,14 +9314,17 @@ function draw(now) {//全画面を作図
       targetFreqDecibel = fftView[Math.round(targetFreqBin)];
     }
 
-    infoTxt += `ﾓﾆﾀ(${targetFreq.toFixed(0).padStart(4, " ")}Hz):${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB`;
+    infoTxt += `ﾓﾆﾀ周波数${targetFreq.toFixed(0).padStart(4, " ")}Hz\n ${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB（${fftSizeSetting}ﾃﾞｰﾀ）`;
     if (waveWindowH !== 0) {//波形表示領域がある＝ゴーツェルの結果もある
-      infoTxt += `\n波形表示範囲:${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB`;
-      infoTxt += `\n波形表示範囲:${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB`;
-
+      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB（表示付近${goertzelLength}ﾃﾞｰﾀ)`;
+      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB（同上範囲RMS）`;
     }
   }
-
+  if (true) {//ピークメーター
+    if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += ` ${levelPeak.toFixed(1).padStart(6, " ")}dB（ﾋﾟｰｸ）`;
+      infoTxt += `\n ${levelRms.toFixed(1).padStart(6, " ")}dB（RMS）`;
+  }
 
 //norm[1]
 
