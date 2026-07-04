@@ -2680,30 +2680,10 @@ function onMove(e) {
         }
         break;
       case "historyMRR":
-        updateDragRect(dragRect, fftCanvas.width * 0.5 + tmpQtrWidth, waveWindowH + HIT_RANGE
-                      , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
-        if (gesture.axis === "x") {
-//          panCopyInvert();
-          if (!rafId) draw();
-        } else if (gesture.axis === "y") {
-//          panCopyContrast();
-          if (!rafId) draw();
-        }
-        break;
       case "historyMRL":
-        updateDragRect(dragRect, fftCanvas.width * 0.5, waveWindowH + HIT_RANGE
-                      , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
-        if (gesture.axis === "x") {
-//          panCopyInvert();
-          if (!rafId) draw();
-        } else if (gesture.axis === "y") {
-//          panCopySaturate();
-          if (!rafId) draw();
-        }
-        break;
       case "historyML":
         updateDragRect(dragRect, HIT_RANGE, waveWindowH + HIT_RANGE
-                      , fftCanvas.width * 0.5 - HIT_RANGE, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
+                      , fftCanvas.width - HIT_RANGE - HIT_RANGE , spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
         if (gesture.axis === "x") {
 //          panCopyLineInvert();
           if (!rafId) draw();
@@ -3404,26 +3384,10 @@ function doubleTap(e) {//ダブルタップ
         if (!rafId) draw();
         break;
       case "historyMRR"://###########################################################################################
-        updateDragRect(dragRect, fftCanvas.width * 0.5 + tmpQtrWidth, waveWindowH + HIT_RANGE
-                      , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
-        });
-//        copyContrast = 100;//コントラスト
-        if (!rafId) draw();
-        break;
       case "historyMRL"://############################################################################################
-        updateDragRect(dragRect, fftCanvas.width * 0.5, waveWindowH + HIT_RANGE
-                      , tmpQtrWidth, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
-        });
-//        copySaturate = 100;//彩度
-        if (!rafId) draw();
-        break;
       case "historyML"://##############################################################################################
         updateDragRect(dragRect, HIT_RANGE, waveWindowH + HIT_RANGE
-                      , fftCanvas.width * 0.5 - HIT_RANGE, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
+                      , fftCanvas.width - HIT_RANGE - HIT_RANGE, spectrumHistoryH - waveWindowH - HIT_RANGE * 2);//操作エリアの表示
         requestAnimationFrame(() => {
           requestAnimationFrame(() => { dragRect.classList.remove("active"); dragRect.classList.add('fadeout'); });//表示したらすぐ消す
         });
