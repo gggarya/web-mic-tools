@@ -9565,8 +9565,8 @@ function draw(now) {//全画面を作図
 
     infoTxt += `ﾓﾆﾀ周波数${targetFreq.toFixed(0).padStart(4, " ")}Hz\n ${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB（${fftSizeSetting}ﾃﾞｰﾀ）`;
     if (waveWindowH !== 0) {//波形表示領域がある＝ゴーツェルの結果もある
-      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB（表示付近${goertzelLength}ﾃﾞｰﾀ)`;
-      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB（同上範囲RMS）`;
+      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}ﾃﾞｰﾀ)`;
+      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}RMS）`;
     }
   }
   if (true) {//ピークメーター
