@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SHA-1 Test</title>
+<style>
+body{
+    font-family: "Cascadia Mono", monospace;
+    padding:20px;
+}
+textarea{
+    width:100%;
+    font-family: "Cascadia Mono", monospace;
+}
+input{
+    width:120px;
+    font-family: "Cascadia Mono", monospace;
+}
+pre{
+    background:#eee;
+    padding:10px;
+    word-break:break-all;
+    font-family: "Cascadia Mono", monospace;
+}
+</style>
+</head>
+<body>
+DPB="<input id="DBP" value="94963888C84FE54FE5B01B50E59251526FE67A1CC76C84ED0DAD653FD058F324BFD9D38DED37" style="width:90ch"></input>"<br>
+<button id="dbpDecode">↓</button><br>
+<pre id="dbpResult" style="width:90ch">vbaProject.bin</pre>
+
+targetHash:
+<input id="target" value="1ff4c687cf12931aaad24075ec4f83c9342074aa" style="width:45ch"></input><br>
+Salt (32bit HEX):
+<input id="salt" value="DD9377A7" style="width:10ch"><br>
+
+<input id="text" value="test" style="width:20ch"></input>
+<button id="calc">検索</button>
+<button id="stop">⛔停止</button>
+
+<pre id="result" style="width:55ch"></pre>
+
+<script>
+
+const buffer = new Uint8Array(64);
+const w80 = new Uint32Array(80);
+let checkCounter = 1;
+
+function hexToUint32(hex){
+    hex = hex.replace(/^0x/i,"").padStart(8,"0");
+    return parseInt(hex,16) >>> 0;
+}
+
+async function calcSHA1(){
+
+    const text = document.getElementById("text").value;
+    const salt = hexToUint32(document.getElementById("salt").value);
+
+    // UTF-8化
+    const textBytes = new TextEncoder().encode(text);
+
+    // テキスト + 4byte Salt
+    const data = new Uint8Array(textBytes.length + 4);
+
+    data.set(textBytes);
+
+    // Big Endianで後ろに追加
+    data[textBytes.length+0] = (salt>>>24)&0xff;
+    data[textBytes.length+1] = (salt>>>16)&0xff;
+    data[textBytes.length+2] = (salt>>>8)&0xff;
+    data[textBytes.length+3] = salt&0xff;
+
+    // SHA-1
+    const hash = await crypto.subtle.digest("SHA-1", data);
+
+    // HEX文字列へ
+    const hex = [...new Uint8Array(hash)]
+        .map(v=>v.toString(16).padStart(2,"0"))
+        .join("");
+
+    document.getElementById("result").textContent = hex;
+}
+
+//document.getElementById("calc").onclick = calcSHA1;
+document.getElementById("calc").onclick = searchTxt;
+document.getElementById("stop").onclick = searchStop;
+document.getElementById("dbpDecode").onclick = dbpDecode1;
+
+
+
+function searchStop() {checkCounter = -1;}
+//calcSHA1();
+
+async function searchTxt() {
+  const text = document.getElementById("text").value;
+  const textBytes = new TextEncoder().encode(text);// UTF-8化
+  const salt = hexToUint32(document.getElementById("salt").value);
+  const salts = new Uint8Array([(salt>>>24)&0xff, (salt>>>16)&0xff, (salt>>>8)&0xff, salt&0xff]);
+  const target = document.getElementById("target").value;
+  const targets = new Uint32Array(5);
+  for (let i = 0; i < targets.length; i++) {
+    targets[i] = hexToUint32(target.slice(i * 8, i * 8 + 8));
+  }
+  const stChr = 0x20;
+  const edChr = 0x7e;
+  const maxMojiLen = 16;
+  const decoder = new TextDecoder();  
+  
+  const clickTime = performance.now();
+  const nextTime = clickTime + 10000;
+  checkCounter = 1;
+  let changeDigit = maxMojiLen;
+
+//const moji = new Uint8Array(20);
+  buffer.set(textBytes);
+  let nowMojiLen = textBytes.length;//初期値
+  let preMojiLen = 0;//初期値
+  let nowLen;
+  let h0,h1,h2,h3,h4;
+  let a,b,c,d,e;
+  let f,k;
+  let temp;
+
+  setBuffer();
+  for (let i = nowMojiLen + salts.length + 1; i < 60; i++) buffer[i] = 0x00;//はじめだけ
+  for(let i=0;i<16;i++){// 最初の16個。全部更新
+    const j = i * 4;
+    w80[i] = (buffer[j]<<24) | (buffer[j+1]<<16) | (buffer[j+2]<<8) | buffer[j+3];
+  }
+
+  while (checkCounter > 0) {
+    if(exactHash()) break;//一致してたら終わる
+    changeDigit = 0;//何桁目まで更新されるか
+    if(!incMoji(0)) {
+      if(nowMojiLen === maxMojiLen) break;//繰り上がれないなら終わる
+      buffer[nowMojiLen] = stChr;
+      nowMojiLen++;
+      setBuffer();
+      for(let i=1;i<16;i++){// 最初の16個。桁が増えたら全部更新
+        const j = i * 4;
+        w80[i] = (buffer[j]<<24) | (buffer[j+1]<<16) | (buffer[j+2]<<8) | buffer[j+3];
+      }
+    } else {//繰り上がりなし
+      w80[0] = (buffer[0]<<24) | (buffer[1]<<16) | (buffer[2]<<8) | buffer[3];//ここは常に変わる
+      if (changeDigit > 3) {//4桁目以降の繰り上がりがあったら
+        for(let i=1;i<16;i++){// 最初の16個。全部更新
+          const j = i * 4;
+          w80[i] = (buffer[j]<<24) | (buffer[j+1]<<16) | (buffer[j+2]<<8) | buffer[j+3];
+        }
+      }
+    }
+    checkCounter++;
+    if(checkCounter > 100000) {
+      const now = performance.now();
+      checkCounter = 1;
+      document.getElementById("result").textContent = `走査中 (${((now - clickTime) * 0.001).toFixed(1)})`;
+      document.getElementById("text").value = decoder.decode(buffer.subarray(0, nowMojiLen));//テキストボックス更新
+      await new Promise(requestAnimationFrame);
+    }
+  }
+  document.getElementById("text").value = decoder.decode(buffer.subarray(0, nowMojiLen));//テキストボックス更新
+  if (exactHash()) {
+    document.getElementById("result").textContent = `🎉 発見 (${((performance.now() - clickTime) * 0.001).toFixed(1)})`;
+  } else {
+    document.getElementById("result").textContent = `😞未発見 (${((performance.now() - clickTime) * 0.001).toFixed(1)})`;
+  }
+
+  function incMoji(n) {
+    buffer[n]++;
+    if(buffer[n] <= edChr) return true;//繰り上がりなしで成功
+    buffer[n] = stChr;//最初の文字に戻す
+    changeDigit = n + 1;
+    if(changeDigit < nowMojiLen) {//まだ次の桁があるのでチェックする
+      if(incMoji(changeDigit)) return true;//上の桁で成功して返ってきた
+    }
+    //次の桁がない、または上の桁で失敗してきた
+    return false;
+  }
+
+  function exactHash() {
+    for(let i=16;i<80;i++){// 残り64個
+      let x = w80[i-3] ^ w80[i-8] ^ w80[i-14] ^ w80[i-16];
+      w80[i] = ((x<<1)|(x>>>31))>>>0;
+    }
+
+    a = 0x67452301;//初期値
+    b = 0xEFCDAB89;
+    c = 0x98BADCFE;
+    d = 0x10325476;
+    e = 0xC3D2E1F0;
+
+    for(let i=0;i<20;i++){
+      f=(b&c)|((~b)&d);
+      temp = ((((a<<5)|(a>>>27))>>>0) + f + e + 0x5A827999 + w80[i])>>>0;
+      e=d;
+      d=c;
+      c=((b<<30)|(b>>>2))>>>0;
+      b=a;
+      a=temp;
+    }
+    for(let i=20;i<40;i++){
+      f=b^c^d;
+      temp = ((((a<<5)|(a>>>27))>>>0) + f + e + 0x6ED9EBA1 + w80[i])>>>0;
+      e=d;
+      d=c;
+      c=((b<<30)|(b>>>2))>>>0;
+      b=a;
+      a=temp;
+    }
+    for(let i=40;i<60;i++){
+      f=(b&c)|(b&d)|(c&d);
+      temp = ((((a<<5)|(a>>>27))>>>0) + f + e + 0x8F1BBCDC + w80[i])>>>0;
+      e=d;
+      d=c;
+      c=((b<<30)|(b>>>2))>>>0;
+      b=a;
+      a=temp;
+    }
+    for(let i=60;i<80;i++){
+      f=b^c^d;
+      temp = ((((a<<5)|(a>>>27))>>>0) + f + e + 0xCA62C1D6 + w80[i])>>>0;
+      e=d;
+      d=c;
+      c=((b<<30)|(b>>>2))>>>0;
+      b=a;
+      a=temp;
+    }
+
+    if ((0x67452301 + a)>>>0 !== targets[0]) return false;
+    if ((0xEFCDAB89 + b)>>>0 !== targets[1]) return false;
+    if ((0x98BADCFE + c)>>>0 !== targets[2]) return false;
+    if ((0x10325476 + d)>>>0 !== targets[3]) return false;
+    if ((0xC3D2E1F0 + e)>>>0 !== targets[4]) return false;
+    return true;
+
+//    console.log (
+//        hex(h0)+
+//        hex(h1)+
+//        hex(h2)+
+//        hex(h3)+
+//        hex(h4)
+//    );
+  }
+  function hex(x){
+    return x.toString(16).padStart(8,"0");
+  }
+
+  function setBuffer(){
+    nowLen = (nowMojiLen + salts.length) * 8;
+    buffer.set(salts, nowMojiLen);
+    buffer[nowMojiLen + salts.length] = 0x80;
+    buffer[60]=(nowLen>>>24)&255;// 下位32bit
+    buffer[61]=(nowLen>>>16)&255;
+    buffer[62]=(nowLen>>>8)&255;
+    buffer[63]= nowLen&255;
+  }
+
+
+
+}
+
+
+function dbpDecode1() {
+  const dbpInput = document.getElementById("DBP").value;
+  const dbpCoded = new Uint8Array(dbpInput.length * 0.5 | 0);
+  for(ii=0;ii<dbpInput.length; ii+=2){
+    const i = ii*0.5;
+    if (ii+2<=dbpInput.length){
+      dbpCoded[i]= Number(`0x${dbpInput.slice(ii, ii+2)}`);
+    }else{
+      document.getElementById("dbpResult").textContent = `error:文字数が奇数ぽい (len:${dbpInput.length})`;
+      return;
+    }
+  }
+  const dbpDecoded = new Uint8Array(dbpCoded.length);
+  const seed = dbpCoded[0];
+  dbpDecoded[0] = seed;
+  dbpDecoded[1] = seed ^ dbpCoded[1];
+  dbpDecoded[2] = seed ^ dbpCoded[2];
+  for(let i=3;i<dbpDecoded.length;i++){
+    dbpDecoded[i]=dbpCoded[i]^((dbpCoded[i-2]+dbpDecoded[i-1])&0xff);
+  }
+  let dataTxt ="";
+  for(let i=0;i<dbpDecoded.length;i++){
+    dataTxt += dbpDecoded[i].toString(16).toUpperCase().padStart(2, "0");
+  }
+  document.getElementById("dbpResult").textContent = dataTxt;
+  document.getElementById("salt").value = dataTxt.slice(26, 34);//塩更新
+  document.getElementById("target").value = dataTxt.slice(34, dataTxt.length-2);//ターゲット更新
+
+}
+
+
+</script>
+
+</body>
+</html>
