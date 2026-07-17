@@ -172,12 +172,7 @@
 /*    margin: 0 auto;*/
     padding: 0;
   }
-  #sdftColorWindow {/*sdft色設定*/
-    display: block;
-    background: #000;
-    border: 0px;
-    padding: 0;
-  }
+
 
   .fadeoutObj {
     position: absolute;
@@ -382,6 +377,7 @@
     linear-gradient(45deg, transparent 48%, #777 49%, #777 51%, transparent 52%),
     linear-gradient(-45deg, transparent 48%, #777 49%, #777 51%, transparent 52%);
 }
+
 
 .colorButton {
   display: inline-flex;
@@ -1071,7 +1067,12 @@
     <div class="divTitle">SDFT 色調変更(未)</div>
     <div data-action="x" class="inputButton" style="justify-content: center; width: 1ch; height: 1.8ch; border-radius: 0%;"><span>×</span></div>
   </div>
-  <canvas id="sdftColorWindow"></canvas>
+  <canvas id="sdftColorHue" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <hr style="border: 0px solid #555; width: 200px; margin-top: 5px; margin-bottom: 0px;">
+  <canvas id="sdftColorRadius" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <hr style="border: 0px solid #555; width: 200px; margin-top: 5px; margin-bottom: 0px;">
+  <canvas id="sdftColorLightness" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <hr style="border: 0px solid #555; width: 200px; margin-top: 2px; margin-bottom: 0px;">
   <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
     <div data-action="color0" class="colorButton" style="width:40px"></div>
     <div data-action="color1" class="colorButton" style="width:40px"></div>
@@ -1149,9 +1150,19 @@ const fftOverlayCanvas = document.createElement("canvas");//FFT線図オーバ�
 const fftOverLayCtx = fftOverlayCanvas.getContext("2d");
 fftOverLayCtx.globalCompositeOperation = "source-over";//上書き
 
-const sdftColorCanvas = document.getElementById("sdftColorWindow");//SDFT色設定用キャンバス
-const sdftColorCtx = sdftColorCanvas.getContext("2d");//描画コンテキスト
-sdftColorCanvas.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+const sdftColorHue = document.getElementById("sdftColorHue");//SDFT色設定用キャンバス
+const sdftColorHueCtx = sdftColorHue.getContext("2d");//描画コンテキスト
+sdftColorHue.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+sdftColorHue.height = 40;//高さは固定
+const sdftColorRadius = document.getElementById("sdftColorRadius");//SDFT色設定用キャンバス
+const sdftColorRadiusCtx = sdftColorRadius.getContext("2d");//描画コンテキスト
+sdftColorRadius.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+sdftColorRadius.height = sdftColorHue.height;//高さは固定
+const sdftColorLightness = document.getElementById("sdftColorLightness");//SDFT色設定用キャンバス
+const sdftColorLightnessCtx = sdftColorLightness.getContext("2d");//描画コンテキスト
+sdftColorLightness.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+sdftColorLightness.height = sdftColorHue.height;//高さは固定
+
 
 const fftSnapCanvas = document.createElement("canvas");//FFTスナップショット用
 const fftSnapCtx = fftSnapCanvas.getContext("2d");
@@ -1160,6 +1171,9 @@ const fftSnapUndoCanvas = document.createElement("canvas");//FFTスナップシ�
 const fftSnapUndoCtx = fftSnapUndoCanvas.getContext("2d");
 fftSnapUndoCtx.globalCompositeOperation = "source-over";//上書き
 fftSnapUndoCanvas.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
+
+
+
 
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
@@ -1204,6 +1218,7 @@ const popupSdftDiv = document.getElementById('popupSdftDiv');
 const loadingDiv = document.getElementById('loadingDiv');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const loadingTxt = document.getElementById('loadingTxt');
+
 
 const popupCCorrectionDiv = document.getElementById('popupCCorrectionDiv');//ヒストリーの色調補正ボックス
 const popupSdftColorDiv = document.getElementById('popupSdftColorDiv');//ヒストリーの色調補正ボックス
@@ -1515,6 +1530,20 @@ const slidingDftFreq = [1000, 4000, 8000, 8000];//ターゲット周波数
 const slidingDftGain = [1000, 4000, 8000, 8000];//ターゲット周波数によるゲイン
 const slidingDftIsVisible = [true, true, true, false];//表示するか
 const slidingDftColor = ["#ff4d4d", "#4dff4d", "#8d8dff", "#cdcdff"];//色
+const slidingDftColorLightness = [59.906, 88.823, 62.577, 83.658];//色
+const slidingDftColorRadius = [63.49061828, 77.81727572, 49.39196401, 19.69009347];//色
+const slidingDftColorHue = [31.35748258, 136.343356, 290.8093935, 270.1765426];//色
+
+//lab(59.906%, 54.217%, 33.039%)
+//lab(88.823%, -56.307%, 53.722%)
+//lab(62.578%, 17.547%, -46.17%)
+//lab(83.658%, 6.067%, -19.696%)
+
+
+//oklch(67.3% 0.2146 25)
+//oklch(87.8% 0.2595 143)
+//oklch(69.5% 0.1643 281.2)
+//oklch(86.5% 0.069 284.9)
 //lab(78.411 31.728 13.328)
 //lab(88.823 -70.398 67.149)
 //lab(62.577 21.938 -57.711)
@@ -4092,9 +4121,10 @@ function showPopupSdftColorDiv(x, y) {
   popupSdftColorDiv.style.visibility = "hidden";//まだ隠す
   popupSdftColorDiv.classList.remove('hidden');
 
-  sdftColorCanvas.width = 200;
-  sdftColorCanvas.height = 200;
-  makeSdftColorCanvas();
+  sdftColorHue.width = 200;
+  sdftColorRadius.width = sdftColorHue.width;
+  sdftColorLightness.width = sdftColorHue.width;//使うまで幅をゼロにしてメモリを解放しておく
+
   checkPopupSdftColorDiv();//ボタンを非表示にしたり
   const rect = popupSdftColorDiv.getBoundingClientRect();
   popupSdftColorDiv.style.left = `${Math.max(0, x - rect.width * 0.5)}px`;
@@ -4105,60 +4135,150 @@ function checkPopupSdftColorDiv() {
   for (let i = 0; i < slidingDftColor.length; i++) {//色設定
     const el = popupSdftColorDiv.querySelector(`[data-action='color${i}']`);
     if (el instanceof HTMLElement) {
-      const lab_l = 65;
-      const lab_r = 120;
-      const lCtr = 50;
-      const tmpR = (lCtr - Math.abs(lab_l-lCtr))/lCtr*lab_r;
-//      const tmpR = 100;
-      const lab_a = Math.cos(slidingDftColorW[i])*tmpR;
-      const lab_b = Math.sin(slidingDftColorW[i])*tmpR;
-      let [linearR, linearG, linearB] = labToLinearRgb(lab_l, lab_a, lab_b);
+
+      const selL=slidingDftColorLightness[i];
+      const selA=slidingDftColorRadius[i]*Math.cos(Math.PI*slidingDftColorHue[i]/180);
+      const selB=slidingDftColorRadius[i]*Math.sin(Math.PI*slidingDftColorHue[i]/180);
+
+      let [linearR, linearG, linearB] = labToLinearRgb(selL, selA, selB);
       linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
       linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
       linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
-      
-
 
       el.style.backgroundColor = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
       if (i===slidingDftColorSelected) el.classList.add("paletteSelected");
+      else el.classList.remove("paletteSelected")
+      makeSdftColorCanvas();
     }
   }
-
-//const slidingDftColorL = [78.411, 88.823, 62.577, 83.658];//色
-//const slidingDftColorW = [0.397688004, 2.379811115, 5.07565439, 5.011256076];//色
-//const slidingDftColorR = [34.41368286, 97.28754599, 61.74006288, 25.76096633];//色
-
-
 }
 function makeSdftColorCanvas() {
-//const sdftColorCanvas = document.getElementById("sdftColorWindow");//SDFT色設定用キャンバス
-//const sdftColorCtx = sdftColorCanvas.getContext("2d");//描画コンテキスト
-  sdftColorCtx.clearRect(0, 0, sdftColorCanvas.width, sdftColorCanvas.height);//全消し
+  sdftColorHueCtx.clearRect(0, 0, sdftColorHue.width, sdftColorHue.height);//全消し
+  sdftColorRadiusCtx.clearRect(0, 0, sdftColorRadius.width, sdftColorRadius.height);//全消し
+  sdftColorLightnessCtx.clearRect(0, 0, sdftColorLightness.width, sdftColorLightness.height);//全消し
+  const canvasFontSize = 12;
+  const canvasFontSizeMini = 10;
+  const canvasFontPad = 3;
 
-  const abRadius = 120;
-  const wPerX = 2 * Math.PI / sdftColorCanvas.width;
-  const lMax = 100;
-  const lMin = 0;
-  const lCtr = (lMax + lMin) * 0.5;
-  const lPerY = (lMax - lMin) / sdftColorCanvas.height;
-  for (let x = 0; x < sdftColorCanvas.width; x++) {
-    const lab_w = wPerX * x;
-    const lab_a = Math.cos(lab_w);
-    const lab_b = Math.sin(lab_w);
-    for (let y = 0; y < sdftColorCanvas.height; y++) {
-      const lab_l = lPerY * (sdftColorCanvas.height - y) + lMin;
-//          return [ rLinear, gLinear, bLinear];
-      const tmpR = (lCtr - Math.abs(lab_l-lCtr))/lCtr*abRadius;
-      const tmpA = lab_a*tmpR;
-      const tmpB = lab_b*tmpR;
+  const radiusGamma=0.7;//なんとなくな係数
+  const selL=slidingDftColorLightness[slidingDftColorSelected];
+  const selA=slidingDftColorRadius[slidingDftColorSelected]*Math.cos(Math.PI*slidingDftColorHue[slidingDftColorSelected]/180);
+  const selB=slidingDftColorRadius[slidingDftColorSelected]*Math.sin(Math.PI*slidingDftColorHue[slidingDftColorSelected]/180);
+  const selW=Math.atan2(selB,selA);
+  const selR=slidingDftColorRadius[slidingDftColorSelected];//補正後R
+  const baseR=selR/Math.pow(Math.sin(Math.PI*selL/100), radiusGamma);//Lが半分のとこのR
 
-      let [linearR, linearG, linearB] = labToLinearRgb(lab_l, tmpA, tmpB);
-      linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
-      linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
-      linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
-      sdftColorCtx.fillStyle = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
-      sdftColorCtx.fillRect(x, y, 1, 1);
-    }
+  //一本目のhur
+  const wPerHueX = 2 * Math.PI / sdftColorHue.width;
+  for (let x = 0; x < sdftColorHue.width; x++) {
+    const lab_w = wPerHueX * x;
+    const lab_a = selR*Math.cos(lab_w);
+    const lab_b = selR*Math.sin(lab_w);
+    let [linearR, linearG, linearB] = labToLinearRgb(selL, lab_a, lab_b);
+    linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
+    linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
+    linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
+    sdftColorHueCtx.fillStyle = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
+    sdftColorHueCtx.fillRect(x, 0, 1, sdftColorHue.height);
+  }
+  sdftColorHueCtx.fillStyle=selL>65?"#000000":"#ffffff";
+  sdftColorHueCtx.font = `${canvasFontSizeMini}px JetBrains Mono, Fira Code, monospace`;
+  sdftColorHueCtx.textBaseline = "top";
+  for(let i=0;i<slidingDftColorHue.length;i++){
+    const iText = `${i+1}`;
+    const iTextWidth = sdftColorHueCtx.measureText(iText).width;
+    const x=sdftColorHue.width*slidingDftColorHue[i]/360;
+    sdftColorHueCtx.fillText(iText, x-iTextWidth*0.5, 1);
+  }
+  {//線とtxt
+    const lineX=sdftColorHue.width*slidingDftColorHue[slidingDftColorSelected]/360 |0;
+    sdftColorHueCtx.fillRect(lineX,0,1,sdftColorHue.height);
+    sdftColorHueCtx.font = `${canvasFontSize}px JetBrains Mono, Fira Code, monospace`;
+    sdftColorHueCtx.globalCompositeOperation = "source-over";//上書きモード
+    sdftColorHueCtx.textBaseline = "bottom";
+    const hueText = `${slidingDftColorHue[slidingDftColorSelected].toFixed(1)}`;
+    const hueTextWidth = sdftColorHueCtx.measureText(hueText).width;
+    sdftColorHueCtx.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
+    sdftColorHueCtx.fillRect(sdftColorHue.width-hueTextWidth-canvasFontPad
+    , sdftColorHue.height-canvasFontSize-canvasFontPad, hueTextWidth+canvasFontPad, canvasFontSize+canvasFontPad);
+    sdftColorHueCtx.fillStyle = "#ffffff";
+    sdftColorHueCtx.fillText(hueText, sdftColorHue.width-hueTextWidth, sdftColorHue.height-1);
+  }
+
+  //２本目の彩度
+  const radiusPerX = 120 / sdftColorRadius.width;
+  for (let x = 0; x < sdftColorRadius.width; x++) {
+    const lab_radius = radiusPerX * x;
+    const lab_a = lab_radius*Math.cos(selW);
+    const lab_b = lab_radius*Math.sin(selW);
+    let [linearR, linearG, linearB] = labToLinearRgb(selL, lab_a, lab_b);
+    linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
+    linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
+    linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
+    sdftColorRadiusCtx.fillStyle = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
+    sdftColorRadiusCtx.fillRect(x, 0, 1, sdftColorRadius.height);
+  }
+  sdftColorRadiusCtx.fillStyle=selL>65?"#000000":"#ffffff";
+  sdftColorRadiusCtx.font = `${canvasFontSizeMini}px JetBrains Mono, Fira Code, monospace`;
+  sdftColorRadiusCtx.textBaseline = "top";
+  for(let i=0;i<slidingDftColorRadius.length;i++){
+    const iText = `${i+1}`;
+    const iTextWidth = sdftColorRadiusCtx.measureText(iText).width;
+    const x=slidingDftColorRadius[i]/radiusPerX;
+    sdftColorRadiusCtx.fillText(iText, x-iTextWidth*0.5, 1);
+  }
+  {//線とtxt
+    const lineX=selR/radiusPerX |0;
+    sdftColorRadiusCtx.fillRect(lineX,0,1,sdftColorRadius.height);
+    sdftColorRadiusCtx.font = `${canvasFontSize}px JetBrains Mono, Fira Code, monospace`;
+    sdftColorRadiusCtx.globalCompositeOperation = "source-over";//上書きモード
+    sdftColorRadiusCtx.textBaseline = "bottom";
+    const radiusText = `${selR.toFixed(1)}`;
+    const radiusTextWidth = sdftColorRadiusCtx.measureText(radiusText).width;
+    sdftColorRadiusCtx.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
+    sdftColorRadiusCtx.fillRect(sdftColorRadius.width-radiusTextWidth-canvasFontPad
+    , sdftColorRadius.height-canvasFontSize-canvasFontPad, radiusTextWidth+canvasFontPad, canvasFontSize+canvasFontPad);
+    sdftColorRadiusCtx.fillStyle = "#ffffff";
+    sdftColorRadiusCtx.fillText(radiusText, sdftColorRadius.width-radiusTextWidth, sdftColorRadius.height-1);
+  }
+//３本目の明るさ
+  const lightnessPerX=100/sdftColorLightness.width;
+  const lightnessWPerX=Math.PI/sdftColorLightness.width;
+  for (let x = 0; x < sdftColorLightness.width; x++) {
+    const lab_l = lightnessPerX * x;
+    const lab_radius = baseR*Math.pow(Math.sin(lightnessWPerX*x), radiusGamma)
+    const lab_a = lab_radius*Math.cos(selW);
+    const lab_b = lab_radius*Math.sin(selW);
+    let [linearR, linearG, linearB] = labToLinearRgb(lab_l, lab_a, lab_b);
+    linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
+    linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
+    linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
+    sdftColorLightnessCtx.fillStyle = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
+    sdftColorLightnessCtx.fillRect(x, 0, 1, sdftColorLightness.height);
+  }
+  sdftColorLightnessCtx.font = `${canvasFontSizeMini}px JetBrains Mono, Fira Code, monospace`;
+  sdftColorLightnessCtx.textBaseline = "top";
+  for(let i=0;i<slidingDftColorLightness.length;i++){
+    const iText = `${i+1}`;
+    const iTextWidth = sdftColorLightnessCtx.measureText(iText).width;
+    const x=slidingDftColorLightness[i]/lightnessPerX;
+    sdftColorLightnessCtx.fillStyle=slidingDftColorLightness[i]>65?"#000000":"#ffffff";
+    sdftColorLightnessCtx.fillText(iText, x-iTextWidth*0.5, 1);
+  }
+  {//線とtxt
+    const lineX=selL/lightnessPerX |0;
+    sdftColorLightnessCtx.fillStyle=selL>65?"#000000":"#ffffff";
+    sdftColorLightnessCtx.fillRect(lineX,0,1,sdftColorRadius.height);
+    sdftColorLightnessCtx.font = `${canvasFontSize}px JetBrains Mono, Fira Code, monospace`;
+    sdftColorLightnessCtx.globalCompositeOperation = "source-over";//上書きモード
+    sdftColorLightnessCtx.textBaseline = "bottom";
+    const lightnessText = `${selL.toFixed(1)}`;
+    const lightnessTextWidth = sdftColorLightnessCtx.measureText(lightnessText).width;
+    sdftColorLightnessCtx.fillStyle = `rgba(${0}, ${0}, ${0}, ${0.6})`;
+    sdftColorLightnessCtx.fillRect(sdftColorLightness.width-lightnessTextWidth-canvasFontPad
+    , sdftColorLightness.height-canvasFontSize-canvasFontPad, lightnessTextWidth+canvasFontPad, canvasFontSize+canvasFontPad);
+    sdftColorLightnessCtx.fillStyle = "#ffffff";
+    sdftColorLightnessCtx.fillText(lightnessText, sdftColorLightness.width-lightnessTextWidth, sdftColorLightness.height-1);
   }
 
 
@@ -4197,7 +4317,8 @@ function hidePopupInputDiv() { popupInputDiv.classList.add('hidden'); keyInputDi
 function hidePopupSnapDiv() { popupSnapDiv.classList.add('hidden');}//ポップアップ消去
 function hidePopupSdftDiv() { popupSdftDiv.classList.add('hidden');}//ポップアップ消去
 function hidePopupCCorrectionDiv() { popupCCorrectionDiv.classList.add('hidden');}//ポップアップ消去
-function hidePopupSdftColorDiv() { popupSdftColorDiv.classList.add('hidden'); sdftColorCanvas.width = 0;}//ポップアップ消去
+function hidePopupSdftColorDiv() { popupSdftColorDiv.classList.add('hidden');
+ sdftColorHue.width = 0; sdftColorRadius.width = sdftColorHue.width; sdftColorLightness.width = sdftColorHue.width; }//ポップアップ消去
 
 document.addEventListener('pointerdown', (e) => {// 外をクリックしたら閉じる
   hideByOuterDown (e);
@@ -6121,6 +6242,11 @@ function popupSdftColorDivClick(e) {
       }
       hidePopupSdftColorDiv();
       break;
+    default://数値の処理
+      if (/^color\d+$/.test(action)) {//colorで始まるなら
+        slidingDftColorSelected = Number(action.slice(5));
+        checkPopupSdftColorDiv();
+      }
 
   }
 
