@@ -1067,21 +1067,17 @@
     <div class="divTitle">SDFT 色調変更(未)</div>
     <div data-action="x" class="inputButton" style="justify-content: center; width: 1ch; height: 1.8ch; border-radius: 0%;"><span>×</span></div>
   </div>
-  <canvas id="sdftColorHue" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <canvas id="sdftColorHue" data-action="sdftColorHue" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
   <hr style="border: 0px solid #555; width: 200px; margin-top: 5px; margin-bottom: 0px;">
-  <canvas id="sdftColorRadius" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <canvas id="sdftColorRadius" data-action="sdftColorRadius" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
   <hr style="border: 0px solid #555; width: 200px; margin-top: 5px; margin-bottom: 0px;">
-  <canvas id="sdftColorLightness" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
+  <canvas id="sdftColorLightness" data-action="sdftColorLightness" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
   <hr style="border: 0px solid #555; width: 200px; margin-top: 2px; margin-bottom: 0px;">
   <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-    <div data-action="color0" class="colorButton" style="width:40px"></div>
-    <div data-action="color1" class="colorButton" style="width:40px"></div>
-    <div data-action="color2" class="colorButton" style="width:40px"></div>
-    <div data-action="color3" class="colorButton" style="width:40px"></div>
-  </div>
-  <div style="display: flex; justify-content: space-between; border: 0px solid #555; margin: 0px 0px; padding: 0px; white-space: nowrap;">
-    <div data-action="clearAll" class="inputButton" style="justify-content: center; width: 8ch;"><span>全消去</span></div>
-    <div data-action="capture" class="inputButton" style="justify-content: center; width: 8ch;"><span>明るさ統一</span></div>
+    <div data-action="color0" class="colorButton" style="width:40px">1</div>
+    <div data-action="color1" class="colorButton" style="width:40px">2</div>
+    <div data-action="color2" class="colorButton" style="width:40px">3</div>
+    <div data-action="color3" class="colorButton" style="width:40px">4</div>
   </div>
 </div>
 
@@ -1172,9 +1168,6 @@ const fftSnapUndoCtx = fftSnapUndoCanvas.getContext("2d");
 fftSnapUndoCtx.globalCompositeOperation = "source-over";//上書き
 fftSnapUndoCanvas.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
 
-
-
-
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
 const overlayMenu = document.getElementById("overlayMenu");
@@ -1218,7 +1211,6 @@ const popupSdftDiv = document.getElementById('popupSdftDiv');
 const loadingDiv = document.getElementById('loadingDiv');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const loadingTxt = document.getElementById('loadingTxt');
-
 
 const popupCCorrectionDiv = document.getElementById('popupCCorrectionDiv');//ヒストリーの色調補正ボックス
 const popupSdftColorDiv = document.getElementById('popupSdftColorDiv');//ヒストリーの色調補正ボックス
@@ -4146,6 +4138,7 @@ function checkPopupSdftColorDiv() {
       linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
 
       el.style.backgroundColor = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
+      el.style.color = selL>65?"#000000":"#ffffff";
       if (i===slidingDftColorSelected) el.classList.add("paletteSelected");
       else el.classList.remove("paletteSelected")
       makeSdftColorCanvas();
@@ -4188,7 +4181,7 @@ function makeSdftColorCanvas() {
     const iText = `${i+1}`;
     const iTextWidth = sdftColorHueCtx.measureText(iText).width;
     const x=sdftColorHue.width*slidingDftColorHue[i]/360;
-    sdftColorHueCtx.fillText(iText, x-iTextWidth*0.5, 1);
+    sdftColorHueCtx.fillText(iText, x-iTextWidth*0.5|0, 2);
   }
   {//線とtxt
     const lineX=sdftColorHue.width*slidingDftColorHue[slidingDftColorSelected]/360 |0;
@@ -4225,7 +4218,7 @@ function makeSdftColorCanvas() {
     const iText = `${i+1}`;
     const iTextWidth = sdftColorRadiusCtx.measureText(iText).width;
     const x=slidingDftColorRadius[i]/radiusPerX;
-    sdftColorRadiusCtx.fillText(iText, x-iTextWidth*0.5, 1);
+    sdftColorRadiusCtx.fillText(iText, x-iTextWidth*0.5|0, 2);
   }
   {//線とtxt
     const lineX=selR/radiusPerX |0;
@@ -4263,7 +4256,7 @@ function makeSdftColorCanvas() {
     const iTextWidth = sdftColorLightnessCtx.measureText(iText).width;
     const x=slidingDftColorLightness[i]/lightnessPerX;
     sdftColorLightnessCtx.fillStyle=slidingDftColorLightness[i]>65?"#000000":"#ffffff";
-    sdftColorLightnessCtx.fillText(iText, x-iTextWidth*0.5, 1);
+    sdftColorLightnessCtx.fillText(iText, x-iTextWidth*0.5|0, 2);
   }
   {//線とtxt
     const lineX=selL/lightnessPerX |0;
@@ -4280,10 +4273,7 @@ function makeSdftColorCanvas() {
     sdftColorLightnessCtx.fillStyle = "#ffffff";
     sdftColorLightnessCtx.fillText(lightnessText, sdftColorLightness.width-lightnessTextWidth, sdftColorLightness.height-1);
   }
-
-
 }
-
 
 //メニュー非表示
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
@@ -5591,8 +5581,6 @@ popupWindowMenu.addEventListener('click', async (e) => {//ポップアップメ�
   }
 });
 
-
-
 let inputDivPushedAction = null;
 function inputDivClick(e) {
   const action = e.target.dataset.action;
@@ -6242,12 +6230,35 @@ function popupSdftColorDivClick(e) {
       }
       hidePopupSdftColorDiv();
       break;
+    case 'sdftColorHue':
+      {
+        const rect = sdftColorHue.getBoundingClientRect();
+        const value = (e.clientX-rect.left)/rect.width;
+        slidingDftColorHue[slidingDftColorSelected]=value*360;
+        checkPopupSdftColorDiv();
+      }
+      break;
+    case 'sdftColorRadius':
+      {
+        const rect = sdftColorRadius.getBoundingClientRect();
+        const value = (e.clientX-rect.left)/rect.width;
+        slidingDftColorRadius[slidingDftColorSelected]=value*120;
+        checkPopupSdftColorDiv();
+      }
+      break;
+    case 'sdftColorLightness':
+      {
+        const rect = sdftColorLightness.getBoundingClientRect();
+        const value = (e.clientX-rect.left)/rect.width;
+        slidingDftColorLightness[slidingDftColorSelected]=value*100;
+        checkPopupSdftColorDiv();
+      }
+      break;
     default://数値の処理
       if (/^color\d+$/.test(action)) {//colorで始まるなら
         slidingDftColorSelected = Number(action.slice(5));
         checkPopupSdftColorDiv();
       }
-
   }
 
 //  checkPopupCCorrectionDiv();
@@ -6297,6 +6308,7 @@ popupSdftColorDiv.addEventListener('pointerdown', async (e) => {
   }
 });
 popupSdftColorDiv.addEventListener('pointermove', async (e) => {
+  const action = e.target.dataset.action;
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
   if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {//動いていたら長押しキャンセル
@@ -6310,16 +6322,36 @@ popupSdftColorDiv.addEventListener('pointermove', async (e) => {
   gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (gesture.mode === 'pan') {
-    //move
-    const [p] = gesture.pointers.values();
-    const dx = (p.x - gesture.start.pt.x);
-    const dy = (p.y - gesture.start.pt.y);
-    gesture.start.pt.x = p.x;
-    gesture.start.pt.y = p.y;
-    const rect = popupSdftColorDiv.getBoundingClientRect();
-    popupSdftColorDiv.style.left = `${rect.left + dx}px`;
-    popupSdftColorDiv.style.top  = `${rect.top + dy}px`;
-
+    const y0=sdftColorHue.getBoundingClientRect().top;
+    const y1=sdftColorRadius.getBoundingClientRect().top;
+    const y2=sdftColorLightness.getBoundingClientRect().top;
+    const y3=sdftColorLightness.getBoundingClientRect().bottom;
+    const stY=gesture.start.pt.y;
+    if(stY>y0&&stY<y1){
+      const rect = sdftColorHue.getBoundingClientRect();
+      const value = (e.clientX-rect.left)/rect.width;
+      slidingDftColorHue[slidingDftColorSelected]=value*360;
+      checkPopupSdftColorDiv();
+    }else if(stY>y1&&stY<y2){
+      const rect = sdftColorRadius.getBoundingClientRect();
+      const value = (e.clientX-rect.left)/rect.width;
+      slidingDftColorRadius[slidingDftColorSelected]=value*120;
+      checkPopupSdftColorDiv();
+    }else if(stY>y2&&stY<y3){
+      const rect = sdftColorLightness.getBoundingClientRect();
+      const value = (e.clientX-rect.left)/rect.width;
+      slidingDftColorLightness[slidingDftColorSelected]=value*100;
+      checkPopupSdftColorDiv();
+    }else{
+      const [p] = gesture.pointers.values();
+      const dx = (p.x - gesture.start.pt.x);
+      const dy = (p.y - gesture.start.pt.y);
+      gesture.start.pt.x = p.x;
+      gesture.start.pt.y = p.y;
+      const rect = popupSdftColorDiv.getBoundingClientRect();
+      popupSdftColorDiv.style.left = `${rect.left + dx}px`;
+      popupSdftColorDiv.style.top  = `${rect.top + dy}px`;
+    }
   } else if (gesture.mode === 'pinch') pinch();//二つ指
 });
 popupSdftColorDiv.addEventListener('pointerup', popupSdftColorDivOnUp);
