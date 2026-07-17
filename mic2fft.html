@@ -6330,17 +6330,17 @@ popupSdftColorDiv.addEventListener('pointermove', async (e) => {
     if(stY>y0&&stY<y1){
       const rect = sdftColorHue.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorHue[slidingDftColorSelected]=value*360;
+      slidingDftColorHue[slidingDftColorSelected]=Math.max(0,Math.max(value*360,360));
       checkPopupSdftColorDiv();
     }else if(stY>y1&&stY<y2){
       const rect = sdftColorRadius.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorRadius[slidingDftColorSelected]=value*120;
+      slidingDftColorRadius[slidingDftColorSelected]=Math.max(0,Math.min(value*120,120));
       checkPopupSdftColorDiv();
     }else if(stY>y2&&stY<y3){
       const rect = sdftColorLightness.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorLightness[slidingDftColorSelected]=value*100;
+      slidingDftColorLightness[slidingDftColorSelected]=Math.max(0,Math.min(value*100,100));
       checkPopupSdftColorDiv();
     }else{
       const [p] = gesture.pointers.values();
