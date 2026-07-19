@@ -660,6 +660,7 @@
   <div data-action="popupUnitMenu">‹　横軸 単位</div>
   <div data-action="popUpPeakMenu">‹　ピーク 設定</div>
   <div data-action="separatorReset">　分割位置ﾘｾｯﾄ</div>
+  <div data-action="resizeApply">　画面再ﾌｨｯﾄ</div>
 </div>
 <div id="popupLockMenu" class="menu hidden"><!--🔒-->
 <!--  <div data-action="lockSeparator1">区切り(上)</div>
@@ -1159,7 +1160,6 @@ const sdftColorLightnessCtx = sdftColorLightness.getContext("2d");//描画コン
 sdftColorLightness.width = 0;//使うまで幅をゼロにしてメモリを解放しておく
 sdftColorLightness.height = sdftColorHue.height;//高さは固定
 
-
 const fftSnapCanvas = document.createElement("canvas");//FFTスナップショット用
 const fftSnapCtx = fftSnapCanvas.getContext("2d");
 fftSnapCtx.globalCompositeOperation = "source-over";//上書き
@@ -1466,7 +1466,6 @@ makeBitRevTable();
 makeTdCos05P();
 makeTdWindow();
 
-
 //LPC設定用
 let lpc1DownSamplePitch = 2;
 let lpc1Order = 35;
@@ -1523,26 +1522,34 @@ const slidingDftGain = [1000, 4000, 8000, 8000];//ターゲット周波数によ
 const slidingDftIsVisible = [true, true, true, false];//表示するか
 const slidingDftColor = ["#ff4d4d", "#4dff4d", "#8d8dff", "#cdcdff"];//色
 const slidingDftColorLightness = [59.906, 88.823, 62.577, 83.658];//色
-const slidingDftColorRadius = [63.49061828, 77.81727572, 49.39196401, 19.69009347];//色
+//const slidingDftColorRadius = [63.49061828, 77.81727572, 49.39196401, 19.69009347];//色
+const slidingDftColorRadius = [63.49061828, 63.49061828, 49.39196401, 19.69009347];//色
 const slidingDftColorHue = [31.35748258, 136.343356, 290.8093935, 270.1765426];//色
+const maxRadius=180;
+const radiusGamma=0.7;//なんとなくな係数
 
 //lab(59.906%, 54.217%, 33.039%)
 //lab(88.823%, -56.307%, 53.722%)
 //lab(62.578%, 17.547%, -46.17%)
 //lab(83.658%, 6.067%, -19.696%)
-
-
 //oklch(67.3% 0.2146 25)
 //oklch(87.8% 0.2595 143)
 //oklch(69.5% 0.1643 281.2)
 //oklch(86.5% 0.069 284.9)
-//lab(78.411 31.728 13.328)
-//lab(88.823 -70.398 67.149)
-//lab(62.577 21.938 -57.711)
-//lab(83.658 7.585 -24.619)
-const slidingDftColorL = [78.411, 88.823, 62.577, 83.658];//色
-const slidingDftColorW = [0.397688004, 2.379811115, 5.07565439, 5.011256076];//色
-const slidingDftColorR = [34.41368286, 97.28754599, 61.74006288, 25.76096633];//色
+
+const slidingDftColorMapUnit8 = new Uint8ClampedArray(16*16*16*16*4);//階調1×階調2×階調3×階調4×RGBA
+const slidingDftColorMap =  new Uint32Array(slidingDftColorMapUnit8.buffer);//階調1×階調2×階調3×階調4×RGBA
+let slidingDft1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
+let slidingDft1LineBuffer = new Uint32Array(slidingDft1LineBufferUint8.buffer);//１ドット
+let slidingDft1LineImageData = new ImageData(slidingDft1LineBufferUint8, slidingDft1LineBuffer.length, 1);
+
+const colorLab_inv116 = 1 / 116;//LAB→rgb計算用
+const colorXYZ_d4 = 4 / 29;//LAB→rgb計算用
+const colorXYZ_d6 = 6 / 29;//LAB→rgb計算用
+const colorXYZ_d6sqare_x3 = colorXYZ_d6 * colorXYZ_d6 * 3;//LAB→rgb計算用
+makeSdftColorMap();//マップ作り
+
+
 const slidingDftWidth = [1.2, 0.8, 1.0, 0.8];//色
 const slidingDftSin = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftCos = slidingDftSampleNum.map(n => new Float32Array(n));
@@ -1553,10 +1560,6 @@ const slidingDftValue = slidingDftRevolutionNum.map(() => new Float32Array(waveV
 let slidingDftLwrIsVisible = true;
 let waveLAlphaDefault = 0.8;//FFT線表示のグリッドの透明度
 let waveLAlpha = waveLAlphaDefault;//FFT線表示のグリッドの透明度
-const colorLab_inv116 = 1 / 116;//LAB→rgb計算用
-const colorXYZ_d4 = 4 / 29;//LAB→rgb計算用
-const colorXYZ_d6 = 6 / 29;//LAB→rgb計算用
-const colorXYZ_d6sqare_x3 = colorXYZ_d6 * colorXYZ_d6 * 3;//LAB→rgb計算用
 let slidingDftColorSelected = 0;
 
 //ASDF
@@ -1946,6 +1949,10 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
     spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
     spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
+    slidingDft1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
+    slidingDft1LineBuffer = new Uint32Array(slidingDft1LineBufferUint8.buffer);//１ドット
+    slidingDft1LineImageData = new ImageData(slidingDft1LineBufferUint8, slidingDft1LineBuffer.length, 1);
+
     historyV1LCanvas.width = w;
     historyV1LCanvas.height = 1;//1行更新用グリッド
     decibelWeightAtX =  new Float32Array(fftCanvas.width).fill(0);//ウェイト事前計算用
@@ -4138,6 +4145,7 @@ function checkPopupSdftColorDiv() {
       linearB = Math.round(Math.max(0, Math.min(1, gamma(linearB))) * 255);
 
       el.style.backgroundColor = `rgb(${Math.round(linearR)}, ${Math.round(linearG)}, ${Math.round(linearB)})`;
+      slidingDftColor[i]=el.style.backgroundColor;
       el.style.color = selL>65?"#000000":"#ffffff";
       if (i===slidingDftColorSelected) el.classList.add("paletteSelected");
       else el.classList.remove("paletteSelected")
@@ -4153,13 +4161,17 @@ function makeSdftColorCanvas() {
   const canvasFontSizeMini = 10;
   const canvasFontPad = 3;
 
-  const radiusGamma=0.7;//なんとなくな係数
   const selL=slidingDftColorLightness[slidingDftColorSelected];
   const selA=slidingDftColorRadius[slidingDftColorSelected]*Math.cos(Math.PI*slidingDftColorHue[slidingDftColorSelected]/180);
   const selB=slidingDftColorRadius[slidingDftColorSelected]*Math.sin(Math.PI*slidingDftColorHue[slidingDftColorSelected]/180);
   const selW=Math.atan2(selB,selA);
+  const cosSelW=Math.cos(selW);
+  const sinSelW=Math.sin(selW);
   const selR=slidingDftColorRadius[slidingDftColorSelected];//補正後R
-  const baseR=selR/Math.pow(Math.sin(Math.PI*selL/100), radiusGamma);//Lが半分のとこのR
+  const selLW=Math.PI*selL/100;
+  const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+  const baseR=selR/selLSin;//選択したRのLが半分のとこのR
+  const selLmaxR=maxRadius*selLSin;//選択したLの最大半径
 
   //一本目のhur
   const wPerHueX = 2 * Math.PI / sdftColorHue.width;
@@ -4199,11 +4211,12 @@ function makeSdftColorCanvas() {
   }
 
   //２本目の彩度
-  const radiusPerX = 120 / sdftColorRadius.width;
+  const radiusPerX = maxRadius / sdftColorRadius.width;
+  const radiusPerXxselLSin = radiusPerX*selLSin;
   for (let x = 0; x < sdftColorRadius.width; x++) {
-    const lab_radius = radiusPerX * x;
-    const lab_a = lab_radius*Math.cos(selW);
-    const lab_b = lab_radius*Math.sin(selW);
+    const lab_radius = radiusPerXxselLSin * x;
+    const lab_a = lab_radius*cosSelW;
+    const lab_b = lab_radius*sinSelW;
     let [linearR, linearG, linearB] = labToLinearRgb(selL, lab_a, lab_b);
     linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
     linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
@@ -4217,11 +4230,13 @@ function makeSdftColorCanvas() {
   for(let i=0;i<slidingDftColorRadius.length;i++){
     const iText = `${i+1}`;
     const iTextWidth = sdftColorRadiusCtx.measureText(iText).width;
-    const x=slidingDftColorRadius[i]/radiusPerX;
+    const iLW=Math.PI*slidingDftColorLightness[i]/100;
+    const iLSin=Math.pow(Math.sin(iLW), radiusGamma);
+    const x=slidingDftColorRadius[i]/iLSin/radiusPerX;
     sdftColorRadiusCtx.fillText(iText, x-iTextWidth*0.5|0, 2);
   }
   {//線とtxt
-    const lineX=selR/radiusPerX |0;
+    const lineX=baseR/radiusPerX |0;
     sdftColorRadiusCtx.fillRect(lineX,0,1,sdftColorRadius.height);
     sdftColorRadiusCtx.font = `${canvasFontSize}px JetBrains Mono, Fira Code, monospace`;
     sdftColorRadiusCtx.globalCompositeOperation = "source-over";//上書きモード
@@ -4240,8 +4255,8 @@ function makeSdftColorCanvas() {
   for (let x = 0; x < sdftColorLightness.width; x++) {
     const lab_l = lightnessPerX * x;
     const lab_radius = baseR*Math.pow(Math.sin(lightnessWPerX*x), radiusGamma)
-    const lab_a = lab_radius*Math.cos(selW);
-    const lab_b = lab_radius*Math.sin(selW);
+    const lab_a = lab_radius*cosSelW;
+    const lab_b = lab_radius*sinSelW;
     let [linearR, linearG, linearB] = labToLinearRgb(lab_l, lab_a, lab_b);
     linearR = Math.round(Math.max(0, Math.min(1, gamma(linearR))) * 255);
     linearG = Math.round(Math.max(0, Math.min(1, gamma(linearG))) * 255);
@@ -4274,6 +4289,78 @@ function makeSdftColorCanvas() {
     sdftColorLightnessCtx.fillText(lightnessText, sdftColorLightness.width-lightnessTextWidth, sdftColorLightness.height-1);
   }
 }
+function makeSdftColorMap(){
+//const slidingDftColorMapUnit8 = new Uint8ClampedArray(16*16*16*16*4);//階調1×階調2×階調3×階調4×RGBA
+  const cosSelW = slidingDftColorHue.map((hue) => Math.cos(Math.PI*hue/180));
+  const sinSelW = slidingDftColorHue.map((hue) => Math.sin(Math.PI*hue/180));
+  const selLW16 = slidingDftColorLightness.map((lightness) => Math.min(Math.PI*lightness/100/15,1/15));
+//  const baseR = slidingDftColorRadius.map((r, i) => selLW16[i] !== 0 ? r / selLW16[i] * 15 : 0);
+  const baseR = slidingDftColorRadius.map((r, i) => 
+  selLW16[i] !== 0 ? r / Math.pow(Math.sin(Math.PI*slidingDftColorLightness[i]/100), radiusGamma) : 0);
+
+  for(let i0=0;i0<16;i0++){
+    const l0=slidingDftColorLightness[0]*i0/15;
+    const selLSin0=Math.pow(Math.sin(selLW16[0]*i0), radiusGamma);
+    const radius0=baseR[0]*selLSin0;
+    const a0=radius0*cosSelW[0];
+    const b0=radius0*sinSelW[0];
+    let [linearR, linearG, linearB] = labToLinearRgb(l0, a0, b0);
+    for(let i1=0;i1<16;i1++){
+      const l1=slidingDftColorLightness[1]*i1/15;
+      const selLSin1=Math.pow(Math.sin(selLW16[1]*i1), radiusGamma);
+      const radius1=baseR[1]*selLSin1;
+      const a1=radius1*cosSelW[1];
+      const b1=radius1*sinSelW[1];
+      let [linearR1, linearG1, linearB1] = labToLinearRgb(l1, a1, b1);
+      linearR1+=linearR;linearG1+=linearG;linearB1+=linearB;
+      for(let i2=0;i2<16;i2++){
+        const l2=slidingDftColorLightness[2]*i2/15;
+        const selLSin2=Math.pow(Math.sin(selLW16[2]*i2), radiusGamma);
+        const radius2=baseR[2]*selLSin2;
+        const a2=radius2*cosSelW[2];
+        const b2=radius2*sinSelW[2];
+        let [linearR2, linearG2, linearB2] = labToLinearRgb(l2, a2, b2);
+        linearR2+=linearR1;linearG2+=linearG1;linearB2+=linearB1;
+        for(let i3=0;i3<16;i3++){
+          const l3=slidingDftColorLightness[3]*i3/15;
+          const selLSin3=Math.pow(Math.sin(selLW16[3]*i3), radiusGamma);
+          const radius3=baseR[3]*selLSin3;
+          const a3=radius3*cosSelW[3];
+          const b3=radius3*sinSelW[3];
+          let [linearR3, linearG3, linearB3] = labToLinearRgb(l3, a3, b3);
+          linearR3+=linearR2;
+          linearG3+=linearG2;
+          linearB3+=linearB2;
+          linearR3=Math.max(0, Math.min(1, gamma(linearR3))) * 255;
+          linearG3=Math.max(0, Math.min(1, gamma(linearG3))) * 255; 
+          linearB3=Math.max(0, Math.min(1, gamma(linearB3))) * 255;
+
+          let [totalL,totalA,totalB]=linearRgbToLab(linearR3, linearG3, linearB3);
+          totalL = Math.max(0,Math.min(totalL,100));
+          const totalW = Math.atan2(totalB,totalA);
+          const finalL=Math.max(slidingDftColorLightness[0],slidingDftColorLightness[1],slidingDftColorLightness[2],slidingDftColorLightness[3]);
+          const finalRadius = maxRadius*Math.pow(Math.sin(Math.PI*totalL/100), radiusGamma);
+          const finalA = finalRadius*Math.cos(totalW);
+          const finalB = finalRadius*Math.sin(totalW);
+          [linearR3, linearG3, linearB3] = labToLinearRgb(totalL, finalA, finalB);
+          linearR3=Math.max(0, Math.min(1, gamma(linearR3))) * 255;
+          linearG3=Math.max(0, Math.min(1, gamma(linearG3))) * 255; 
+          linearB3=Math.max(0, Math.min(1, gamma(linearB3))) * 255;
+
+          const R255 = Math.round(linearR3);
+          const G255 = Math.round(linearG3);
+          const B255 = Math.round(linearB3);
+          const mapPos=i0*16384+i1*1024+i2*64+i3*4;
+          slidingDftColorMapUnit8[mapPos]=R255;
+          slidingDftColorMapUnit8[mapPos+1]=G255;
+          slidingDftColorMapUnit8[mapPos+2]=B255;
+          slidingDftColorMapUnit8[mapPos+3]=255;//A
+        }
+      }
+    }
+  }
+}
+
 
 //メニュー非表示
 function hideMenu() { menu.classList.add('hidden');}//ポップアップ消去
@@ -5051,6 +5138,10 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
       }
       hidePopupViewMenu();
       break;
+    case 'resizeApply':
+      resizeCanvas();
+      break;
+
   }
 });
 popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
@@ -6234,24 +6325,39 @@ function popupSdftColorDivClick(e) {
       {
         const rect = sdftColorHue.getBoundingClientRect();
         const value = (e.clientX-rect.left)/rect.width;
-        slidingDftColorHue[slidingDftColorSelected]=value*360;
+        slidingDftColorHue[slidingDftColorSelected]=Math.max(0,Math.min(value*360,360));
         checkPopupSdftColorDiv();
+        makeSdftColorMap();
       }
       break;
     case 'sdftColorRadius':
       {
         const rect = sdftColorRadius.getBoundingClientRect();
         const value = (e.clientX-rect.left)/rect.width;
-        slidingDftColorRadius[slidingDftColorSelected]=value*120;
+        const selLW=Math.PI*slidingDftColorLightness[slidingDftColorSelected]/100;
+        const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+        const selLmaxR=maxRadius*selLSin;//選択したLの最大半径
+        slidingDftColorRadius[slidingDftColorSelected]=Math.max(0.1,Math.min(value*selLmaxR,selLmaxR));
         checkPopupSdftColorDiv();
+        makeSdftColorMap();
       }
       break;
     case 'sdftColorLightness':
       {
         const rect = sdftColorLightness.getBoundingClientRect();
         const value = (e.clientX-rect.left)/rect.width;
-        slidingDftColorLightness[slidingDftColorSelected]=value*100;
+        const selL=slidingDftColorLightness[slidingDftColorSelected];//変更前のL
+        const selR=slidingDftColorRadius[slidingDftColorSelected];//補正後R
+        const selLW=Math.PI*selL/100;
+        const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+        const baseR=selR/selLSin;//選択したRのLが半分のとこのR
+
+        slidingDftColorLightness[slidingDftColorSelected]=Math.max(0.1,Math.min(value*100,99.99));//L適用
+        const newLW=Math.PI*slidingDftColorLightness[slidingDftColorSelected]/100;
+        const newLSin=Math.pow(Math.sin(newLW), radiusGamma);
+        slidingDftColorRadius[slidingDftColorSelected]=baseR*newLSin;//半径も更新
         checkPopupSdftColorDiv();
+        makeSdftColorMap();
       }
       break;
     default://数値の処理
@@ -6262,6 +6368,7 @@ function popupSdftColorDivClick(e) {
   }
 
 //  checkPopupCCorrectionDiv();
+  drawWaveGrid();
   if (!rafId) draw();
 }
 popupSdftColorDiv.addEventListener('pointerdown', async (e) => {
@@ -6330,18 +6437,36 @@ popupSdftColorDiv.addEventListener('pointermove', async (e) => {
     if(stY>y0&&stY<y1){
       const rect = sdftColorHue.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorHue[slidingDftColorSelected]=Math.max(0,Math.max(value*360,360));
+      slidingDftColorHue[slidingDftColorSelected]=Math.max(0,Math.min(value*360,360));
       checkPopupSdftColorDiv();
+      drawWaveGrid();
+      if (!rafId) draw();
     }else if(stY>y1&&stY<y2){
       const rect = sdftColorRadius.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorRadius[slidingDftColorSelected]=Math.max(0,Math.min(value*120,120));
+      const selLW=Math.PI*slidingDftColorLightness[slidingDftColorSelected]/100;
+      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+      const selLmaxR=maxRadius*selLSin;//選択したLの最大半径
+      slidingDftColorRadius[slidingDftColorSelected]=Math.max(0.1,Math.min(value*selLmaxR,selLmaxR));
       checkPopupSdftColorDiv();
+      drawWaveGrid();
+      if (!rafId) draw();
     }else if(stY>y2&&stY<y3){
       const rect = sdftColorLightness.getBoundingClientRect();
       const value = (e.clientX-rect.left)/rect.width;
-      slidingDftColorLightness[slidingDftColorSelected]=Math.max(0,Math.min(value*100,100));
+      const selL=slidingDftColorLightness[slidingDftColorSelected];//変更前のL
+      const selR=slidingDftColorRadius[slidingDftColorSelected];//補正後R
+      const selLW=Math.PI*selL/100;
+      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+      const baseR=selR/selLSin;//選択したRのLが半分のとこのR
+
+      slidingDftColorLightness[slidingDftColorSelected]=Math.max(0.1,Math.min(value*100,99.99));//L適用
+      const newLW=Math.PI*slidingDftColorLightness[slidingDftColorSelected]/100;
+      const newLSin=Math.pow(Math.sin(newLW), radiusGamma);
+      slidingDftColorRadius[slidingDftColorSelected]=baseR*newLSin;//半径も更新
       checkPopupSdftColorDiv();
+      drawWaveGrid();
+      if (!rafId) draw();
     }else{
       const [p] = gesture.pointers.values();
       const dx = (p.x - gesture.start.pt.x);
@@ -7782,7 +7907,33 @@ function gamma(c){
         return 1.055 * Math.pow(c, 1/2.4) - 0.055;
     }
 }
+function linearRgbToLab(linearR, linearG, linearB) {
 
+  // RGB → XYZ (D65)
+  let X = 0.4124564 * linearR + 0.3575761 * linearG + 0.1804375 * linearB;
+  let Y = 0.2126729 * linearR + 0.7151522 * linearG + 0.0721750 * linearB;
+  let Z = 0.0193339 * linearR + 0.1191920 * linearG + 0.9503041 * linearB;
+
+  // 白色点 (RGB=255,255,255)
+  X /= 242.36628;
+  Y /= 255.00000;
+  Z /= 277.63227;
+
+  const f = t =>
+    t > 216 / 24389
+      ? Math.cbrt(t)
+      : (24389 / 27 * t + 16) / 116;
+
+  const fx = f(X);
+  const fy = f(Y);
+  const fz = f(Z);
+
+  const L = 116 * fy - 16;
+  const a = 500 * (fx - fy);
+  const b = 200 * (fy - fz);
+
+  return [L, a, b];
+}
 
 //描画系
 function drawXScale () {//周波数基準の縦の線を描く
@@ -9516,6 +9667,7 @@ function drawWaveGrid() {//波形領域のグリッド描画
 }
 
 function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
+  const xToI = iToX!==0?1/iToX:0;
   const dftSampleNum = slidingDftSampleNum[0];
   const dftSampleNumHalf = dftSampleNum * 0.5;
   const dftMax = new Float32Array(slidingDftSampleNum.length).fill(-Infinity);//最大値
@@ -9636,15 +9788,62 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   }//ビンごとループの終わり
   ctxFft.restore();
 
-  if (colorBeltVisible === false) return;//色の帯を表示しないならここで終わる
-
+  if (colorBeltVisible === false) return;//色の帯を表示しないならここで終わる#######################################
   dftSquareSum /= dftSquareLength;
   dftSquareSum = Math.sqrt(dftSquareSum * 2);
   dftSquareMax = Math.sqrt(dftSquareMax);
+  const invDftMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
+
+  let visibleMax=-Infinity;
+  for(let i=0;i<dftMax.length;i++){
+    if(slidingDftIsVisible[0] && visibleMax<dftMax[i]*slidingDftGain[i])visibleMax=dftMax[i]*slidingDftGain[i];
+  }
+
+  const toNorm = slidingDftGain.map((gain) => gain/visibleMax);//0～15の数値にするための係数
+
+  let previousX=0;
+  let idotMax=[0,0,0,0];
+  for (let i = 0; i < slidingDftValue[0].length ; i++) {
+    const x=iToX*i|0;//今回のx位置
+    if(previousX===x){//前回と同じx
+      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+        idotMax[sdftNo] = Math.max(idotMax[sdftNo], slidingDftValue[sdftNo][i]);}//最大値を探る
+    }else{//ズレた
+      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+        const norm=idotMax[sdftNo]*toNorm[sdftNo];
+        idotMax[sdftNo] = Math.round(Math.min(norm*15,15));
+      }//15までの整数にする
+      const mapPos=(slidingDftIsVisible[0]?idotMax[0]*4096:0)+(slidingDftIsVisible[1]?idotMax[1]*256:0)
+                  +(slidingDftIsVisible[2]?idotMax[2]*16:0)+(slidingDftIsVisible[3]?idotMax[3]:0);
+      const dotColor=slidingDftColorMap[mapPos];//1ドット分をマップから持ってくる
+      while(previousX<x){//１ドット以上の可能性もあるのでループ
+        slidingDft1LineBuffer[previousX]=dotColor;
+        previousX++;
+      }
+      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+        idotMax[sdftNo] = slidingDftValue[sdftNo][i];}//idotMaxに現在値を入れる
+    }
+  }
+  {//最後のドット
+      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+        const norm=idotMax[sdftNo]*toNorm[sdftNo];
+        idotMax[sdftNo] = Math.round(Math.min(norm*15,15));
+      }//15までの整数にする
+      const mapPos=(slidingDftIsVisible[0]?idotMax[0]*4096:0)+(slidingDftIsVisible[1]?idotMax[1]*256:0)
+                  +(slidingDftIsVisible[2]?idotMax[2]*16:0)+(slidingDftIsVisible[3]?idotMax[3]:0);
+      const dotColor=slidingDftColorMap[mapPos];//1ドット分をマップから持ってくる
+      while(previousX<slidingDft1LineBuffer.length){//１ドット以上の可能性もあるのでループ
+        slidingDft1LineBuffer[previousX]=dotColor;
+        previousX++;
+      }
+  }
+  for(let y=0;y<=8*dpr;y++){
+    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
+  }
+
+  return;//ここから下は使わない
 //  ctxFft.fillStyle = "#f88";//色指定
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
-//  const invDftSquareMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
-  const invDftSquareMax = 1;
   for (let j = 0; j < waveViewLength; j++) {
 
     let r = slidingDftValue[0][j] * slidingDftGain[0];
