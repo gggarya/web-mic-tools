@@ -9957,7 +9957,8 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       const mapPos=(slidingDftIsVisible[0]?idotMax[0]*4096:0)+(slidingDftIsVisible[1]?idotMax[1]*256:0)
                   +(slidingDftIsVisible[2]?idotMax[2]*16:0)+(slidingDftIsVisible[3]?idotMax[3]:0);
       maxNorm=Math.pow(maxNorm,0.2);
-      const dotColor=slidingDftColorMap[mapPos]|(Math.round(Math.max(0,Math.min(maxNorm,1))*255)<<24);//1ドット分をマップから持ってくる
+//      const dotColor=slidingDftColorMap[mapPos]|(Math.round(Math.max(0,Math.min(maxNorm,1))*255)<<24);//1ドット分をマップから持ってくる
+      const dotColor=slidingDftColorMap[mapPos]|(Math.round(Math.max(0,Math.min(1,1))*255)<<24);//1ドット分をマップから持ってくる
       while(previousX<x){//１ドット以上の可能性もあるのでループ
         slidingDft1LineBuffer[previousX]=dotColor;
         previousX++;
@@ -9980,7 +9981,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       }
   }
   for(let y=0;y<=8*dpr;y++){
-//    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
+    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
   }
 
   return;//ここから下は使わない###############################################
