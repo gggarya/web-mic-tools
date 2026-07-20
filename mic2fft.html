@@ -196,6 +196,19 @@
     transition: opacity 1.2s ease-out;
   }
 
+  .separator {
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0);
+    border: 0px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;      
+  }
+
+
   #infoRect {
     position: absolute;
     pointer-events: none; /* 操作の邪魔しない */
@@ -575,7 +588,8 @@
   <div id="overlayPlay" class="nudge allow-menu">▶</div>
   <div id="overlayLock" class="allow-menu"></div>
   <div id="overlayMenu" class="allow-menu">☰</div>
-
+  <div id="separator1" class="separator allow-menu"></div>
+  <div id="separator2" class="separator"></div>
   <div id="dragRect" class="fadeoutObj"></div>
   <div id="dragRect2" class="fadeoutObj"></div>
   <div id="infoRect"></div>
@@ -599,7 +613,6 @@
   <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
   <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
   <div data-action="sdftSetting">SDFT設定　<span>↗</span></div>
-  <div data-action="popupSdftColorDiv">SDFT色設定　<span>↗</span></div>
   <div data-action="slidingDftLwrIsVisible">正規化SDFTの表示</div>
   <div data-action="colorBeltVisible">色付リボンの表示</div>
 </div>
@@ -661,6 +674,7 @@
   <div data-action="popUpPeakMenu">‹　ピーク 設定</div>
   <div data-action="separatorReset">　分割位置ﾘｾｯﾄ</div>
   <div data-action="resizeApply">　画面再ﾌｨｯﾄ</div>
+  <div data-action="fingerReset">　指ﾘｾｯﾄ</div>
 </div>
 <div id="popupLockMenu" class="menu hidden"><!--🔒-->
 <!--  <div data-action="lockSeparator1">区切り(上)</div>
@@ -1065,7 +1079,7 @@
 </div>
 <div id="popupSdftColorDiv" class="inputBox hidden">
   <div style="display: flex; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
-    <div class="divTitle">SDFT 色調変更(未)</div>
+    <div class="divTitle">SDFT 色調変更</div>
     <div data-action="x" class="inputButton" style="justify-content: center; width: 1ch; height: 1.8ch; border-radius: 0%;"><span>×</span></div>
   </div>
   <canvas id="sdftColorHue" data-action="sdftColorHue" style="display: block; background: #000; border: 0px; padding: 0;"></canvas>
@@ -1106,6 +1120,12 @@ const canTransformPath = (() => {//トランスフォームパスが使えるか
     }
 })();
 const tapAfterWait = 300;//タップ後の影響を避けるためのディレイなど
+const MOVE_THRESHOLD = 10; //長押しでこれ以上動いたら長押し判定を止める閾値
+const LONGPRESS_TIME = 600;//長押し判定の時間
+const dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
+const invDpr = 1 / dpr;
+const HIT_RANGE = 35 * dpr;//タップしたときのヒット範囲
+
 
 //色
 const bgColorRed = "#600";//赤部分の背景色
@@ -1171,6 +1191,8 @@ fftSnapUndoCanvas.width = 0;//使うまで幅をゼロにしてメモリを解�
 const overlayPlay = document.getElementById("overlayPlay");
 const overlayLock = document.getElementById("overlayLock");
 const overlayMenu = document.getElementById("overlayMenu");
+const separator1 = document.getElementById("separator1");
+const separator2 = document.getElementById("separator2");
 const menu = document.getElementById('popupMenu');
 const micMenu = document.getElementById('popupMicMenu');
 const tiltMenu = document.getElementById('popupTiltMenu');
@@ -1403,8 +1425,6 @@ function updateSliderCCSlider(e){
 }
 
 //画面設定
-let dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホだと２とかになる
-let invDpr = 1 / dpr;
 let nextDrawTime4Wave = 0;//波形領域の表示用
 let nextDrawTime4History = 0;//ヒストリー領域の表示用
 let nextDrawTime4Fft = 0;//ｆｆｔ領域の表示用
@@ -1873,8 +1893,6 @@ const snapPalette = [//スナップショット用カラーパレット
 ]
 
 function resizeCanvas() {//キャンバスサイズの変更関数
-//  dpr = window.devicePixelRatio || 1;//
-//  invDpr = 1 / dpr;
 
   let clientW = window.visualViewport.width - 1;//スクロールバーを含まない画面幅、SCC系
   let clientH = window.visualViewport.height - 1;
@@ -1966,12 +1984,23 @@ function resizeCanvas() {//キャンバスサイズの変更関数
   if (waveHVLCanvas.width !== w || waveHVLCanvas.height !== waveWindowH) {
     waveHVLCanvas.width = w;
     waveHVLCanvas.height = waveWindowH;
+    separator1.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.top  = `${(waveWindowH-HIT_RANGE*0.4)*invDpr}px`;
+    separator1.style.height = `${HIT_RANGE*0.8*invDpr}px`;
+
     drawWaveGrid();
   }
 
   colorMapCanvas.height = h - spectrumHistoryH - 1;
   levelCanvas.height = colorMapCanvas.height;
   makeColorMapCanvas();
+
+  separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+  separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
+
 
   //オーバレイで文字を表示するdivのサイズ変更
   infoRect.style.left = "0px";
@@ -2216,9 +2245,6 @@ let timeMemo = null;//色々時刻を記録する用
 let pressTimer = null;//長押しやダブルタップ判定用タイマー
 let startX = 0;
 let startY = 0;
-const MOVE_THRESHOLD = 10; //長押しでこれ以上動いたら長押し判定を止める閾値
-const LONGPRESS_TIME = 600;//長押し判定の時間
-const HIT_RANGE = 35 * dpr;//タップしたときのヒット範囲
 let gesture = {//ポインタ動作用構造体
   pointers: new Map(),
   mode: null, // 'pan' | 'pinch'
@@ -2412,6 +2438,14 @@ fftCanvas.addEventListener("wheel", e => {
     break;
   }
 }, { passive:false });
+separator1.addEventListener('pointerdown', onDown);
+separator1.addEventListener('pointermove', onMove);
+separator1.addEventListener('pointerup', onUp);
+separator1.addEventListener('pointercancel', onUp);
+separator2.addEventListener('pointerdown', onDown);
+separator2.addEventListener('pointermove', onMove);
+separator2.addEventListener('pointerup', onUp);
+separator2.addEventListener('pointercancel', onUp);
 
 function onDown(e) {
   fftCanvas.setPointerCapture(e.pointerId);//範囲外に出てもこのキャンバスのイベントにする
@@ -2864,6 +2898,10 @@ function panSeparator1() {//上側の区切り線の移動
   if (waveWindowRate > maxRate) waveWindowRate = maxRate;
   if (spectrumHistoryRate > maxRate) spectrumHistoryRate = maxRate;
   updateViewParams();
+  separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+  separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
   if (colorMapCanvas.height !== fftCanvas.height - spectrumHistoryH - 1) {
     colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
     levelCanvas.height = colorMapCanvas.height;
@@ -2872,6 +2910,10 @@ function panSeparator1() {//上側の区切り線の移動
   //wave領域グリッドサイズ変更
   if (waveHVLCanvas.height !== waveWindowH) {
     waveHVLCanvas.height = waveWindowH;
+    separator1.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.top  = `${(waveWindowH-HIT_RANGE*0.4)*invDpr}px`;
+    separator1.style.height  = `${HIT_RANGE*0.8*invDpr}px`;
     drawWaveGrid();
   }  
   if (!rafId) {
@@ -2894,9 +2936,17 @@ function panSeparator2() {//下側の区切り線の移動
   if (waveWindowRate > maxRate) waveWindowRate = maxRate;
   if (spectrumHistoryRate > maxRate) spectrumHistoryRate = maxRate;
   updateViewParams();
+  separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+  separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
   //wave領域グリッドサイズ変更
   if (waveHVLCanvas.height !== waveWindowH) {
     waveHVLCanvas.height = waveWindowH;
+    separator1.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.top  = `${(waveWindowH-HIT_RANGE*0.4)*invDpr}px`;
+    separator1.style.height  = `${HIT_RANGE*0.8*invDpr}px`;
     drawWaveGrid();
   }  
   colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
@@ -4025,7 +4075,7 @@ function showPopupSdftDiv(x, y) {
 }
 function checkPopupSdftDiv() {
   popupSdftDiv.querySelector('[data-action="windowSize"]').textContent = slidingDftSampleLength;
-
+  checkPopupSdftColorDiv();//色を合わせる。
     popupSdftDiv.querySelector('[data-action="windowFreq"]').textContent = 
     (ctxSampleRate / slidingDftSampleLength).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " Hz";
 
@@ -4293,7 +4343,7 @@ function makeSdftColorMap(){
 //const slidingDftColorMapUnit8 = new Uint8ClampedArray(16*16*16*16*4);//階調1×階調2×階調3×階調4×RGBA
   const cosSelW = slidingDftColorHue.map((hue) => Math.cos(Math.PI*hue/180));
   const sinSelW = slidingDftColorHue.map((hue) => Math.sin(Math.PI*hue/180));
-  const selLW16 = slidingDftColorLightness.map((lightness) => Math.min(Math.PI*lightness/100/15,1/15));
+  const selLW16 = slidingDftColorLightness.map((lightness) => Math.min(Math.PI*lightness/100/13,1/15));
 //  const baseR = slidingDftColorRadius.map((r, i) => selLW16[i] !== 0 ? r / selLW16[i] * 15 : 0);
   const baseR = slidingDftColorRadius.map((r, i) => 
   selLW16[i] !== 0 ? r / Math.pow(Math.sin(Math.PI*slidingDftColorLightness[i]/100), radiusGamma) : 0);
@@ -4443,6 +4493,22 @@ fftCanvas.addEventListener('contextmenu', (e) => {//キャンバス右クリッ�
 fftCanvas.addEventListener('click', (e) => {//キャンバス左クリックonDownでやるので何もなし
   e.preventDefault();   // デフォルトのメニューなし
 });
+separator1.addEventListener('contextmenu', (e) => {//キャンバス右クリック
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  showMenu(e.clientX, e.clientY);//ポップアップメニュー表示
+});
+separator1.addEventListener('click', (e) => {//キャンバス左クリックonDownでやるので何もなし
+  e.preventDefault();   // デフォルトのメニューなし
+});
+separator2.addEventListener('contextmenu', (e) => {//キャンバス右クリック
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+  showMenu(e.clientX, e.clientY);//ポップアップメニュー表示
+});
+separator2.addEventListener('click', (e) => {//キャンバス左クリックonDownでやるので何もなし
+  e.preventDefault();   // デフォルトのメニューなし
+});
+
+
 
 //メニューの実動作
 menu.addEventListener('click', async (e) => {//ポップアップメニュークリック
@@ -4611,9 +4677,17 @@ waveSizeMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   waveWindowRate = Number(action);
   if (waveWindowRate > maxRate) waveWindowRate = maxRate;
   updateViewParams();
+  separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+  separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
   //wave領域グリッドサイズ変更
   if (waveHVLCanvas.height !== waveWindowH) {
     waveHVLCanvas.height = waveWindowH;
+    separator1.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+    separator1.style.top  = `${(waveWindowH-HIT_RANGE*0.4)*invDpr}px`;
+    separator1.style.height  = `${HIT_RANGE*0.8*invDpr}px`;
     drawWaveGrid();
   }
   if (!rafId) {
@@ -4632,6 +4706,10 @@ spectroMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   spectrumHistoryRate = Number(action);
   if (spectrumHistoryRate > maxRate) spectrumHistoryRate = maxRate;
   updateViewParams();
+  separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+  separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+  separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
   colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
   levelCanvas.height = colorMapCanvas.height;
   makeColorMapCanvas();
@@ -5122,6 +5200,11 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
       spectrumHistoryRate = spectrumHistoryRateDefault;//二つ目の区切り線の位置
 
       updateViewParams();
+      separator2.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+      separator2.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+      separator2.style.top  = `${(spectrumHistoryH-HIT_RANGE*0.4)*invDpr}px`;
+      separator2.style.height = `${HIT_RANGE*0.8*invDpr}px`;
+
       if (colorMapCanvas.height !== fftCanvas.height - spectrumHistoryH - 1) {
         colorMapCanvas.height = fftCanvas.height - spectrumHistoryH - 1;
         levelCanvas.height = colorMapCanvas.height;
@@ -5130,6 +5213,10 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
       //wave領域グリッドサイズ変更
       if (waveHVLCanvas.height !== waveWindowH) {
         waveHVLCanvas.height = waveWindowH;
+        separator1.style.left = `${0.4*waveHVLCanvas.width*invDpr}px`;
+        separator1.style.width = `${0.2*waveHVLCanvas.width*invDpr}px`;
+        separator1.style.top  = `${(waveWindowH-HIT_RANGE*0.4)*invDpr}px`;
+        separator1.style.height  = `${HIT_RANGE*0.8*invDpr}px`;
         drawWaveGrid();
       }  
       if (!rafId) {
@@ -5138,10 +5225,12 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
       }
       hidePopupViewMenu();
       break;
-    case 'resizeApply':
+    case 'resizeApply'://リサイズを再適用
       resizeCanvas();
       break;
-
+    case 'fingerReset'://指がゼロになるまでonUp
+      while(gesture.pointers.size !== 0)onUp(e);
+      break;
   }
 });
 popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
@@ -6057,7 +6146,12 @@ function sdftDivClick(e) {
         
         showPopupInputDiv(e.clientX, e.clientY);
       } else if (/^color\d+$/.test(action)) {//色
-        const sdftIndex = Number(action.slice(5));
+        slidingDftColorSelected = Number(action.slice(5));
+        if(popupSdftColorDiv.classList.contains('hidden')){
+          showPopupSdftColorDiv(e.clientX, e.clientY);
+        }else{
+          checkPopupSdftColorDiv();
+        }
       } else if (/^fleq\d+$/.test(action)) {//周波数
         const sdftIndex = Number(action.slice(4));
       } else {
@@ -7860,7 +7954,6 @@ function tdFftN(N, wStep) {//N個ごと。wStepはsize/N
     i += half;
   }
 }
-
 
 function labToLinearRgb(L,a,b){
 
@@ -9796,10 +9889,10 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
 
   let visibleMax=-Infinity;
   for(let i=0;i<dftMax.length;i++){
-    if(slidingDftIsVisible[0] && visibleMax<dftMax[i]*slidingDftGain[i])visibleMax=dftMax[i]*slidingDftGain[i];
+    if(slidingDftIsVisible[0] && visibleMax<dftMax[i]*slidingDftGain[i]) visibleMax=dftMax[i]*slidingDftGain[i];
   }
 
-  const toNorm = slidingDftGain.map((gain) => gain/visibleMax);//0～15の数値にするための係数
+  const toNorm = slidingDftGain.map((gain) => gain/visibleMax);//0～1の数値にするための係数
 
   let previousX=0;
   let idotMax=[0,0,0,0];
@@ -9841,7 +9934,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
   }
 
-  return;//ここから下は使わない
+  return;//ここから下は使わない###############################################
 //  ctxFft.fillStyle = "#f88";//色指定
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
   for (let j = 0; j < waveViewLength; j++) {
