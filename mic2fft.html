@@ -9981,10 +9981,10 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       }
   }
   for(let y=0;y<=8*dpr;y++){
-    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
+//    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
   }
 
-  return;//ここから下は使わない###############################################
+//  return;//ここから下は使わない###############################################
 //  ctxFft.fillStyle = "#f88";//色指定
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
   for (let j = 0; j < waveViewLength; j++) {
