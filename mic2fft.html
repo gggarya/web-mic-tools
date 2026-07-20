@@ -1136,7 +1136,7 @@ const supportCanvasFilter = "filter" in CanvasRenderingContext2D.prototype;//2D�
 
 //オブジェクトやら
 const fftCanvas = document.getElementById("fftWindow");//メインウィンド
-const ctxFft = fftCanvas.getContext("2d");//描画コンテキスト
+const ctxFft = fftCanvas.getContext("2d", {willReadFrequently: true});//描画コンテキスト
 const historyCanvas = document.createElement("canvas");//ヒストリー用
 const historyCtx = historyCanvas.getContext("2d");
 historyCtx.globalCompositeOperation = "source-over";//上書き
@@ -9981,10 +9981,10 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       }
   }
   for(let y=0;y<=8*dpr;y++){
-//    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
+    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
   }
 
-//  return;//ここから下は使わない###############################################
+  return;//ここから下は使わない###############################################
 //  ctxFft.fillStyle = "#f88";//色指定
 //  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
   for (let j = 0; j < waveViewLength; j++) {
