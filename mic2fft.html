@@ -1146,7 +1146,8 @@ const glCtx2 = glCanvas2.getContext("webgl2");
 glCanvas2.height = 1;
 const glCanvas = document.getElementById("glWindow");
 const glCtx = glCanvas.getContext("webgl2");
-glCanvas.height = (8 * Math.pow(dpr, 0.3)) | 0;
+//glCanvas.height = (8 * Math.pow(dpr, 0.3)) | 0;
+glCanvas.height = 8;
 let glSampleNum = glCanvas.width;
 let rgb = new Uint8Array(glSampleNum * 3);
 
