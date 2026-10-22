@@ -1136,15 +1136,17 @@ const dpr = window.devicePixelRatio || 1;//canvas座標÷css座標。スマホ�
 const invDpr = 1 / dpr;
 const HIT_RANGE = 35 * dpr;//タップしたときのヒット範囲
 
-
 //色
 const bgColorRed = "#600";//赤部分の背景色
 const supportCanvasFilter = "filter" in CanvasRenderingContext2D.prototype;//2Dコンテキストのフィルタが使えるかどうか
 
 //カラーバー用オブジェクトやら
+const glCanvas2 = document.createElement("canvas");//ヒストリー用
+const glCtx2 = glCanvas2.getContext("webgl2");
+glCanvas2.height = 1;
 const glCanvas = document.getElementById("glWindow");
 const glCtx = glCanvas.getContext("webgl2");
-glCanvas.height = 8 * Math.sqrt(dpr);
+glCanvas.height = (8 * Math.pow(dpr, 0.3)) | 0;
 let glSampleNum = glCanvas.width;
 let rgb = new Uint8Array(glSampleNum * 3);
 
@@ -1190,19 +1192,21 @@ void main()
     outColor = vec4(v_color, 1.0);
 }
 `;
-function createShader(type, source) {//--------- Shaderを作る
-    const shader = glCtx.createShader(type);
-    glCtx.shaderSource(shader, source);
-    glCtx.compileShader(shader);
-    if (!glCtx.getShaderParameter(shader, glCtx.COMPILE_STATUS)) {
-        console.log(glCtx.getShaderInfoLog(shader));
-        glCtx.deleteShader(shader);
+function createShader(ctx, type, source) {//--------- Shaderを作る
+    const shader = ctx.createShader(type);
+    ctx.shaderSource(shader, source);
+    ctx.compileShader(shader);
+    if (!ctx.getShaderParameter(shader, ctx.COMPILE_STATUS)) {
+        console.log(ctx.getShaderInfoLog(shader));
+        ctx.deleteShader(shader);
         return null;
     }
     return shader;
 }
-const vertexShader = createShader(glCtx.VERTEX_SHADER, vertexShaderSource); //--------- Vertex Shader
-const fragmentShader = createShader(glCtx.FRAGMENT_SHADER, fragmentShaderSource); //--------- Fragment Shader
+const vertexShader = createShader(glCtx, glCtx.VERTEX_SHADER, vertexShaderSource); //--------- Vertex Shader
+const fragmentShader = createShader(glCtx, glCtx.FRAGMENT_SHADER, fragmentShaderSource); //--------- Fragment Shader
+const vertexShader2 = createShader(glCtx2, glCtx2.VERTEX_SHADER, vertexShaderSource); //--------- Vertex Shader
+const fragmentShader2 = createShader(glCtx2, glCtx2.FRAGMENT_SHADER, fragmentShaderSource); //--------- Fragment Shader
 //--------- Programを作る
 const program = glCtx.createProgram();
 glCtx.attachShader(program, vertexShader);
@@ -1212,6 +1216,14 @@ if (!glCtx.getProgramParameter(program, glCtx.LINK_STATUS)) {
   console.log(glCtx.getProgramInfoLog(program));
 }
 glCtx.useProgram(program);
+const program2 = glCtx2.createProgram();//二個目
+glCtx2.attachShader(program2, vertexShader2);
+glCtx2.attachShader(program2, fragmentShader2);
+glCtx2.linkProgram(program2);
+if (!glCtx2.getProgramParameter(program2, glCtx2.LINK_STATUS)) {
+  console.log(glCtx2.getProgramInfoLog(program2));
+}
+glCtx2.useProgram(program2);
 //--------- RGBデータをBufferへ
 const colorBuffer = glCtx.createBuffer();
 glCtx.bindBuffer(glCtx.ARRAY_BUFFER, colorBuffer);
@@ -1220,11 +1232,28 @@ glCtx.bufferData(
   rgb,
   glCtx.STATIC_DRAW
 );
+const colorBuffer2 = glCtx2.createBuffer();
+glCtx2.bindBuffer(glCtx2.ARRAY_BUFFER, colorBuffer2);
+glCtx2.bufferData(
+  glCtx2.ARRAY_BUFFER,
+  rgb,
+  glCtx2.STATIC_DRAW
+);
 //--------- RGB attribute
 const colorLocation = glCtx.getAttribLocation(program, "a_color");
 glCtx.enableVertexAttribArray(colorLocation);
 glCtx.vertexAttribPointer(
   colorLocation,
+  3,              // R,G,B の3個
+  glCtx.UNSIGNED_BYTE,
+  true,           // 0～255 → 0～1 に変換
+  3,              // 次の色まで3byte
+  0
+);
+const colorLocation2 = glCtx2.getAttribLocation(program2, "a_color");
+glCtx2.enableVertexAttribArray(colorLocation2);
+glCtx2.vertexAttribPointer(
+  colorLocation2,
   3,              // R,G,B の3個
   glCtx.UNSIGNED_BYTE,
   true,           // 0～255 → 0～1 に変換
@@ -1242,6 +1271,16 @@ const glHeightLocation =
     program,
     "u_glHeight"
   );
+const sampleNumLocation2 =
+  glCtx2.getUniformLocation(
+    program2,
+    "u_sampleNum"
+  );
+const glHeightLocation2 =
+  glCtx2.getUniformLocation(
+    program2,
+    "u_glHeight"
+  );
 //--------- 描画
 function drawGlCanvas() {
   glCtx.viewport( 0, 0, glCanvas.width, glCanvas.height);
@@ -1253,8 +1292,16 @@ function drawGlCanvas() {
   // sampleNum個の点を描く
   glCtx.drawArrays( glCtx.POINTS, 0, glSampleNum);
 }
-
-
+function drawGlCanvas2() {
+  glCtx2.viewport( 0, 0, glCanvas2.width, glCanvas2.height);
+  glCtx2.clearColor( 0, 0, 0, 1);
+  glCtx2.clear( glCtx2.COLOR_BUFFER_BIT);
+  // ShaderへsampleNumを渡す
+  glCtx2.uniform1f( sampleNumLocation2, glSampleNum);
+  glCtx2.uniform1f( glHeightLocation2, glCanvas2.height);
+  // sampleNum個の点を描く
+  glCtx2.drawArrays( glCtx2.POINTS, 0, glSampleNum);
+}
 
 
 const fftCanvas = document.getElementById("fftWindow");//メインウィンド
@@ -2110,6 +2157,7 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 
   if(glCanvas.width !== w){
     glCanvas.width = w;//カラーバーの幅変更
+    glCanvas2.width = w;//カラーバーの幅変更
     glSampleNum = glCanvas.width;
     rgb = new Uint8Array(glSampleNum * 3);
   }
@@ -9128,13 +9176,36 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
   if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
   const y = HistoryWriteLine;
   for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
+  for (let i = 0; i < glSampleNum * 3; i++) rgb[i] = 0;
+//for (let x = 0; x < glSampleNum; x++) {
+
+    // テスト用の色
+//    const r = x * 255 / (glSampleNum - 1);
+//    const g = 255 - r;
+//    const b = 128;
+
+//    rgb[x * 3 + 0] = r;
+//    rgb[x * 3 + 1] = g;
+//    rgb[x * 3 + 2] = b;
+//}
+//    const ii = i * 4;
+//    colorMapUnit8[ii] = Math.round(r);//R
+//    colorMapUnit8[ii + 1] = Math.round(g);//G
+//    colorMapUnit8[ii + 2] = Math.round(b);//B
+
 
   const colorMapMax = colorMap.length - 1;
 
   for (let i = 0; i <= splineEndX; i++) {//スプライン部分の描画ターン
     const dB = viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getXWeightingDb(i);
     let norm = Math.max(0, Math.min(1, 1 + dB * invDecivelRange));
-    spectro1LineBuffer[i] = colorMap[Math.round(norm * colorMapMax)];//１ドット×RGBA
+    const mapPos = Math.round(norm * colorMapMax);
+    spectro1LineBuffer[i] = colorMap[mapPos];//１ドット×RGBA
+    const mapPosX4 = mapPos * 4;
+    const iX3 = i * 3;
+    rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
+    rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
+    rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
   }
   let tmpMaxdB = -Infinity;
   let tmpNowX = Math.round(freqToX(Math.max(0, splineEndIndex) * fftBinFreq));
@@ -9143,7 +9214,13 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
     const x = Math.round(freqToX(freq));
     if (x !== tmpNowX) {//ズレたら最大値で描画
       let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
-      spectro1LineBuffer[tmpNowX] = colorMap[Math.round(norm * colorMapMax)];//１ドット×RGBA
+      const mapPos = Math.round(norm * colorMapMax);
+      spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
+      const mapPosX4 = mapPos * 4;
+      const iX3 = tmpNowX * 3;
+      rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
+      rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
+      rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
       tmpNowX = x
       tmpMaxdB = -Infinity;
     }
@@ -9152,9 +9229,24 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
   }
   {//最後の点を描画
     let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
-    spectro1LineBuffer[tmpNowX] = colorMap[Math.round(norm * colorMapMax)];//１ドット×RGBA
+    const mapPos = Math.round(norm * colorMapMax);
+    spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
+    const mapPosX4 = mapPos * 4;
+    const iX3 = tmpNowX * 3;
+    rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
+    rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
+    rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
   }
-  historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
+
+  glCtx2.bufferData(//バッファに送る
+    glCtx2.ARRAY_BUFFER,
+    rgb,
+    glCtx2.STATIC_DRAW
+  );
+  drawGlCanvas2();//カラーバー
+  historyCtx.drawImage(glCanvas2, 0, y);
+
+//  historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
 
   //横線の挿入
   historyHLCtx.clearRect(0, y , historyCanvas.width, 1);//横線消去
