@@ -1144,7 +1144,7 @@ const supportCanvasFilter = "filter" in CanvasRenderingContext2D.prototype;//2D�
 //カラーバー用オブジェクトやら
 const glCanvas = document.getElementById("glWindow");
 const glCtx = glCanvas.getContext("webgl2");
-glCanvas.height = 8;
+glCanvas.height = 8 * dpr;
 let glSampleNum = glCanvas.width;
 let rgb = new Uint8Array(glSampleNum * 3);
 
@@ -1689,12 +1689,6 @@ const radiusGamma=0.7;//なんとなくな係数
 //oklch(69.5% 0.1643 281.2)
 //oklch(86.5% 0.069 284.9)
 
-const slidingDftColorMapUnit8 = new Uint8ClampedArray(16*16*16*16*4);//階調1×階調2×階調3×階調4×RGBA
-const slidingDftColorMap =  new Uint32Array(slidingDftColorMapUnit8.buffer);//階調1×階調2×階調3×階調4×RGBA
-let slidingDft1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
-let slidingDft1LineBuffer = new Uint32Array(slidingDft1LineBufferUint8.buffer);//１ドット
-let slidingDft1LineImageData = new ImageData(slidingDft1LineBufferUint8, slidingDft1LineBuffer.length, 1);
-
 const colorLab_inv116 = 1 / 116;//LAB→rgb計算用
 const colorXYZ_d4 = 4 / 29;//LAB→rgb計算用
 const colorXYZ_d6 = 6 / 29;//LAB→rgb計算用
@@ -2105,9 +2099,6 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
     spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
     spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
-    slidingDft1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
-    slidingDft1LineBuffer = new Uint32Array(slidingDft1LineBufferUint8.buffer);//１ドット
-    slidingDft1LineImageData = new ImageData(slidingDft1LineBufferUint8, slidingDft1LineBuffer.length, 1);
 
     historyV1LCanvas.width = w;
     historyV1LCanvas.height = 1;//1行更新用グリッド
@@ -4495,80 +4486,7 @@ function makeSdftColorMap(){
     slidingDftColorA[i] = slidingDftColorRadius[i] * Math.cos(Math.PI*hue/180);
     slidingDftColorB[i] = slidingDftColorRadius[i] * Math.sin(Math.PI*hue/180);
   })  
-
-
-//const slidingDftColorMapUnit8 = new Uint8ClampedArray(16*16*16*16*4);//階調1×階調2×階調3×階調4×RGBA
-  const cosSelW = slidingDftColorHue.map((hue) => Math.cos(Math.PI*hue/180));
-  const sinSelW = slidingDftColorHue.map((hue) => Math.sin(Math.PI*hue/180));
-
-
-
-  const selLW16 = slidingDftColorLightness.map((lightness) => Math.min(Math.PI*lightness/100/13,1/15));
-//  const baseR = slidingDftColorRadius.map((r, i) => selLW16[i] !== 0 ? r / selLW16[i] * 15 : 0);
-  const baseR = slidingDftColorRadius.map((r, i) => 
-  selLW16[i] !== 0 ? r / Math.pow(Math.sin(Math.PI*slidingDftColorLightness[i]/100), radiusGamma) : 0);
-
-  for(let i0=0;i0<16;i0++){
-    const l0=slidingDftColorLightness[0]*i0/15;
-    const selLSin0=Math.pow(Math.sin(selLW16[0]*i0), radiusGamma);
-    const radius0=baseR[0]*selLSin0;
-    const a0=radius0*cosSelW[0];
-    const b0=radius0*sinSelW[0];
-    let [linearR, linearG, linearB] = labToLinearRgb(l0, a0, b0);
-    for(let i1=0;i1<16;i1++){
-      const l1=slidingDftColorLightness[1]*i1/15;
-      const selLSin1=Math.pow(Math.sin(selLW16[1]*i1), radiusGamma);
-      const radius1=baseR[1]*selLSin1;
-      const a1=radius1*cosSelW[1];
-      const b1=radius1*sinSelW[1];
-      let [linearR1, linearG1, linearB1] = labToLinearRgb(l1, a1, b1);
-      linearR1+=linearR;linearG1+=linearG;linearB1+=linearB;
-      for(let i2=0;i2<16;i2++){
-        const l2=slidingDftColorLightness[2]*i2/15;
-        const selLSin2=Math.pow(Math.sin(selLW16[2]*i2), radiusGamma);
-        const radius2=baseR[2]*selLSin2;
-        const a2=radius2*cosSelW[2];
-        const b2=radius2*sinSelW[2];
-        let [linearR2, linearG2, linearB2] = labToLinearRgb(l2, a2, b2);
-        linearR2+=linearR1;linearG2+=linearG1;linearB2+=linearB1;
-        for(let i3=0;i3<16;i3++){
-          const l3=slidingDftColorLightness[3]*i3/15;
-          const selLSin3=Math.pow(Math.sin(selLW16[3]*i3), radiusGamma);
-          const radius3=baseR[3]*selLSin3;
-          const a3=radius3*cosSelW[3];
-          const b3=radius3*sinSelW[3];
-          let [linearR3, linearG3, linearB3] = labToLinearRgb(l3, a3, b3);
-          linearR3+=linearR2;
-          linearG3+=linearG2;
-          linearB3+=linearB2;
-          linearR3=Math.max(0, Math.min(1, gamma(linearR3))) * 255;
-          linearG3=Math.max(0, Math.min(1, gamma(linearG3))) * 255; 
-          linearB3=Math.max(0, Math.min(1, gamma(linearB3))) * 255;
-
-          let [totalL,totalA,totalB]=linearRgbToLab(linearR3, linearG3, linearB3);
-          totalL = Math.max(0,Math.min(totalL,100));
-          const totalW = Math.atan2(totalB,totalA);
-          const finalL=Math.max(slidingDftColorLightness[0],slidingDftColorLightness[1],slidingDftColorLightness[2],slidingDftColorLightness[3]);
-          const finalRadius = maxRadius*Math.pow(Math.sin(Math.PI*totalL/100), radiusGamma);
-          const finalA = finalRadius*Math.cos(totalW);
-          const finalB = finalRadius*Math.sin(totalW);
-          [linearR3, linearG3, linearB3] = labToLinearRgb(totalL, finalA, finalB);
-          linearR3=Math.max(0, Math.min(1, gamma(linearR3))) * 255;
-          linearG3=Math.max(0, Math.min(1, gamma(linearG3))) * 255; 
-          linearB3=Math.max(0, Math.min(1, gamma(linearB3))) * 255;
-
-          const R255 = Math.round(linearR3);
-          const G255 = Math.round(linearG3);
-          const B255 = Math.round(linearB3);
-          const mapPos=i0*16384+i1*1024+i2*64+i3*4;
-          slidingDftColorMapUnit8[mapPos]=R255;
-          slidingDftColorMapUnit8[mapPos+1]=G255;
-          slidingDftColorMapUnit8[mapPos+2]=B255;
-          slidingDftColorMapUnit8[mapPos+3]=0;//A
-        }
-      }
-    }
-  }
+  return;
 }
 
 
@@ -10117,7 +10035,6 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
         idotMax[sdftNo] = Math.max(idotMax[sdftNo], slidingDftValue[sdftNo][i]);}//最大値を探る
     }else{//ズレた
-//console.log(idotMax);
       let maxNorm=-Infinity;
       let lab_a = 0;
       let lab_b = 0;
@@ -10148,26 +10065,14 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
 
         lab_l = correctLabLightness(lab_l, lab_a, lab_b);        
 
-//console.log(Math.atan2(lab_a, lab_b) / Math.PI * 180, Math.sqrt(lab_a * lab_a + lab_b * lab_b));
-
         let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
         linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
         linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
         linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
-//console.log(linearR3, linearG3, linearB3);
-
-        
-//      const mapPos=(slidingDftIsVisible[0]?idotMax[0]*4096:0)+(slidingDftIsVisible[1]?idotMax[1]*256:0)
-//                  +(slidingDftIsVisible[2]?idotMax[2]*16:0)+(slidingDftIsVisible[3]?idotMax[3]:0);
-//      maxNorm=Math.pow(maxNorm,0.2);
-//      const dotColor=slidingDftColorMap[mapPos]|(Math.round(Math.max(0,Math.min(maxNorm,1))*255)<<24);//1ドット分をマップから持ってくる
-//      const dotColor=slidingDftColorMap[mapPos]|(Math.round(Math.max(0,Math.min(1,1))*255)<<24);//1ドット分をマップから持ってくる
       while(previousX<x){//１ドット以上の可能性もあるのでループ
-//        slidingDft1LineBuffer[previousX]=dotColor;
         rgb[previousX * 3 + 0] = linearR3;
         rgb[previousX * 3 + 1] = linearG3;
         rgb[previousX * 3 + 2] = linearB3;
-//console.log(rgb[previousX * 3 + 0], rgb[previousX * 3 + 1], rgb[previousX * 3 + 2]);
         previousX++;
       }
       for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
@@ -10185,29 +10090,22 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
         lab_b += slidingDftColorB[sdftNo]*norm;
         lab_l += slidingDftColorLightness[sdftNo]*norm;
         idotMax[sdftNo] = Math.round(Math.max(Math.min(norm*100,100)),-100);
-//        idotMax[sdftNo] = Math.round(Math.min(norm*15,15));
       }//15までの整数にする
-//      const mapPos=(slidingDftIsVisible[0]?idotMax[0]*4096:0)+(slidingDftIsVisible[1]?idotMax[1]*256:0)
-//                  +(slidingDftIsVisible[2]?idotMax[2]*16:0)+(slidingDftIsVisible[3]?idotMax[3]:0);
-//      const dotColor=slidingDftColorMap[mapPos];//1ドット分をマップから持ってくる
         lab_a *= 100/idotMax.length;
         lab_b *= 100/idotMax.length;
         lab_l *= 1/idotMax.length;
-//console.log(lab_a, lab_b, lab_l);
         let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
         linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
         linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
         linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
 
-      while(previousX<slidingDft1LineBuffer.length){//１ドット以上の可能性もあるのでループ
-//        slidingDft1LineBuffer[previousX]=dotColor;
+      while(previousX<glSampleNum){//１ドット以上の可能性もあるのでループ
         rgb[previousX * 3 + 0] = linearR3;
         rgb[previousX * 3 + 1] = linearG3;
         rgb[previousX * 3 + 2] = linearB3;
         previousX++;
       }
   }
-//console.log(slidingDftColorA, slidingDftColorB);
 
 /*
 for (let x = 0; x < glSampleNum; x++) {
@@ -10240,9 +10138,6 @@ for (let x = 0; x < glSampleNum; x++) {
 return;
 
 
-  for(let y=0;y<=1*dpr;y++){
-    ctxFft.putImageData(slidingDft1LineImageData, 0, y);//イメージデータコピー
-  }
 
   return;//ここから下は使わない###############################################
 //  ctxFft.fillStyle = "#f88";//色指定
