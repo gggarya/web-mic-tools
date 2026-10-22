@@ -1144,7 +1144,7 @@ const supportCanvasFilter = "filter" in CanvasRenderingContext2D.prototype;//2D�
 //カラーバー用オブジェクトやら
 const glCanvas = document.getElementById("glWindow");
 const glCtx = glCanvas.getContext("webgl2");
-glCanvas.height = 8 * dpr;
+glCanvas.height = 8 * Math.sqrt(dpr);
 let glSampleNum = glCanvas.width;
 let rgb = new Uint8Array(glSampleNum * 3);
 
@@ -8071,7 +8071,7 @@ function tdFftN(N, wStep) {//N個ごと。wStepはsize/N
 
 function labToLinearRgb(L,a,b){//L:0~100, a:±100, b:±100
 
-  const fy = (L + 16) * 0.00862068959325552;
+  const fy = (L + 16) * colorLab_inv116;
   const fx = fy + a * 0.002;
   const fz = fy - b * 0.005;
 //    const fy = (L + 16) / 116;
@@ -10022,10 +10022,6 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   const toNorm = slidingDftGain.map((gain) => (visibleMax!==0?gain/visibleMax:0));//0～1の数値にするための係数。ゲイン考慮
 
 
-//    slidingDftColorA[i] = slidingDftColorRadius[i] * Math.cos(Math.PI*hue/180);
-//    slidingDftColorB[i] = slidingDftColorRadius[i] * Math.sin(Math.PI*hue/180);
-
-
   let previousX=0;
   let idotMax=[0,0,0,0];//同じドットの中で最大値を探る用
 
@@ -10044,31 +10040,19 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
         lab_a += slidingDftColorA[sdftNo]*norm;
         lab_b += slidingDftColorB[sdftNo]*norm;
         lab_l += slidingDftColorLightness[sdftNo]*norm;
-        idotMax[sdftNo] = Math.round(Math.max(Math.min(norm*100,100)),-100);
-//        idotMax[sdftNo] = Math.round(Math.min(norm*15,15));
-//        if(maxNorm<norm)maxNorm=norm;
-      }//255までの整数にする
-        const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
-        const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
-        const radius = maxRadius*selLSin;
+      }
+      const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
+      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+      const radius = maxRadius*selLSin;
+      const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
+      lab_a *= rev_r;
+      lab_b *= rev_r;
+      lab_l = correctLabLightness(lab_l, lab_a, lab_b);//赤と青が沈むので少し明るさ調整
 
-
-//console.log(lab_a, lab_b);
-        const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
-        lab_a *= rev_r;
-        lab_b *= rev_r;
-
-//        lab_a *= 5 / idotMax.length;
-//        lab_b *= 5 / idotMax.length;
-//        lab_l *= 4 / idotMax.length;
-//        lab_l = 60;
-
-        lab_l = correctLabLightness(lab_l, lab_a, lab_b);        
-
-        let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
-        linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
-        linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
-        linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
+      let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
+      linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
+      linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
+      linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
       while(previousX<x){//１ドット以上の可能性もあるのでループ
         rgb[previousX * 3 + 0] = linearR3;
         rgb[previousX * 3 + 1] = linearG3;
@@ -10089,15 +10073,18 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
         lab_a += slidingDftColorA[sdftNo]*norm;
         lab_b += slidingDftColorB[sdftNo]*norm;
         lab_l += slidingDftColorLightness[sdftNo]*norm;
-        idotMax[sdftNo] = Math.round(Math.max(Math.min(norm*100,100)),-100);
-      }//15までの整数にする
-        lab_a *= 100/idotMax.length;
-        lab_b *= 100/idotMax.length;
-        lab_l *= 1/idotMax.length;
-        let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
-        linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
-        linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
-        linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
+      }
+      const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
+      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+      const radius = maxRadius*selLSin;
+      const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
+      lab_a *= rev_r;
+      lab_b *= rev_r;
+      lab_l = correctLabLightness(lab_l, lab_a, lab_b);//赤と青が沈むので少し明るさ調整
+      let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
+      linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
+      linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
+      linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
 
       while(previousX<glSampleNum){//１ドット以上の可能性もあるのでループ
         rgb[previousX * 3 + 0] = linearR3;
