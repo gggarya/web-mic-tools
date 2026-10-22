@@ -1143,13 +1143,15 @@ const supportCanvasFilter = "filter" in CanvasRenderingContext2D.prototype;//2D�
 //カラーバー用オブジェクトやら
 const glCanvas2 = document.createElement("canvas");//ヒストリー用
 const glCtx2 = glCanvas2.getContext("webgl2");
-glCanvas2.height = 1;
+glCanvas2.height = 2;//１で良さそうだけど、１だとなんか黒いスジが入る
+//document.body.appendChild(glCanvas2);
 const glCanvas = document.getElementById("glWindow");
 const glCtx = glCanvas.getContext("webgl2");
 //glCanvas.height = (8 * Math.pow(dpr, 0.3)) | 0;
 glCanvas.height = 8;
 let glSampleNum = glCanvas.width;
 let rgb = new Uint8Array(glSampleNum * 3);
+let rgb2 = new Uint8Array(glSampleNum * 3);
 
 if (!glCtx) { alert("WebGL 2.0 is not supported.");}
 //--------- RGBテストデータ
@@ -1237,7 +1239,7 @@ const colorBuffer2 = glCtx2.createBuffer();
 glCtx2.bindBuffer(glCtx2.ARRAY_BUFFER, colorBuffer2);
 glCtx2.bufferData(
   glCtx2.ARRAY_BUFFER,
-  rgb,
+  rgb2,
   glCtx2.STATIC_DRAW
 );
 //--------- RGB attribute
@@ -1256,9 +1258,9 @@ glCtx2.enableVertexAttribArray(colorLocation2);
 glCtx2.vertexAttribPointer(
   colorLocation2,
   3,              // R,G,B の3個
-  glCtx.UNSIGNED_BYTE,
-  true,           // 0～255 → 0～1 に変換
-  3,              // 次の色まで3byte
+  glCtx2.UNSIGNED_BYTE,
+  true,  // 0～255 を 0～1 に正規化
+  3,     // RGB各3バイト
   0
 );
 //--------- sampleNum uniform
@@ -1951,9 +1953,9 @@ let rewindBufferIndex = 0;//戻し用バッファの最新保存インデック�
 
 //カラーマップ
 let spectro1LineY = new Float32Array(fftCanvas.width).fill(0);//
-let spectro1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
-let spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ドット
-let spectro1LineImageData = new ImageData(spectro1LineBufferUint8, spectro1LineBuffer.length, 1);
+//let spectro1LineBufferUint8 = new Uint8ClampedArray(fftCanvas.width * 4);//１ドット
+//let spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ドット
+//let spectro1LineImageData = new ImageData(spectro1LineBufferUint8, spectro1LineBuffer.length, 1);
 const colorMapUnit8 = new Uint8ClampedArray(1024 * 4);//階調×RGBA
 const colorMap =  new Uint32Array(colorMapUnit8.buffer);//階調×RGBA
 const viridisStops = [
@@ -2142,11 +2144,11 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     //HistoryWriteLineは変えなくてよいはず
   }
 
-  if (spectro1LineBuffer.length !== w) {//幅が変わった時のみ配列更新
-    spectro1LineY = new Float32Array(fftCanvas.width).fill(0);
-    spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
-    spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
-    spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
+  if (spectro1LineY.length !== w) {//幅が変わった時のみ配列更新
+    spectro1LineY = new Float32Array(fftCanvas.width).fill(0);//値
+//    spectro1LineBufferUint8 = new Uint8ClampedArray(w * 4).fill(0);
+//    spectro1LineBuffer = new Uint32Array(spectro1LineBufferUint8.buffer);//１ライン
+//    spectro1LineImageData = new ImageData(spectro1LineBufferUint8, w, 1);
 
     historyV1LCanvas.width = w;
     historyV1LCanvas.height = 1;//1行更新用グリッド
@@ -2161,6 +2163,7 @@ function resizeCanvas() {//キャンバスサイズの変更関数
     glCanvas2.width = w;//カラーバーの幅変更
     glSampleNum = glCanvas.width;
     rgb = new Uint8Array(glSampleNum * 3);
+    rgb2 = new Uint8Array(glSampleNum * 3);
   }
 
 
@@ -9176,24 +9179,8 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
   HistoryWriteLine = (HistoryWriteLine + 1);// % historyCanvas.height;//書く前に一個下にずらす
   if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
   const y = HistoryWriteLine;
-  for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
+//  for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
   for (let i = 0; i < glSampleNum * 3; i++) rgb[i] = 0;
-//for (let x = 0; x < glSampleNum; x++) {
-
-    // テスト用の色
-//    const r = x * 255 / (glSampleNum - 1);
-//    const g = 255 - r;
-//    const b = 128;
-
-//    rgb[x * 3 + 0] = r;
-//    rgb[x * 3 + 1] = g;
-//    rgb[x * 3 + 2] = b;
-//}
-//    const ii = i * 4;
-//    colorMapUnit8[ii] = Math.round(r);//R
-//    colorMapUnit8[ii + 1] = Math.round(g);//G
-//    colorMapUnit8[ii + 2] = Math.round(b);//B
-
 
   const colorMapMax = colorMap.length - 1;
 
@@ -9201,7 +9188,7 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
     const dB = viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getXWeightingDb(i);
     let norm = Math.max(0, Math.min(1, 1 + dB * invDecivelRange));
     const mapPos = Math.round(norm * colorMapMax);
-    spectro1LineBuffer[i] = colorMap[mapPos];//１ドット×RGBA
+//    spectro1LineBuffer[i] = colorMap[mapPos];//１ドット×RGBA
     const mapPosX4 = mapPos * 4;
     const iX3 = i * 3;
     rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
@@ -9216,7 +9203,7 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
     if (x !== tmpNowX) {//ズレたら最大値で描画
       let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
       const mapPos = Math.round(norm * colorMapMax);
-      spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
+//      spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
       const mapPosX4 = mapPos * 4;
       const iX3 = tmpNowX * 3;
       rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
@@ -9231,7 +9218,7 @@ function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描�
   {//最後の点を描画
     let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
     const mapPos = Math.round(norm * colorMapMax);
-    spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
+//    spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
     const mapPosX4 = mapPos * 4;
     const iX3 = tmpNowX * 3;
     rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
@@ -9276,23 +9263,46 @@ function makeSpectrumHistory (now, viewSpline) {//ヒストリー領域の描画
   HistoryWriteLine = (HistoryWriteLine + 1);// % historyCanvas.height;//書く前に一個下にずらす
   if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
   const y = HistoryWriteLine;
-  for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
+//  for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
+  for (let i = 0; i < glSampleNum * 3; i++) rgb2[i] = 0;
 
   if (Number.isFinite(spectro1LineY[0])) {//return;//値が入っていなければ飛ばす
-//  for (let i = 0; i < spectro1LineY.length; i++) spectro1LineY[i] = Infinity;
     const colorMapMax = colorMap.length - 1;
     const invFftViewH = 1 / fftViewH;
     for (let i = 0; i < spectro1LineY.length; i++) {
-      if (!Number.isFinite(spectro1LineY[i])) continue;//値が入っていなければ飛ばす
+      if (!Number.isFinite(spectro1LineY[i])) {
+//        console.log(i);
+        continue;//値が入っていなければ飛ばす
+      }
+
       let norm = Math.max(0, Math.min(1 - spectro1LineY[i] * invFftViewH, 1));
       const normInt = Math.round(norm * colorMapMax);
-      spectro1LineBuffer[i] = colorMap[normInt];//１ドット×RGBA
+//      if (normInt < 100) console.log(i, normInt);
+//      spectro1LineBuffer[i] = colorMap[normInt];//１ドット×RGBA
+      const mapPosX4 = normInt * 4;
+      const iX3 = i * 3;
+      rgb2[iX3 + 0] = colorMapUnit8[mapPosX4];
+      rgb2[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
+      rgb2[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
     }
   } else {//データが無効だったらゼロで埋める
-    for (let i = 0; i < spectro1LineY.length; i++) spectro1LineBuffer[i] = colorMap[0];//１ドット×RGBA
+    for (let i = 0; i < spectro1LineY.length; i++) {
+//      spectro1LineBuffer[i] = colorMap[0];//１ドット×RGBA
+      const iX3 = i * 3;
+      rgb2[iX3 + 0] = colorMapUnit8[0];
+      rgb2[iX3 + 1] = colorMapUnit8[1];
+      rgb2[iX3 + 2] = colorMapUnit8[2];
+    }
   }
-  historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
+  glCtx2.bufferData(//バッファに送る
+    glCtx2.ARRAY_BUFFER,
+    rgb2,
+    glCtx2.STATIC_DRAW
+  );
+  drawGlCanvas2();//カラーバー
+  historyCtx.drawImage(glCanvas2, 0, 0, glCanvas2.width, 1, 0, y, glCanvas2.width, 1);
 
+//  historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
   //横線の挿入
   historyHLCtx.clearRect(0, y , historyCanvas.width, 1);//横線消去
   if (now > secDivTime) {//一秒ごとの横線
@@ -9316,7 +9326,6 @@ function drawImageSpectrumHistory () {//ヒストリー領域をメイン画面�
 //let HistoryViewOffset = 0;//描画位置のオフセット
 //  HistoryWriteLine = (HistoryWriteLine + 1) % historyCanvas.height;//書く前に一個下にずらす
 //let HistoryZoomRate = 2;//描画位置のズーム率
-
   ctxFft.save();
   ctxFft.globalCompositeOperation = "source-over";//上書き
 
