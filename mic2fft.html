@@ -10249,7 +10249,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   let widthRate = 1;
   if (waveViewLength > waveViewLengthDefault) widthRate = Math.pow(waveViewLengthDefault / waveViewLength, 0.2);  
   ctxFft.save();
-  for (let i = 0; i < slidingDftSampleNum.length; i++) {//ビンごとループ
+  for (let i = slidingDftSampleNum.length - 1; i >= 0 ; i--) {//ビンごとループ
     if (!slidingDftIsVisible[i]) continue;//falseだったら次
     ctxFft.strokeStyle = slidingDftColor[i];//色指定
     ctxFft.lineWidth = slidingDftWidth[i] * dpr * widthRate;//太さ
