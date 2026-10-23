@@ -616,6 +616,17 @@
   <div data-action="tilt">傾き補正など<span>›</span></div>
   <div data-action="refLine">参考線の表示<span>›</span></div>
 </div>
+<div id="popupInfoTxtMenu" class="menu hidden">
+  <div data-action="animateFpsVisible">fpsの表示</div>
+  <div data-action="targetFreqTxtVisible">モニタ周波数の表示</div>
+  <div data-action="targetFreqDecibelVisible">モニタ周波数のdB</div>
+  <div data-action="norm1Visible">波形表示範囲のdB</div>
+  <div data-action="norm2Visible">波形表示範囲のdB(RMS)</div>
+  <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
+  <div data-action="levelPeakHoldVisible">ピークホールド値</div>
+  <div data-action="levelPeakVisible">現データのピーク値</div>
+  <div data-action="levelRmsVisible">現データのRMS値</div>
+</div>
 <div id="popupViewWaveMenu" class="menu hidden">
   <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
   <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
@@ -623,6 +634,10 @@
   <div data-action="slidingDftGainDecibelPerOct">混色重み　<span>🔢</span></div>
   <div data-action="colorBeltVisible">色付リボンの表示</div>
   <div data-action="slidingDftLwrIsVisible">正規化SDFTの表示</div>
+</div>
+<div id="popupColorBarMenu" class="menu hidden">
+  <div data-action="slidingDftGainDecibelPerOct">混色重み　<span>🔢</span></div>
+  <div data-action="colorBeltVisible">色付リボンの表示</div>
 </div>
 <div id="popupViewHistoryMenu" class="menu hidden">
   <div data-action="colorMap">カラーマップ設定　<span>›</span></div>
@@ -673,6 +688,7 @@
   <div data-action="noiseSuppression">ノイズサプレッション</div>
 </div>
 <div id="popupViewMenu" class="menu hidden"><!--☰-->
+  <div data-action="infoTxt">‹　情報表示</div>
   <div data-action="wave">‹　波形</div>
   <div data-action="history" style="justify-content: start;">‹　
     <span data-action="history" style="display: flax; transform: scaleX(0.62); transform-origin: left; width: 5ch;">スペクトログラム</span>
@@ -898,7 +914,6 @@
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
   <div data-action="fftResultCalibration">補正変更 <span>🔢</span></div>
 </div>
-
 <div id="popupSnapDiv" class="inputBox hidden" style="--line-color: #ff0000">
     <div style="display: flex; border: 0px solid #555; margin: 0px 2px; padding: 0px; white-space: nowrap;">
       <div class="divTitle">スナップショット</div>
@@ -1394,6 +1409,10 @@ const popupLpcMenu = document.getElementById('popupLpcMenu');//LPCメニュー
 const popupPlayOtherMenu = document.getElementById('popupPlayOtherMenu');//▶右クリックのディレイなど
 const popupSdftOffMenu = document.getElementById('popupSdftOffMenu');//wave領域のSDFTの▼右クリック
 const popupWindowMenu = document.getElementById('popupWindowMenu');//窓関数選択
+const popupColorBarMenu = document.getElementById('popupColorBarMenu');//カラーバーメニュー
+const popupInfoTxtMenu = document.getElementById('popupInfoTxtMenu');//インフォメーションテキストメニュー
+
+
 
 const dragRect = document.getElementById("dragRect");
 const dragRect2 = document.getElementById("dragRect2");
@@ -1874,6 +1893,19 @@ let targetFreqVisible = true;//モニタ周波数を表示
 let colorBeltVisible = true;//一番上のカラフル帯
 let refLineHVisible = false;//参考線横
 let refLineVVisible = false;//参考線縦
+
+
+let animateFpsVisible = true;//InfoTxt,fps
+let targetFreqTxtVisible = true;//InfoTxt,モニタ周波数
+let targetFreqDecibelVisible = true;//InfoTxt,モニタ周波数のdB
+let norm1Visible = false;//InfoTxt,モニタ周波数の波形表示範囲のdB
+let norm2Visible = false;//InfoTxt,モニタ周波数の波形表示範囲のRMSのdB
+let levelPeakHoldVisible = false;//InfoTxt,ピークメーターのピークホールド
+let levelPeakVisible = false;//InfoTxt,ピークメーターの瞬時値
+let levelRmsVisible = false;//InfoTxt,ピークメーターのRMS値
+
+
+
 
 //レベルメーター
 let levelPeak = -Infinity;
@@ -2445,6 +2477,8 @@ let gesture = {//ポインタ動作用構造体
   lockedGesture: null
 };
 function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上のエリアの名前を返す。座標はdprをかけたあとのもの
+  if (infoTxtAreaCheck(x, y)) return "infoTxt";
+
   const menuButtonRect = overlayMenu.getBoundingClientRect();
   const playButtonRect = overlayPlay.getBoundingClientRect();
   const lockButtonRect = overlayLock.getBoundingClientRect();
@@ -2574,6 +2608,31 @@ function fitMenuInViewportAndRemoveHide(menu) {//メニューを渡すと画面�
   menu.style.left = `${x}px`;
   menu.style.top  = `${y}px`;
   menu.style.visibility = "";//ここで表示
+}
+function infoTxtAreaCheck(x, y){//インフォテキストのエリアかの判定
+
+  const rect = infoRect.getBoundingClientRect();
+
+  const top  = rect.top;
+  const left = rect.left;
+
+  const style = getComputedStyle(infoRect);//スタイル
+
+  const fontSize = parseFloat(style.fontSize);//フォントサイズ
+  const lineHeight = parseFloat(style.lineHeight);//ラインの高さ
+  const paddingTop  = parseFloat(style.paddingTop);
+  const paddingLeft = parseFloat(style.paddingLeft);  
+
+  const lines = infoRect.textContent.split("\n");//ライン配列
+  const width = Math.max( ...lines.map(line => ctxFft.measureText(line).width)) + paddingLeft;
+
+  const lineNum = lines.length;//ライン数
+
+  const height = lineNum * ( Number.isNaN(lineHeight) ? fontSize * 1.2 : lineHeight) + paddingTop;
+
+//  console.log(x, y, width, height, paddingLeft, paddingTop);
+  if (x <= width && y <= height) return true;
+  else false;
 }
 
 fftCanvas.addEventListener('pointerdown', onDown);
@@ -3797,6 +3856,9 @@ function showMenu(x, y) {//ポップアップ表示
 
   const areaName = getAreaName(cx, cy, waveWindowH, spectrumHistoryH);
     switch (areaName) {
+      case "infoTxt":
+        showInfoTxtMenu(x, y);
+        break;
       case "help":
         showHelpMenu(x, y);
         break;
@@ -4091,6 +4153,18 @@ function showPopupViewWaveMenu(x, y) {//メニュー表示
   if (!colorBeltVisible) popupViewWaveMenu.querySelector('[data-action="colorBeltVisible"]').classList.remove('checked');
 
 }
+function showPopupColorBarMenu(x, y) {//メニュー表示
+  popupColorBarMenu.style.visibility = "hidden";//まだ隠す
+  popupColorBarMenu.classList.remove('hidden');
+  const rect = popupColorBarMenu.getBoundingClientRect();
+  popupColorBarMenu.style.left = `${x}px`;
+  popupColorBarMenu.style.top  = `${Math.max(0, y - rect.height * 0.37)}px`;
+  popupColorBarMenu.querySelector('[data-action="slidingDftGainDecibelPerOct"]').innerHTML
+   = `混色の重み：${slidingDftGainDecibelPerOct.toFixed(2)} <span>🔢</span>`;
+  popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.add('checked');
+  fitMenuInViewportAndRemoveHide(popupColorBarMenu);//✔した状態でフィット
+  if (!colorBeltVisible) popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.remove('checked');
+}
 function showPopupViewHistoryMenu(x, y) {//メニュー表示
   popupViewHistoryMenu.style.visibility = "hidden";//まだ隠す
   popupViewHistoryMenu.classList.remove('hidden');
@@ -4172,6 +4246,20 @@ function showPopupWindowMenu(x, y) {//メニュー表示
   popupWindowMenu.querySelectorAll('div').forEach(item => {
     item.classList.remove('checked');//それ以外は外す
     if (item.dataset.action === `${windowFunctionNo}`) item.classList.add('checked');//有効の時は✔
+  });
+}
+function showInfoTxtMenu(x, y) {//メニュー表示
+  menuLocateAndCheckONAndFit(popupInfoTxtMenu, x, y);
+  popupInfoTxtMenu.querySelectorAll('div').forEach(item => {
+    item.classList.remove('checked');//それ以外は外す
+    if (item.dataset.action === "animateFpsVisible" && animateFpsVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "targetFreqTxtVisible" && targetFreqTxtVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "targetFreqDecibelVisible" && targetFreqDecibelVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "norm1Visible" && norm1Visible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "norm2Visible" && norm2Visible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "levelPeakHoldVisible" && levelPeakHoldVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "levelPeakVisible" && levelPeakVisible) item.classList.add('checked');//有効の時は✔
+    if (item.dataset.action === "levelRmsVisible" && levelRmsVisible) item.classList.add('checked');//有効の時は✔
   });
 }
 
@@ -4561,6 +4649,7 @@ function hidePopupLockMenu() { popupLockMenu.classList.add('hidden');}//ポッ�
 function hidePopupRepMenu() { popupRepMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupViewMenu() { popupViewMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupViewWaveMenu() { popupViewWaveMenu.classList.add('hidden');}//ポップアップ消去
+function hidePopupColorBarMenu() { popupColorBarMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupViewHistoryMenu() { popupViewHistoryMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupViewFftMenu() { popupViewFftMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupPeakScanRangeMenu() { popupPeakScanRangeMenu.classList.add('hidden');}//ポップアップ消去
@@ -4569,6 +4658,7 @@ function hidePopupLpcMenu() { popupLpcMenu.classList.add('hidden');}//ポップ�
 function hidePopupPlayOtherMenu() { popupPlayOtherMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupSdftOffMenu() { popupSdftOffMenu.classList.add('hidden');}//ポップアップ消去
 function hidePopupWindowMenu() { popupWindowMenu.classList.add('hidden');}//ポップアップ消去
+function hidePopupInfoTxtMenu() { popupInfoTxtMenu.classList.add('hidden');}//ポップアップ消去
 
 function hidePopupInputDiv() { popupInputDiv.classList.add('hidden'); keyInputDivSetting.onConfirm = null;}//ポップアップ消去
 function hidePopupSnapDiv() { popupSnapDiv.classList.add('hidden');}//ポップアップ消去
@@ -4599,6 +4689,7 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!popupRepMenu.contains(e.target)) { hidePopupRepMenu(); }
   if (!popupViewMenu.contains(e.target)) { hidePopupViewMenu(); }
   if (!popupViewWaveMenu.contains(e.target)) { hidePopupViewWaveMenu(); }
+  if (!popupColorBarMenu.contains(e.target)) { hidePopupColorBarMenu(); }
   if (!popupViewHistoryMenu.contains(e.target)) { hidePopupViewHistoryMenu(); }
   if (!popupViewFftMenu.contains(e.target)) { hidePopupViewFftMenu(); }
   if (!popupPeakScanRangeMenu.contains(e.target)) { hidePopupPeakScanRangeMenu(); }
@@ -4607,6 +4698,7 @@ function hideByOuterDown (e) {//外をクリックしたときに閉じる
   if (!popupPlayOtherMenu.contains(e.target)) { hidePopupPlayOtherMenu(); }
   if (!popupSdftOffMenu.contains(e.target)) { hidePopupSdftOffMenu(); }
   if (!popupWindowMenu.contains(e.target)) { hidePopupWindowMenu(); }
+  if (!popupInfoTxtMenu.contains(e.target)) { hidePopupInfoTxtMenu(); }
   
 //  if (!popupInputDiv.contains(e.target)) { hidePopupInputDiv();}
 }
@@ -5300,6 +5392,14 @@ popupViewMenu.addEventListener('click', async (e) => {//ポップアップメニ
   const subMenuX = menuRect.right - 1;
   let x = (e.clientX > 600) ? e.clientX - 600 : 0;
   switch (action) {
+    case 'infoTxt':
+      popupInfoTxtMenu.style.visibility = "hidden";//まだ隠す
+      popupInfoTxtMenu.classList.remove('hidden');
+      menuSubRect = popupInfoTxtMenu.getBoundingClientRect();
+      x = (menuRect.left > menuSubRect.width) ? menuRect.left - menuSubRect.width : 0;
+      x -= 10;
+      showInfoTxtMenu(x, e.clientY);
+      break;
     case 'wave':
       popupViewWaveMenu.style.visibility = "hidden";//まだ隠す
       popupViewWaveMenu.classList.remove('hidden');
@@ -5457,6 +5557,49 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
       if (slidingDftLwrIsVisible) popupViewWaveMenu.querySelector('[data-action="slidingDftLwrIsVisible"]').classList.add('checked');
       else popupViewWaveMenu.querySelector('[data-action="slidingDftLwrIsVisible"]').classList.remove('checked');
       drawWaveGrid();
+      if (!rafId) draw();
+      break;
+    case 'slidingDftGainDecibelPerOct':
+      keyInputDivSetting.labelTxt = "周波数重み付け";
+      keyInputDivSetting.labelSubTxt = "dB/Oct";
+      keyInputDivSetting.nowValue = slidingDftGainDecibelPerOct;
+      keyInputDivSetting.undoValue = slidingDftGainDecibelPerOct;
+      keyInputDivSetting.homeValue = slidingDftGainDecibelPerOctDefault;
+      keyInputDivSetting.uprLimit = 20;
+      keyInputDivSetting.lwrLimit = -20;
+      keyInputDivSetting.digit = 4;
+      keyInputDivSetting.onConfirm = (value) => {
+        slidingDftGainDecibelPerOct = value;//値セット
+        const gainPerOct = Math.pow(10,slidingDftGainDecibelPerOct/20);
+        for(let i=0;i<slidingDftGain.length;i++){
+          slidingDftGain[i] = Math.pow(gainPerOct, Math.log2(slidingDftFreq[i]) - Math.log2(slidingDftFreq[0]));//ターゲット周波数によるゲイン
+        }
+        if (!rafId) draw();
+      };
+      showPopupInputDiv(e.clientX, e.clientY);
+      hidePopupViewWaveMenu();
+      break;
+  }
+});
+popupColorBarMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
+  const action = e.target.dataset.action;
+  if (!action) return;
+  const menuRect = popupColorBarMenu.getBoundingClientRect();
+  let menuSubRect = null;
+  const subMenuX = menuRect.right - 1;
+  let x = (e.clientX > 600) ? e.clientX - 600 : 0;
+  switch (action) {
+    case 'colorBeltVisible':
+      colorBeltVisible = !colorBeltVisible;
+      if (colorBeltVisible) {
+        popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.add('checked');
+        glCanvas.classList.remove('hidden')
+      } else {
+        popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.remove('checked');
+        glCanvas.classList.add('hidden')
+      }
+//const glCanvas = document.getElementById("glWindow");
+//popupSdftColorDiv.classList.add('hidden')
       if (!rafId) draw();
       break;
     case 'slidingDftGainDecibelPerOct':
@@ -5884,6 +6027,84 @@ popupSdftOffMenu.addEventListener('click', async (e) => {//ポップアップメ
       drawWaveGrid();
       if (!rafId) draw();
 
+      break;
+  }
+});
+popupInfoTxtMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
+  const action = e.target.dataset.action;
+  if (!action) return;
+  switch (action) {
+    case 'animateFpsVisible':
+      animateFpsVisible = !animateFpsVisible;
+      if (animateFpsVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="animateFpsVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="animateFpsVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'targetFreqTxtVisible':
+      targetFreqTxtVisible = !targetFreqTxtVisible;
+      if (targetFreqTxtVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="targetFreqTxtVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="targetFreqTxtVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'targetFreqDecibelVisible':
+      targetFreqDecibelVisible = !targetFreqDecibelVisible;
+      if (targetFreqDecibelVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="targetFreqDecibelVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="targetFreqDecibelVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'norm1Visible':
+      norm1Visible = !norm1Visible;
+      if (norm1Visible) {
+        popupInfoTxtMenu.querySelector('[data-action="norm1Visible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="norm1Visible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'norm2Visible':
+      norm2Visible = !norm2Visible;
+      if (norm2Visible) {
+        popupInfoTxtMenu.querySelector('[data-action="norm2Visible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="norm2Visible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'levelPeakHoldVisible':
+      levelPeakHoldVisible = !levelPeakHoldVisible;
+      if (levelPeakHoldVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="levelPeakHoldVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="levelPeakHoldVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'levelPeakVisible':
+      levelPeakVisible = !levelPeakVisible;
+      if (levelPeakVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="levelPeakVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="levelPeakVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
+      break;
+    case 'levelRmsVisible':
+      levelRmsVisible = !levelRmsVisible;
+      if (levelRmsVisible) {
+        popupInfoTxtMenu.querySelector('[data-action="levelRmsVisible"]').classList.add('checked');
+      } else {
+        popupInfoTxtMenu.querySelector('[data-action="levelRmsVisible"]').classList.remove('checked');
+      }
+      if (!rafId) draw();
       break;
   }
 });
@@ -6880,6 +7101,19 @@ overlayMenu.addEventListener('contextmenu', (e) => {//ヘルプボタン右ク�
   e.stopPropagation();  
   e.preventDefault();   // デフォルトの右クリックメニューなし
 });
+
+glCanvas.addEventListener("pointerup", (e) => {//カラーバー
+  e.stopPropagation();  
+  showPopupColorBarMenu(e.clientX, e.clientY);
+}//, { once: true, capture: true }
+);
+glCanvas.addEventListener('contextmenu', (e) => {//カラーバー右クリック
+  e.stopPropagation();  
+  e.preventDefault();   // デフォルトの右クリックメニューなし
+});
+
+
+
 
 async function downloadHtml() {
   const html = await fetch(location.href).then(r => r.text());
@@ -9175,79 +9409,6 @@ function drawPeakText (viewSpline) {
     ctxFft.restore();
   }
 }
-function makeSpectrumHistory2 (now, viewSpline) {//ヒストリー領域の描画
-  HistoryWriteLine = (HistoryWriteLine + 1);// % historyCanvas.height;//書く前に一個下にずらす
-  if (HistoryWriteLine >= historyCanvas.height) HistoryWriteLine -= historyCanvas.height;
-  const y = HistoryWriteLine;
-//  for (let i = 0; i < spectro1LineBuffer.length ; i++) spectro1LineBuffer[i] = colorMap[0];//描画バッファをゼロにする
-  for (let i = 0; i < glSampleNum * 3; i++) rgb[i] = 0;
-
-  const colorMapMax = colorMap.length - 1;
-
-  for (let i = 0; i <= splineEndX; i++) {//スプライン部分の描画ターン
-    const dB = viewSpline(xToFftBinFloat(i) - viewMinBinIndex, 0) - viewMaxDecivel + getXWeightingDb(i);
-    let norm = Math.max(0, Math.min(1, 1 + dB * invDecivelRange));
-    const mapPos = Math.round(norm * colorMapMax);
-//    spectro1LineBuffer[i] = colorMap[mapPos];//１ドット×RGBA
-    const mapPosX4 = mapPos * 4;
-    const iX3 = i * 3;
-    rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
-    rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
-    rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
-  }
-  let tmpMaxdB = -Infinity;
-  let tmpNowX = Math.round(freqToX(Math.max(0, splineEndIndex) * fftBinFreq));
-  for (let i = Math.max(0, splineEndIndex); i <= viewMaxBinIndex; i++) {//直線部分の描画ターン
-    const freq = i * fftBinFreq;
-    const x = Math.round(freqToX(freq));
-    if (x !== tmpNowX) {//ズレたら最大値で描画
-      let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
-      const mapPos = Math.round(norm * colorMapMax);
-//      spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
-      const mapPosX4 = mapPos * 4;
-      const iX3 = tmpNowX * 3;
-      rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
-      rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
-      rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
-      tmpNowX = x
-      tmpMaxdB = -Infinity;
-    }
-    const dB = fftView[i] - viewMaxDecivel + getFreqWeightingDb(freq);//ちゃんとマイナスで出てきてる
-    if (dB > tmpMaxdB) tmpMaxdB = dB;
-  }
-  {//最後の点を描画
-    let norm = Math.max(0, Math.min(1, 1 + tmpMaxdB * invDecivelRange));
-    const mapPos = Math.round(norm * colorMapMax);
-//    spectro1LineBuffer[tmpNowX] = colorMap[mapPos];//１ドット×RGBA
-    const mapPosX4 = mapPos * 4;
-    const iX3 = tmpNowX * 3;
-    rgb[iX3 + 0] = colorMapUnit8[mapPosX4];
-    rgb[iX3 + 1] = colorMapUnit8[mapPosX4 + 1];
-    rgb[iX3 + 2] = colorMapUnit8[mapPosX4 + 2];
-  }
-
-  glCtx2.bufferData(//バッファに送る
-    glCtx2.ARRAY_BUFFER,
-    rgb,
-    glCtx2.STATIC_DRAW
-  );
-  drawGlCanvas2();//カラーバー
-  historyCtx.drawImage(glCanvas2, 0, y);
-
-//  historyCtx.putImageData(spectro1LineImageData, 0, y);//イメージデータコピー
-
-  //横線の挿入
-  historyHLCtx.clearRect(0, y , historyCanvas.width, 1);//横線消去
-  if (now > secDivTime) {//一秒ごとの横線
-    while (now > secDivTime) secDivTime += 1000;//１秒あとに送る
-    historyHLCtx.fillStyle = "#fff";
-    historyHLCtx.fillRect(0, y , historyCanvas.width, 1);
-  }// else if (!historySecVisible) secDivTime = now;
-
-  //縦線の描画
-  historyVLCtx.clearRect(0, y , historyCanvas.width, 1);//縦線消去
-  historyVLCtx.drawImage(historyV1LCanvas, 0, 0, historyV1LCanvas.width, 1, 0, y, historyV1LCanvas.width, 1);
-}
 
 function updateFilter(ctx) {//画像フィルタを適用する
 //invert → brightness → contrast → hue-rotate → saturate
@@ -10196,33 +10357,13 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       }
   }
 
-/*
-for (let x = 0; x < glSampleNum; x++) {
 
-    // テスト用の色
-    const r = x * 255 / (glSampleNum - 1);
-    const g = 255 - r;
-    const b = 128;
-
-    rgb[x * 3 + 0] = r;
-    rgb[x * 3 + 1] = g;
-    rgb[x * 3 + 2] = b;
-}
-*/
   glCtx.bufferData(//バッファに送る
     glCtx.ARRAY_BUFFER,
     rgb,
     glCtx.STATIC_DRAW
   );
   drawGlCanvas();//カラーバー
-
-
-//const slidingDftColorLightness = [59.906, 88.823, 62.577, 83.658];//色
-//const slidingDftColorRadius = [63.49061828, 63.49061828, 49.39196401, 19.69009347];//色
-//const slidingDftColorHue = [31.35748258, 136.343356, 290.8093935, 270.1765426];//色
-//const maxRadius=180;
-//const radiusGamma=0.7;//なんとなくな係数
-
 
 return;
 
@@ -10632,12 +10773,14 @@ function draw(now) {//全画面を作図
   } 
   //インフォメーションtxt
   let infoTxt = "";
-  infoTxt += `fps:${animateFps.toFixed(1).padStart(5, " ")}`;
+  if (animateFpsVisible) {
+    infoTxt += `fps:${animateFps.toFixed(1).padStart(5, " ")}`;
+  };
+
   if (targetFreqVisible) {
     const rpmTxt = `${(60 * targetFreq).toLocaleString('ja-JP', { maximumFractionDigits: 0 })} rpm`;
     const targetNote = Math.round(freqToNote(targetFreq));
     const noteTxt = `${noteToLabel(targetNote)}${Math.floor(targetNote / 12)}`;
-    if (infoTxt.length !== 0) infoTxt += `\n`;
 
     const targetFreqBin = targetFreq * invFftBinFreq;
     let targetFreqDecibel = Infinity;
@@ -10648,18 +10791,45 @@ function draw(now) {//全画面を作図
       targetFreqDecibel = fftView[Math.round(targetFreqBin)];
     }
 
-    infoTxt += `ﾓﾆﾀ周波数${targetFreq.toFixed(0).padStart(4, " ")}Hz\n ${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB（${fftSizeSetting}ﾃﾞｰﾀ）`;
+    if (targetFreqTxtVisible) {
+      if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += `ﾓﾆﾀ周波数${targetFreq.toFixed(0).padStart(4, " ")}Hz`;
+    };
+    if (targetFreqDecibelVisible) {
+      if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += `${targetFreqDecibel.toFixed(1).padStart(6, " ")}dB（${fftSizeSetting}ﾃﾞｰﾀ）`;
+    };
+
+
     if (waveWindowH !== 0) {//波形表示領域がある＝ゴーツェルの結果もある
-      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}ﾃﾞｰﾀ)`;
-      infoTxt += `\n ${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}RMS）`;
+      if (norm1Visible) {
+        if (infoTxt.length !== 0) infoTxt += `\n`;
+        infoTxt += `${(20 * Math.log10(Math.abs(norm[1]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}ﾃﾞｰﾀ)`;
+      };
+      if (norm2Visible) {
+        if (infoTxt.length !== 0) infoTxt += `\n`;
+        infoTxt += `${(20 * Math.log10(Math.abs(norm[0]))).toFixed(1).padStart(6, " ")}dB（${goertzelLength}RMS）`;
+      };
     }
   }
+
+
   if (true) {//ピークメーター
-    if (infoTxt.length !== 0) infoTxt += `\n`;
-      infoTxt += ` ${levelPeakHold.toFixed(1).padStart(6, " ")}dB（ﾋﾟｰｸﾎｰﾙﾄﾞ）`;
-      infoTxt += `\n ${levelPeak.toFixed(1).padStart(6, " ")}dB（ﾋﾟｰｸ）`;
-      infoTxt += `\n ${levelRms.toFixed(1).padStart(6, " ")}dB（RMS）`;
+    if (levelPeakHoldVisible) {
+      if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += `${levelPeakHold.toFixed(1).padStart(6, " ")}dB（ﾋﾟｰｸﾎｰﾙﾄﾞ）`
+    };
+    if (levelPeakVisible) {
+      if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += `${levelPeak.toFixed(1).padStart(6, " ")}dB（ﾋﾟｰｸ）`;
+    };
+    if (levelRmsVisible) {
+      if (infoTxt.length !== 0) infoTxt += `\n`;
+      infoTxt += `${levelRms.toFixed(1).padStart(6, " ")}dB（RMS）`;
+    };
   }
+
+
 
   infoRect.textContent = infoTxt; 
 //  infoRect.classList.remove("fadeout");
