@@ -2631,7 +2631,7 @@ function infoTxtAreaCheck(x, y){//インフォテキストのエリアかの判�
   const height = lineNum * ( Number.isNaN(lineHeight) ? fontSize * 1.2 : lineHeight) + paddingTop;
 
 //  console.log(x, y, width, height, paddingLeft, paddingTop);
-  if (x <= width && y <= height) return true;
+  if (x <= width * dpr && y <= height * dpr) return true;
   else false;
 }
 
