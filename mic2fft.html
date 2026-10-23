@@ -883,7 +883,7 @@
 </pre>
   </div>
   <hr  style="border: none; border-top: 0.5px solid #666; margin: 0px 0px;">
-  <div data-action="htmlDownLoad">💾 このhtmlを保存 </div>
+  <div data-action="htmlDownLoad">💾→💻このhtmlを保存 </div>
 </div>
 <div id="popupLpcMenu" class="menu hidden" style="text-align: left;">
   <div data-action="lpc1IsVisible">LPCを表示</div>
@@ -2190,8 +2190,11 @@ function resizeCanvas() {//キャンバスサイズの変更関数
 
   }
 
+
+  
   if(glCanvas.width !== w){
     glCanvas.width = w;//カラーバーの幅変更
+    glCanvas.style.width = `${clientW}px`;
     glCanvas2.width = w;//カラーバーの幅変更
     glSampleNum = glCanvas.width;
     rgb = new Uint8Array(glSampleNum * 3);
