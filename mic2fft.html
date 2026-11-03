@@ -631,13 +631,16 @@
   <div data-action="targetFreq">モニタ周波数　<span>🔢</span></div>
   <div data-action="fps4Wave">最大fps　<span>🔢</span></div>
   <div data-action="sdftSetting">SDFT設定　<span>↗</span></div>
-  <div data-action="slidingDftGainDecibelPerOct">混色重み　<span>🔢</span></div>
+  <div data-action="slidingDftGainDecibelPerOct">表示の重み　<span>🔢</span></div>
   <div data-action="colorBeltVisible">色付リボンの表示</div>
+  <div data-action="colorBeltSaturationBoost">色付リボン彩度up</div>
   <div data-action="slidingDftLwrIsVisible">正規化SDFTの表示</div>
+  <div data-action="slidingDftLwrAddDecibelPerOct">正規化SDFTに重み</div>
 </div>
 <div id="popupColorBarMenu" class="menu hidden">
-  <div data-action="slidingDftGainDecibelPerOct">混色重み　<span>🔢</span></div>
+  <div data-action="slidingDftGainDecibelPerOct">表示の重み　<span>🔢</span></div>
   <div data-action="colorBeltVisible">色付リボンの表示</div>
+  <div data-action="colorBeltSaturationBoost">色付リボン彩度up</div>
 </div>
 <div id="popupViewHistoryMenu" class="menu hidden">
   <div data-action="colorMap">カラーマップ設定　<span>›</span></div>
@@ -1749,6 +1752,7 @@ const radiusGamma=0.7;//なんとなくな係数
 
 
 
+
 //lab(59.906%, 54.217%, 33.039%)
 //lab(88.823%, -56.307%, 53.722%)
 //lab(62.578%, 17.547%, -46.17%)
@@ -1764,6 +1768,11 @@ const colorXYZ_d6 = 6 / 29;//LAB→rgb計算用
 const colorXYZ_d6sqare_x3 = colorXYZ_d6 * colorXYZ_d6 * 3;//LAB→rgb計算用
 makeSdftColorMap();//マップ作り
 
+const idotMax = new Float32Array(4);//同じドットの中で最大値を探る用
+const linearRGB_uint = new Uint8Array(3);//カラー帯計算用
+const linearRGB_float = new Float32Array(3);//カラー帯計算用
+const toNorm = new Float32Array(4);//0～1の数値にするための係数。ゲイン考慮
+
 const slidingDftWidth = [1.2, 0.8, 1.0, 0.8];//色
 const slidingDftSin = slidingDftSampleNum.map(n => new Float32Array(n));
 const slidingDftCos = slidingDftSampleNum.map(n => new Float32Array(n));
@@ -1774,7 +1783,7 @@ const slidingDftValue = slidingDftRevolutionNum.map(() => new Float32Array(waveV
 let slidingDftLwrIsVisible = true;
 let waveLAlphaDefault = 0.8;//FFT線表示のグリッドの透明度
 let waveLAlpha = waveLAlphaDefault;//FFT線表示のグリッドの透明度
-let slidingDftColorSelected = 0;
+let slidingDftColorSelected = 0;//色作成の時とかに選択してる色・・・かな？確か
 
 //ASDF
 let asdf = new Float32Array(Math.floor(waveViewLength * 0.5));
@@ -1891,6 +1900,8 @@ let levelRangeIsSame = true;//レベルメーターをfftの表示レンジに�
 let fftTriggerdBVisible = false;//トリガレベルを表示
 let targetFreqVisible = true;//モニタ周波数を表示
 let colorBeltVisible = true;//一番上のカラフル帯
+let colorBeltSaturationBoost = true;//一番上のカラフル帯の彩度ブースト
+let slidingDftLwrAddDecibelPerOct = true;//sdftの正規化にウェイトを加味するか
 let refLineHVisible = false;//参考線横
 let refLineVVisible = false;//参考線縦
 
@@ -4148,13 +4159,16 @@ function showPopupViewWaveMenu(x, y) {//メニュー表示
   popupViewWaveMenu.querySelector('[data-action="targetFreq"]').innerHTML = `モニタ：${Math.round(targetFreq)}Hz <span>🔢</span>`;
   popupViewWaveMenu.querySelector('[data-action="fps4Wave"]').innerHTML = `最大fps：${fps4Wave} <span>🔢</span>`;
   popupViewWaveMenu.querySelector('[data-action="slidingDftGainDecibelPerOct"]').innerHTML
-   = `混色の重み：${slidingDftGainDecibelPerOct.toFixed(2)} <span>🔢</span>`;
+   = `表示の重み：${slidingDftGainDecibelPerOct.toFixed(2)} <span>🔢</span>`;
   popupViewWaveMenu.querySelector('[data-action="slidingDftLwrIsVisible"]').classList.add('checked');
   popupViewWaveMenu.querySelector('[data-action="colorBeltVisible"]').classList.add('checked');
+  popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.add('checked');
+  popupViewWaveMenu.querySelector('[data-action="slidingDftLwrAddDecibelPerOct"]').classList.add('checked');
   fitMenuInViewportAndRemoveHide(popupViewWaveMenu);//✔した状態でフィット
   if (!slidingDftLwrIsVisible) popupViewWaveMenu.querySelector('[data-action="slidingDftLwrIsVisible"]').classList.remove('checked');
   if (!colorBeltVisible) popupViewWaveMenu.querySelector('[data-action="colorBeltVisible"]').classList.remove('checked');
-
+  if (!colorBeltSaturationBoost) popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.remove('checked');
+  if (!slidingDftLwrAddDecibelPerOct) popupViewWaveMenu.querySelector('[data-action="slidingDftLwrAddDecibelPerOct"]').classList.remove('checked');
 }
 function showPopupColorBarMenu(x, y) {//メニュー表示
   popupColorBarMenu.style.visibility = "hidden";//まだ隠す
@@ -4165,8 +4179,10 @@ function showPopupColorBarMenu(x, y) {//メニュー表示
   popupColorBarMenu.querySelector('[data-action="slidingDftGainDecibelPerOct"]').innerHTML
    = `混色の重み：${slidingDftGainDecibelPerOct.toFixed(2)} <span>🔢</span>`;
   popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.add('checked');
+  popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.add('checked');
   fitMenuInViewportAndRemoveHide(popupColorBarMenu);//✔した状態でフィット
   if (!colorBeltVisible) popupColorBarMenu.querySelector('[data-action="colorBeltVisible"]').classList.remove('checked');
+  if (!colorBeltSaturationBoost) popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.remove('checked');
 }
 function showPopupViewHistoryMenu(x, y) {//メニュー表示
   popupViewHistoryMenu.style.visibility = "hidden";//まだ隠す
@@ -5555,6 +5571,12 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
 //popupSdftColorDiv.classList.add('hidden')
       if (!rafId) draw();
       break;
+    case 'colorBeltSaturationBoost':
+      colorBeltSaturationBoost = !colorBeltSaturationBoost;
+      if (colorBeltSaturationBoost) popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.add('checked');
+      else popupViewWaveMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.remove('checked');
+      if (!rafId) draw();
+      break;
     case 'slidingDftLwrIsVisible':
       slidingDftLwrIsVisible = !slidingDftLwrIsVisible;
       if (slidingDftLwrIsVisible) popupViewWaveMenu.querySelector('[data-action="slidingDftLwrIsVisible"]').classList.add('checked');
@@ -5562,6 +5584,14 @@ popupViewWaveMenu.addEventListener('click', async (e) => {//ポップアップ�
       drawWaveGrid();
       if (!rafId) draw();
       break;
+    case 'slidingDftLwrAddDecibelPerOct':
+      slidingDftLwrAddDecibelPerOct = !slidingDftLwrAddDecibelPerOct;
+      if (slidingDftLwrAddDecibelPerOct) popupViewWaveMenu.querySelector('[data-action="slidingDftLwrAddDecibelPerOct"]').classList.add('checked');
+      else popupViewWaveMenu.querySelector('[data-action="slidingDftLwrAddDecibelPerOct"]').classList.remove('checked');
+      if (!rafId) draw();
+      break;
+
+
     case 'slidingDftGainDecibelPerOct':
       keyInputDivSetting.labelTxt = "周波数重み付け";
       keyInputDivSetting.labelSubTxt = "dB/Oct";
@@ -5605,6 +5635,13 @@ popupColorBarMenu.addEventListener('click', async (e) => {//ポップアップ�
 //popupSdftColorDiv.classList.add('hidden')
       if (!rafId) draw();
       break;
+    case 'colorBeltSaturationBoost':
+      colorBeltSaturationBoost = !colorBeltSaturationBoost;
+      if (colorBeltSaturationBoost) popupColorBarMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.add('checked');
+      else popupColorBarMenu.querySelector('[data-action="colorBeltSaturationBoost"]').classList.remove('checked');
+      if (!rafId) draw();
+      break;
+
     case 'slidingDftGainDecibelPerOct':
       keyInputDivSetting.labelTxt = "周波数重み付け";
       keyInputDivSetting.labelSubTxt = "dB/Oct";
@@ -10247,7 +10284,15 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     j++;
   }
 
-  //描画
+  //描画準備
+  let visibleMax = -Infinity;//ゲインも加味、表示非表示も加味、全表示範囲の最大値
+  for(let i=0;i<dftMax.length;i++){
+    if(slidingDftIsVisible[0] && visibleMax < dftMax[i]*slidingDftGain[i]) visibleMax = dftMax[i]*slidingDftGain[i];
+  }
+  for(let i = 0; i < toNorm.length; i++) {
+    toNorm[i] = visibleMax!==0? slidingDftGain[i] / visibleMax : 0;//0～1の数値にするための係数。ゲイン考慮
+  }
+
   //線幅補正
   let widthRate = 1;
   if (waveViewLength > waveViewLengthDefault) widthRate = Math.pow(waveViewLengthDefault / waveViewLength, 0.2);  
@@ -10263,7 +10308,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     }
     ctxFft.stroke();
     if (!slidingDftLwrIsVisible) continue;//正規化SDFTにチェックがなければ次
-    const normalizeRate = waveY0 / dftMax[i] * 0.5;
+    const normalizeRate = waveY0 * (slidingDftLwrAddDecibelPerOct? 0.5 * toNorm[i] : 0.5 / dftMax[i]);//個別に正規化か、全てのゲインでの正規化か
     ctxFft.beginPath();
     ctxFft.moveTo(0, waveY0 * 2 - slidingDftValue[i][0] * normalizeRate);
     for (let j = 1; j < waveViewLength; j++) {
@@ -10275,21 +10320,16 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
 
   if (colorBeltVisible === false) return;//色の帯を表示しないならここで終わる#######################################
 
+/*
   dftSquareSum /= dftSquareLength;
   dftSquareSum = Math.sqrt(dftSquareSum * 2);
   dftSquareMax = Math.sqrt(dftSquareMax);
   const invDftMax = (dftSquareMax < 1e-12) ? 0 : 1 / dftSquareMax;
-
-  let visibleMax=-Infinity;//ゲインも加味、表示非表示も加味、全表示範囲の最大値
-  for(let i=0;i<dftMax.length;i++){
-    if(slidingDftIsVisible[0] && visibleMax<dftMax[i]*slidingDftGain[i]) visibleMax=dftMax[i]*slidingDftGain[i];
-  }
-
-  const toNorm = slidingDftGain.map((gain) => (visibleMax!==0?gain/visibleMax:0));//0～1の数値にするための係数。ゲイン考慮
-
+*/
 
   let previousX=0;
-  let idotMax=[0,0,0,0];//同じドットの中で最大値を探る用
+
+  [idotMax[0], idotMax[1], idotMax[2], idotMax[3]]=[0,0,0,0];//同じドットの中で最大値を探る用
 
   for (let i = 0; i < slidingDftValue[0].length ; i++) {
     const x=iToX*i|0;//今回のx位置
@@ -10297,67 +10337,25 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
       for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
         idotMax[sdftNo] = Math.max(idotMax[sdftNo], slidingDftValue[sdftNo][i]);}//最大値を探る
     }else{//ズレた
-      let maxNorm=-Infinity;
-      let lab_a = 0;
-      let lab_b = 0;
-      let lab_l = 0;
-      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
-        const norm=idotMax[sdftNo]*toNorm[sdftNo];//0~1に変換
-        lab_a += slidingDftColorA[sdftNo]*norm;
-        lab_b += slidingDftColorB[sdftNo]*norm;
-        lab_l += slidingDftColorLightness[sdftNo]*norm;
-      }
-      const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
-      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
-      const radius = maxRadius*selLSin;
-      const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
-      lab_a *= rev_r;
-      lab_b *= rev_r;
-      lab_l = correctLabLightness(lab_l, lab_a, lab_b);//赤と青が沈むので少し明るさ調整
+      calcColorForColorBelt();//idotMax→linearRGBの計算
 
-      let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
-      linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
-      linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
-      linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
       while(previousX<x){//１ドット以上の可能性もあるのでループ
-        rgb[previousX * 3 + 0] = linearR3;
-        rgb[previousX * 3 + 1] = linearG3;
-        rgb[previousX * 3 + 2] = linearB3;
+        rgb[previousX * 3 + 0] = linearRGB_uint[0];
+        rgb[previousX * 3 + 1] = linearRGB_uint[1];
+        rgb[previousX * 3 + 2] = linearRGB_uint[2];
         previousX++;
       }
       for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
         idotMax[sdftNo] = slidingDftValue[sdftNo][i];}//idotMaxに現在値を入れる
     }
   }
-  {//最後のドット
-      let lab_a = 0;
-      let lab_b = 0;
-      let lab_l = 0;
-
-      for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
-        const norm=idotMax[sdftNo]*toNorm[sdftNo];//0~1に変換
-        lab_a += slidingDftColorA[sdftNo]*norm;
-        lab_b += slidingDftColorB[sdftNo]*norm;
-        lab_l += slidingDftColorLightness[sdftNo]*norm;
-      }
-      const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
-      const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
-      const radius = maxRadius*selLSin;
-      const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
-      lab_a *= rev_r;
-      lab_b *= rev_r;
-      lab_l = correctLabLightness(lab_l, lab_a, lab_b);//赤と青が沈むので少し明るさ調整
-      let [linearR3, linearG3, linearB3] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
-      linearR3=(Math.max(0, Math.min(1, gamma(linearR3))) * 255)|0;
-      linearG3=(Math.max(0, Math.min(1, gamma(linearG3))) * 255)|0; 
-      linearB3=(Math.max(0, Math.min(1, gamma(linearB3))) * 255)|0;
-
-      while(previousX<glSampleNum){//１ドット以上の可能性もあるのでループ
-        rgb[previousX * 3 + 0] = linearR3;
-        rgb[previousX * 3 + 1] = linearG3;
-        rgb[previousX * 3 + 2] = linearB3;
-        previousX++;
-      }
+  //最後のドット
+  calcColorForColorBelt();//idotMax→linearRGBの計算
+  while(previousX<glSampleNum){//１ドット以上の可能性もあるのでループ
+    rgb[previousX * 3 + 0] = linearRGB_uint[0];
+    rgb[previousX * 3 + 1] = linearRGB_uint[1];
+    rgb[previousX * 3 + 2] = linearRGB_uint[2];
+    previousX++;
   }
 
 
@@ -10368,57 +10366,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   );
   drawGlCanvas();//カラーバー
 
-return;
-
-
-
-  return;//ここから下は使わない###############################################
-//  ctxFft.fillStyle = "#f88";//色指定
-//  ctxFft.fillRect(0, waveY0 - dftSquareMax * valueToYinThisFreq, fftCanvas.width, 1);
-  for (let j = 0; j < waveViewLength; j++) {
-
-    let r = slidingDftValue[0][j] * slidingDftGain[0];
-    let g = slidingDftValue[1][j] * slidingDftGain[1];
-    let b = Math.sqrt((slidingDftValue[2][j] * slidingDftGain[2]) ** 2 + (slidingDftValue[3][j] * slidingDftGain[3]) ** 2);
-    const tmpRgbMax = Math.max(r, g, b);
-    const normL = Math.pow(tmpRgbMax / (dftSquareMax > 1e-12 ? dftSquareMax : 1), 0.8);
-    if (tmpRgbMax > 1e-12) {
-      const invtmpRgbMax = 1 / tmpRgbMax;
-      r *= invtmpRgbMax;
-      g *= invtmpRgbMax;
-      b *= invtmpRgbMax;
-    }
-    const rgbMax = Math.max(r, g, b);
-    const rgbMin = Math.min(r, g, b);
-    const rgbRange = rgbMax - rgbMin;
-    if (rgbRange !== 0) {
-      let h;
-      let s = 0;
-      let l = (rgbMax + rgbMin) / 2;
-        switch (rgbMax) {
-        case r:
-          h = (g - b) / rgbRange + (g < b ? 6 : 0);
-          break;
-        case g:
-          h = (b - r) / rgbRange + 2;
-          break;
-        case b:
-          h = (r - g) / rgbRange + 3.5;
-          break;
-      }
-      h *= 60; // 0〜360度
-      s = rgbRange / (1 - Math.abs(2 * l - 1)) * 100;
-      l *= 100;
-      ctxFft.fillStyle = `hsl(${h}, ${s}%, ${normL * 80}%)`;
-    } else {
-      ctxFft.fillStyle = `#000`;
-    }
-
-//const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-//    ctxFft.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-    ctxFft.fillRect(j * iToX, 0, iToX + 1, 8);
-  }
-
+  return;
 }
 
 function correctLabLightness(L, a, b) {//Labで青赤のLを上げる補正の関数
@@ -10436,6 +10384,39 @@ function correctLabLightness(L, a, b) {//Labで青赤のLを上げる補正の�
 
   return Math.min(100, L + correction);
 }
+
+function calcColorForColorBelt(){//カラー帯用の色計算//idotMax→linearRGBの計算
+//  let idotMax=[0,0,0,0];//同じドットの中で最大値を探る用
+
+  let lab_a = 0;
+  let lab_b = 0;
+  let lab_l = 0;
+  for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+    const norm=idotMax[sdftNo]*toNorm[sdftNo];//0~1に変換
+    lab_a += slidingDftColorA[sdftNo]*norm;
+    lab_b += slidingDftColorB[sdftNo]*norm;
+    lab_l += slidingDftColorLightness[sdftNo]*norm;
+  }
+  if (colorBeltSaturationBoost) {
+    const selLW=Math.PI*Math.max(Math.min(lab_l/140, 0.80),0.0);
+    const selLSin=Math.pow(Math.sin(selLW), radiusGamma);
+    const radius = maxRadius*selLSin;
+    const rev_r = radius / Math.sqrt(lab_a * lab_a + lab_b * lab_b);
+    lab_a *= rev_r;
+    lab_b *= rev_r;
+  } else {
+    lab_a *= 2;//なんとなくな超ざっくり調整
+    lab_b *= 2;//なんとなくな超ざっくり調整
+  }
+
+  lab_l = correctLabLightness(lab_l, lab_a, lab_b);//赤と青が沈むので少し明るさ調整
+
+  [linearRGB_float[0], linearRGB_float[1], linearRGB_float[2]] = labToLinearRgb(lab_l, lab_a, lab_b);//L:0~100, a:±100, b:±100
+  linearRGB_uint[0]=(Math.max(0, Math.min(1, gamma(linearRGB_float[0]))) * 255)|0;
+  linearRGB_uint[1]=(Math.max(0, Math.min(1, gamma(linearRGB_float[1]))) * 255)|0; 
+  linearRGB_uint[2]=(Math.max(0, Math.min(1, gamma(linearRGB_float[2]))) * 255)|0;
+}
+
 
 function drawAsdf() {
   let asdfMax = -Infinity;
