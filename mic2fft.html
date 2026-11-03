@@ -617,7 +617,7 @@
   <div data-action="refLine">参考線の表示<span>›</span></div>
 </div>
 <div id="popupInfoTxtMenu" class="menu hidden">
-  <div data-action="animateFpsVisible">fpsの表示</div>
+  <div data-action="animateFpsVisible">実行最大fpsの表示</div>
   <div data-action="targetFreqTxtVisible">モニタ周波数の表示</div>
   <div data-action="targetFreqDecibelVisible">モニタ周波数のdB</div>
   <div data-action="norm1Visible">波形表示範囲のdB</div>
@@ -1766,6 +1766,9 @@ const colorLab_inv116 = 1 / 116;//LAB→rgb計算用
 const colorXYZ_d4 = 4 / 29;//LAB→rgb計算用
 const colorXYZ_d6 = 6 / 29;//LAB→rgb計算用
 const colorXYZ_d6sqare_x3 = colorXYZ_d6 * colorXYZ_d6 * 3;//LAB→rgb計算用
+const slidingDftColorRadiusToNorm = [100/slidingDftColorRadius[0], 100/slidingDftColorRadius[1]
+                                    , 100/slidingDftColorRadius[2], 100/slidingDftColorRadius[3]];//色
+
 makeSdftColorMap();//マップ作り
 
 const idotMax = new Float32Array(4);//同じドットの中で最大値を探る用
@@ -4644,7 +4647,9 @@ function makeSdftColorMap(){
   slidingDftColorHue.forEach((hue, i) => {//aとbを計算
     slidingDftColorA[i] = slidingDftColorRadius[i] * Math.cos(Math.PI*hue/180);
     slidingDftColorB[i] = slidingDftColorRadius[i] * Math.sin(Math.PI*hue/180);
-  })  
+    slidingDftColorRadiusToNorm[i] = 100 / slidingDftColorRadius[i];
+  })
+
   return;
 }
 
@@ -10318,7 +10323,14 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   }//ビンごとループの終わり
   ctxFft.restore();
 
+
+
+
   if (colorBeltVisible === false) return;//色の帯を表示しないならここで終わる#######################################
+
+  for(let i = 0; i < toNorm.length; i++) {//toNormに色の半径補正を加える
+    toNorm[i] *= slidingDftColorRadiusToNorm[i];//0～1の数値にするための係数。ゲイン考慮
+  }
 
 /*
   dftSquareSum /= dftSquareLength;
