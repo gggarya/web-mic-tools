@@ -10292,7 +10292,7 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
   //描画準備
   let visibleMax = -Infinity;//ゲインも加味、表示非表示も加味、全表示範囲の最大値
   for(let i=0;i<dftMax.length;i++){
-    if(slidingDftIsVisible[0] && visibleMax < dftMax[i]*slidingDftGain[i]) visibleMax = dftMax[i]*slidingDftGain[i];
+    if(slidingDftIsVisible[i] && visibleMax < dftMax[i]*slidingDftGain[i]) visibleMax = dftMax[i]*slidingDftGain[i];
   }
   for(let i = 0; i < toNorm.length; i++) {
     toNorm[i] = visibleMax!==0? slidingDftGain[i] / visibleMax : 0;//0～1の数値にするための係数。ゲイン考慮
@@ -10322,7 +10322,6 @@ function drawSlidingDFT(zeroIndex, endIndex, waveY0, valueToY, iToX) {
     ctxFft.stroke();
   }//ビンごとループの終わり
   ctxFft.restore();
-
 
 
 
@@ -10404,6 +10403,7 @@ function calcColorForColorBelt(){//カラー帯用の色計算//idotMax→linear
   let lab_b = 0;
   let lab_l = 0;
   for (let sdftNo = 0; sdftNo < idotMax.length; sdftNo++) {
+    if (!slidingDftIsVisible[sdftNo]) continue;//falseだったら次
     const norm=idotMax[sdftNo]*toNorm[sdftNo];//0~1に変換
     lab_a += slidingDftColorA[sdftNo]*norm;
     lab_b += slidingDftColorB[sdftNo]*norm;
