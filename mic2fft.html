@@ -2511,7 +2511,7 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
       } else if (Math.abs(fftCanvas.width - x ) < HIT_RANGE) {//中段の右端
         return "historyR";
       } else {
-        if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 0.4) return "separator2uprCenter";
+        if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 0.6) return "separator2uprCenter";
         else return "separator2upr";
       }
     } else {//区切り線の下側
@@ -2523,7 +2523,7 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
         return "colorMap";
       } else if (Math.abs(fftCanvas.width - (colorMapVisible ? colorMapCanvas.width : 0) - x ) < HIT_RANGE * 2) {//下段の右端
         return "fftR";
-      } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 0.4) return "separator2lwrCenter";
+      } else if (Math.abs(spectrumHistoryHcomp - y) <= HIT_RANGE * 0.6) return "separator2lwrCenter";
         else return "separator2lwr";
     }
   } else if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE) {//上の区切り線======================================
@@ -2540,7 +2540,7 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
       } else if (Math.abs(fftCanvas.width - x ) < HIT_RANGE) {//中段の右端
         return "waveR";
       } else {
-        if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 0.4) return "separator1uprCenter";
+        if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 0.6) return "separator1uprCenter";
         else return "separator1upr";
       }
       return "separator1";
@@ -2551,7 +2551,7 @@ function getAreaName(x, y, waveWindowHcomp, spectrumHistoryHcomp) {//画面上�
       } else if (Math.abs(fftCanvas.width - x ) < HIT_RANGE) {//中段の右端
         return "historyR";
       } else {
-        if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 0.4) return "separator1lwrCenter";
+        if (Math.abs(waveWindowHcomp - y) <= HIT_RANGE * 0.6) return "separator1lwrCenter";
         else return "separator1lwr";
       }
     }
