@@ -3887,14 +3887,14 @@ function showMenu(x, y) {//ポップアップ表示
         popupSdftOffMenu.querySelector('[data-action="off"]').textContent = `SDFT ${Number(areaName.slice(4)) + 1} Off`;        
         showPopupSdftOffMenu(x, y);
         break;
-      case "separator1uprCenter":
-      case "separator1lwrCenter":
+//      case "separator1uprCenter":
+//      case "separator1lwrCenter":
 //        showWaveSizeMenu(x, y);
-        break;
-      case "separator2uprCenter":
-      case "separator2lwrCenter":
+//        break;
+//      case "separator2uprCenter":
+//      case "separator2lwrCenter":
 //        showSpectroMenu(x, y);
-        break;
+//        break;
       case "freqRuler":
       case "freqRulerL":
       case "freqRulerR":
@@ -3906,12 +3906,15 @@ function showMenu(x, y) {//ポップアップ表示
       case "fftR":
         showTiltMenu(x, y);
         break;
+      case "separator2lwrCenter":
       case "separator2lwr":
       case "fft":
         showPopupViewFftMenu(x, y);
         break;
       case "separator1lwr":
+      case "separator1lwrCenter":
       case "separator2upr":
+      case "separator2uprCenter":
       case "historyMRR":
       case "historyMRL":
       case "historyML":
@@ -3920,6 +3923,7 @@ function showMenu(x, y) {//ポップアップ表示
         showPopupViewHistoryMenu(x, y);
         break;
       case "separator1upr":
+      case "separator1uprCenter":
       case "waveR":
       case "waveL":
       case "wave":
