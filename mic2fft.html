@@ -3031,6 +3031,7 @@ function onMove(e) {
 }
 function onUp(e) {
   fftCanvas.releasePointerCapture(e.pointerId);
+  if (gesture.pointers.size === 0) return;//すでにゼロだったら終わる
   if (e.button === 2) return;//右クリックはcontextmenuでとるのでキャンセル
 //  clearTimeout(pressTimer);//長押しキャンセル
 //  pressTimer = null;
@@ -4942,6 +4943,7 @@ waveSizeMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   }
   hideWaveSizeMenu();
   hideMenu();
+  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
 });
 spectroMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -4965,6 +4967,7 @@ spectroMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   }
   hideSpectroMenu();
   hideMenu();
+  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
 });
 unitMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
