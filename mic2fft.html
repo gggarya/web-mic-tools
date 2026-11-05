@@ -3889,11 +3889,11 @@ function showMenu(x, y) {//ポップアップ表示
         break;
       case "separator1uprCenter":
       case "separator1lwrCenter":
-        showWaveSizeMenu(x, y);
+//        showWaveSizeMenu(x, y);
         break;
       case "separator2uprCenter":
       case "separator2lwrCenter":
-        showSpectroMenu(x, y);
+//        showSpectroMenu(x, y);
         break;
       case "freqRuler":
       case "freqRulerL":
@@ -4943,7 +4943,7 @@ waveSizeMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   }
   hideWaveSizeMenu();
   hideMenu();
-  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
+//  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
 });
 spectroMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
@@ -4967,7 +4967,7 @@ spectroMenu.addEventListener('click', async (e) => {//ポップアップメニ�
   }
   hideSpectroMenu();
   hideMenu();
-  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
+//  while(gesture.pointers.size !== 0)onUp(e);//指を消去していく
 });
 unitMenu.addEventListener('click', async (e) => {//ポップアップメニュークリック
   const action = e.target.dataset.action;
