@@ -2674,7 +2674,7 @@ fftCanvas.addEventListener("wheel", e => {
           requestAnimationFrame(() => { flyInfo.classList.remove("active"); flyInfo.classList.add('fadeout'); });//表示したらすぐ消す
         });
       } else {
-        if (e.shiftKey) {// Shift + ホイール
+        if (e.shiftKey || gesture.pointers.size !== 0 || (e.buttons & 2)) {// Shift + ホイール
           const scale = Math.exp(-e.deltaY * 0.001);    
           zoomVertical(e.offsetY * dpr, scale);
         } else {// 通常ホイール
